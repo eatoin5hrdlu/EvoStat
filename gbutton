@@ -1,0 +1,545 @@
+#!/usr/bin/xpce
+:- use_module(library(time)).
+:- use_module(library(pce)).
+:- use_module(library(process)).
+:- use_module(library(charsio)).
+:- use_module(library(helpidx)).
+:- use_module(library(lists)).
+:- use_module(library(ctypes)).
+
+:- use_module(library(time)).
+:- use_module(library(process)).
+
+:- dynamic tog/1.
+
+parse_reply(Reply, Term, Default) :-
+	catch( atom_to_term(Reply,Term,_TMBindings),
+	       Exception,
+	       ( writeln(caught(Exception,atom_to_term(Reply))), Term = exception(Exception))),
+	(var(Term) -> Term = Default ; true).
+
+getIPfromMAC(_,_) :- fail.
+
+snapshot(Path, FileName) :-
+	directory_files(Path,FileList),
+	member(IFile,FileList),
+	atom_codes(IFile,ICs),
+	append("mypic",_,ICs),
+	concat_atom([Path,IFile],FileName),
+	!.
+snapshot(Path, Filename) :-
+	concat_atom([Path,'opencvlevel.jpg'], Filename).
+
+
+% WGET will use alternate filenames so we update Image properly
+% and are never caught reading a file that hasn't been fully written
+
+toggle('mypic1.jpg','mypic2.jpg') :- tog(2), retract(tog(2)),assert(tog(1)).
+toggle('mypic2.jpg', 'mypic1.jpg') :- tog(1), retract(tog(1)),assert(tog(2)).
+
+wget( OtherFile,
+      '/usr/bin/wget',
+      ['-q', '-O',File,
+      'http://192.168.2.117:88/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=scrapsec&pwd=lakewould']):-
+      toggle(File,OtherFile).
+
+repeat(N) :-
+             integer(N), % type check
+             N>0,        % value check 
+             repeat1(N).
+
+repeat1(1) :- !.
+repeat1(_).
+repeat1(N) :- M is N-1, repeat1(M).
+
+:- writeln(ingbutton),
+   ( current_prolog_flag(arch,'i386-win32')
+     -> load_foreign_library(foreign(plblue))
+     ;  load_foreign_library(plblue)
+   ),
+   writeln('plblue (BLUETOOTH) loaded').
+
+:- pce_begin_class(snapshot, label).
+
+variable(imageDirectory, name, get, "Current Image Path" ).
+variable(imageFile,      name, get, "Current Image Filename" ).
+
+initialise(Self, Label:[name]) :->
+	"Initialise the image area"::
+        send_super(Self, initialise(Label)),
+	send(Self, size, size(650,480)),
+	snapshot('./',File),
+%	writeln(snapshot(File)),
+	send(Self, slot, imageFile, File),
+	send(Self, slot, imageDirectory, './'),
+	new(I, image(File)),
+	send(Self, selection, I),
+	assert(tog(1)).
+
+image(Self, File:[name])      :->
+	send(Self,slot,imageFile, File).
+
+imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
+
+shape(Self, W:[int], H:[int]) :->
+	send(Self, size, size(W,H)).
+
+update(Self) :->
+	get(Self, imageDirectory, Path),
+	snapshot(Path, File),
+	new(I, image(File)),
+	send(Self,selection,I).
+
+:- pce_end_class.
+
+:- pce_begin_class(ebutton, button).
+
+variable(socket,  int, get, "Bluetooth/IP Socket" ).
+variable(mac, name, get,    "Bluetooth/IP MAC Address" ).
+variable(reply, name, get, "Last Message from Device" ).
+variable(levelUnits, name,  get, "% or mL (usually)").
+
+% Current Settings
+variable(od600,       int, get, "Optical Density (600nM)").
+variable(temperature, real, get, "Temperature").
+
+% Target Settings
+variable(od600_t,       int, get, "Target Optical Density (600nM)").
+variable(temperature_t, real, get, "Target Temperature").
+
+initialise(Self, Label:[name]) :->
+	"Initialise the button and connect to device"::
+        send_super(Self, initialise(Label)),
+	send(Self, slot, levelUnits, 'mL'),
+	send(Self, slot, temperature_t, 37.0),
+	send(Self, slot, od600_t, 400),
+	send(Self, slot, temperature, 0.0),
+	send(Self, slot, od600, 0.0),
+	send(Self, slot, socket, -1),
+	send(Self, slot, mac, discover).
+
+levelUnits(Self,Units) :->
+       send(Self, slot, levelUnits, Units).
+
+mix_colors(   C,   C,      C) :- !.
+mix_colors(   _,blue, purple) :- !.
+mix_colors(blue,   _, purple) :- !.
+mix_colors(green,  _, orange) :- !.
+mix_colors( _, green, orange).
+
+compute(_) :-> true.
+
+shape(Self, W:[int], H:[int]) :->
+	   send(Self, size(size(W,H))).
+
+od(Self, OD600:[real]) :->
+	 send(Self, slot, od600, OD600).
+
+temp(Self, Temp:[real]) :->
+	 send(Self, slot, temperature, Temp).
+
+% Cellstat and Lagoon Bluetooth Communications
+converse(Self, Cmd) :->
+	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
+        get(Self, socket, Socket),
+	get(Self,label,Who),
+	(Socket = -1
+	 -> get(Self, mac, Addr),
+	    concat_atom(['no_connection(',Who,',''',Addr,''').'], Error1),
+	    send(Self, slot, reply, Error1)
+	 ; ( bt_converse(Socket, Cmd, Reply)
+	    -> send(Self, slot, reply, Reply)
+	    ; concat_atom(['failed(',Who,',"',Cmd,'").'],Error2),
+	      send(Self, slot, reply, Error2)
+	   )
+	).
+
+mac(Self, Addr:[name]) :->
+	send(Self, slot, mac, Addr),
+	send(Self, connect).
+
+connect(Self) :->
+	"Connect (or re-connect) the Bluetooth channel"::
+	get(Self, mac, Addr),
+	get(Self, socket, OldSocket),
+        ( OldSocket > -1 -> bt_close(OldSocket) ; true),
+	( bt_socket(Addr, BTSocket) ->
+	  send(Self, slot, socket, BTSocket),
+	  send(Self,colour,colour(green))
+	; send(Self,colour,colour(red))
+	).
+
+insertIP(Cmd, IP, Result) :-
+        atom_codes(Cmd, Cs),
+        atom_codes(IP, ICs),
+	[AT] = "@",
+        append(Front,[AT|Rest],Cs),
+	flatten([Front,ICs,Rest],CommandCs),
+	atom_codes(Result,CommandCs).
+
+ip(Self, IP:[name]) :->
+	 socket(IP, Socket),
+	 send(Self, slot, ipsocket, Socket).
+
+mac_wget(Self, MAC:[name], Cmd:[name]) :->
+        getIPfromMAC(MAC,IP),
+	send(Self, wget, wget(IP, Cmd)).
+
+wget(Self, IP:[name], Cmd:[name]) :->
+        insertIP(Cmd,IP,Command),
+	send(Self, slot, wget, Command).
+
+mac(Self, MAC:[name]) :->
+        getIPfromMAC(MAC,IP),
+	send(Self, ip, ip(IP)).
+
+bt(Self, MacAddr) :->
+	get(Self, socket, OldSocket),
+        ( OldSocket > -1 -> bt_close(OldSocket) ; true),
+	repeat(5),
+		bt_socket(MacAddr,Socket),
+	( Socket > -1; sleep(1),fail ),
+	!,
+	send(Self,slot,socket,Socket).
+
+:- pce_end_class.
+
+:- pce_begin_class(cellstat, ebutton).
+
+update(Self) :->
+	send_super(Self,converse,'t'),
+        get(Self,slot,reply,Reply),
+	writeln(cellstatreply(Reply)),
+	parse_reply(Reply, temperature(Temp), temperature(11.3)),
+        send(Self,slot,temperature,Temp),
+        get(Self,slot,temperature_t,Target),
+	range_color(Target, Temp, Tc),
+        get(Self,slot,od600_t,ODTarget),
+	send_super(Self,converse,'b'),
+        get(Self,slot,reply,TurbReply),
+        atom_to_term(TurbReply,TbTerm,_TBBindings),
+	TbTerm = turbidity(TurbVal),
+	send(Self,slot,od600,TurbVal),
+	range_color(ODTarget, TurbVal, ODc),
+	mix_colors(Tc,ODc,Color),
+	send(Self, colour(Color)),
+        concat_atom(['\nCellStat\nTemperature: ', Target, ' / ',Temp,'\n',
+ 		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label),
+	send(Self, label, Label).
+
+:- pce_end_class.
+
+:- pce_begin_class(lagoon, ebutton).
+
+variable(fluorescence,real, get, "Fluorescence").
+variable(fluorescence_t, real, get, "Target Fluorescence").
+variable(level,real, get, "Level").
+variable(level_t, real, get, "Target Level").
+variable(calibrate_level, real, get, "Calibration Level").
+
+variable(calibration, name, get, "Calibration State Machine").
+variable(target_rate, real, get, "Target Flow Rate").
+variable(start_time, real, get, "Time since last Calibration state change").
+variable(rate_input, real, get, "Calculated Input Flow Rate").
+variable(rate_output, real, get, "Calculated Output Flow Rate").
+variable(calibration, name, get, "Calibration State Machine").
+
+
+initialise(Self, Label:[name]) :->
+	"Initialise the lagoon"::
+        send_super(Self, initialise(Label)),
+	send(Self, slot, calibration, normal),
+	send(Self, slot, level, 10.0),
+	send(Self, slot, level_t, 0.3),
+	send(Self, slot, fluorescence_t, 0.2),
+	send(Self, slot, fluorescence, 0.0).
+
+update(Self) :->
+        get(Self,slot,socket,-1),
+	!,
+	send(Self,colour,colour(red)).
+
+update(Self) :->
+	send_super(Self,converse,'t'),
+        get(Self,slot,reply,Reply),
+	writeln(lagoonreply(Reply)),
+	parse_reply(Reply,target_temperature(TempInt),target_temperature(111)),
+	Temp is float(TempInt)/10.0,
+        send(Self,slot,temperature,Temp),
+        get(Self,slot,level,Level),
+        get(Self,slot,temperature,Temp),
+        get(Self,slot,temperature_t,Target),
+	range_color(Target, Temp, Color),
+	send(Self, colour(Color)),
+        get(Self,slot,fluorescence_t,LuxTarget),
+        get(Self,slot,fluorescence,Lux),
+	format(atom(Level2), '~4g', [Level]),
+	format(atom(Lux2), '~4g', [Lux]),
+	get(Self,slot,calibration,State),  % The Calibration State is the Message
+	send(Self,State),
+        concat_atom(['Level ', Level2, 'mL\n',
+	             'Temp  ', Target, 'C / ',Temp,' C\n',
+                     'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label),
+	send(Self, label, Label).
+
+% Calibration begins after someone sends the 'calibrate' message
+% Lagoons can distiguish between input valves and output valves.
+% command: do (disable output valves)
+%          eo (enable outputs)
+%          di (disable input valves)
+%          ei (enable input valves)
+
+calibrate(Self) :->
+    get(Self,slot,calibration,C),
+    writeln(calibration(Self,C)),
+    C = normal,
+    send(Self,slot,calibration,inflow),
+    get_time(Time),
+    send(Self,slot,start_time,Time),
+    get(Self,slot,level,Level),
+    CLevel is 1.1 * Level,
+    send(Self,slot,calibrate_level,CLevel).
+%    send(Self,command, do).  % Disable Output Flow(s)
+
+
+setLevel(Self,Level) :->
+       send(Self, slot, level, Level).
+
+setFlux(Self,Level) :->
+       send(Self, slot, fluorescence, Level).
+
+
+normal(_Self) :-> true.
+
+inflow(Self) :->
+    get_time(Now),
+    get(Self,slot,start_time,STime),
+    Now >= STime + 20,
+    !,
+    writeln(calibrationInflowTimedOut(Self)),
+    send(Self,slot,calibration,outflow),
+    get(Self,slot,level,Level),
+    get(Self,slot,calibrate_level,CLevel),
+    Level >= CLevel,
+    get_time(Time),
+    get(Self,slot,start_time,StartTime),
+    RateInput is ( Level/(10*(Time-StartTime))),
+    send(Self,slot,rate_input,RateInput),
+    CLevel is Level - (Level/11.0),
+    get(Self,slot,calibrate_level,Level),
+    get(Self,slot,start_time,Time), % Restart timer
+%    send(Self,command, eo), % Enable Output Flow(s)
+%    send(Self,command, di), % Disable Input Flow(s)
+    send(Self,slot,calibration,outflow),
+    !.
+	       
+% Calculate Output Flow Rate with time to decrease volume by 10% (1/11)
+
+outflow(Self) :->
+    get_time(Now),
+    get(Self,slot,start_time,STime),
+    Now >= STime + 20,
+    !,
+    writeln(calibrationOutflowTimedOut(Self)),
+    send(Self,slot,calibration,normal),
+    get(Self,slot,level,Level),
+    get(Self,slot,calibrate_level,CLevel),
+    Level =< CLevel,
+    get_time(Time),
+    get(Self,slot,start_time,StartTime),
+    RateOutput is ( CLevel/(10*(Time-StartTime))),
+    send(Self,slot,rate_output,RateOutput),
+    send(Self,slot,calibration,normal),
+%    send(Self, command, ei), % Re-enable Normal Input Flow(s)
+    !.
+
+% Adjust valve times with the calculated Flow Rates
+done(Self) :->
+    get(self,slot,target_rate, TargetFlow),
+    get(self,slot,rate_input, RateInput),
+    _DeltaInput is TargetFlow - RateInput,
+%    send(Self,command,[ai,DeltaInput]),
+    get(self,slot,rate_output, RateOutput),
+    _DeltaOutput is TargetFlow - RateOutput,
+%    send(Self,command,[ao,DeltaOutput]),
+    send(Self,slot,calibration,normal).
+
+:- pce_end_class.
+
+:- pce_begin_class(sampler, ebutton).
+
+initialise(Self, Label:[name]) :->
+	"Initialise the sampler"::
+        send_super(Self, initialise(Label)).
+
+update(Self) :->
+	( tog(1) ->
+	   send(Self, colour, colour(black))
+	;
+	   send(Self, colour, colour(blue))
+	).
+
+:- pce_end_class.
+
+:- pce_begin_class(spacer, box).
+
+initialise(Self, _Name:[name]) :->
+	screen(_,W,_H,_Pos),
+	NWid is W - 30,
+        send_super(Self, initialise(NWid, 6)),
+	send(Self, colour, colour(black)),
+	send(Self, fill_pattern, colour(black)).
+
+color(Self, Color) :->
+	send(Self, colour, colour(Color)),
+	send(Self, fill_pattern, colour(Color)).
+
+update(_Self) :-> true.
+
+:- pce_end_class.
+
+:- pce_begin_class(pumps, dialog_group, "Pump Rail").
+
+variable(socket,  int, get, "Bluetooth/IP Socket" ).
+variable(mac,    name, get, "Bluetooth/IP MAC Address" ).
+variable(reply,  name, get, "Last Message from Device" ).
+
+initialise(Self,Label:[name]) :->
+	"Initialise the window and fill it"::
+        send_super(Self,initialise(Label)),
+	send(Self, size,size(600,84)),
+	send(Self, slot, socket, -1),
+	send(Self, slot, mac, discover),
+	send(Self,colour,colour(black)),
+        ( childName(pump, 5, PName),
+          free(@PName),
+	  new(@PName, pump(PName)),
+          (PName='pump1' -> Align=next_row ; Align=right ),
+	  send(Self, append(@PName,Align)),
+          fail
+        ; true
+        ).
+
+childName(Root, Num, C) :-
+	between(1, Num, N),
+	concat_atom([Root,N],C).
+
+update(_Self) :->
+        ( childName(pump, 5, PName),
+	  send(@PName,update),
+          fail
+        ; true
+        ).
+
+ok(Self) :->
+        send(Self,return(ok)).
+
+cancel(Self) :->
+        send(Self,return(notok)),
+        halt.
+
+prompt(W, Value:name) :<-
+        "Open it, destroy it and return the result"::
+        get(W,confirm,Value).
+
+% Bluetooth Connectivity for Pumps
+converse(Self, Cmd) :->
+	"Send command to Bluetooth Socket and save Reply"::
+        get(Self, socket, Socket),
+	( Socket > -1,
+	  bt_converse(Socket, Cmd, Reply)
+	  -> read_term_from_atom(Reply,RTerm,[]),
+	     send(Self, slot, reply, RTerm)
+	  ; send(Self, slot, reply, no_connection)
+	).
+
+mac(Self, Addr:[name]) :->
+	send(Self, slot, mac, Addr),
+	send(Self, connect).
+
+connect(Self) :->
+	"Connect (or re-connect) the Bluetooth channel"::
+	get(Self, mac, Addr),
+	get(Self, socket, OldSocket),
+        ( OldSocket > -1 -> bt_close(OldSocket) ; true),
+	( bt_socket(Addr, BTSocket) ->
+	  send(Self, slot, socket, BTSocket),
+	  send(Self,colour,colour(green))
+	; send(Self,colour,colour(red))
+	).
+
+:- pce_end_class.
+
+:- pce_begin_class(pump, dialog_group).
+variable(pumpStatus, name, get, "Pump/Valve status").
+variable(pumpButton, any, get, "Pump Button").
+
+variable(pumpStatus, any, get, "Pump Status Box").
+variable(valveStatus, any, get, "Valve Status Box").
+
+initialise(Self, Label:[name]) :->
+        "Initialise the Pump"::
+        send_super(Self, initialise(Label)),
+	send(Self, size,size(100,60)),
+	send(Self, slot, pumpStatus,'Off / Closed'),
+
+	concat_atom([Label,'b'],Button),
+        free(@Button),
+	new(@Button,button(pumpb)),
+        send(@Button,label,'Off/Closed'),
+        send(@Button,colour,colour(red)),
+	send(Self, slot, pumpButton, @Button),
+        send(Self, append(@Button)),
+
+	concat_atom([Label,'p'],PStatus),
+        new(@PStatus, hotbox(blue)),
+	send(Self, append(@PStatus,next_row)),
+	send(Self, slot, pumpStatus, @PStatus),
+
+	concat_atom([Label,'v'],VStatus),
+        new(@VStatus, hotbox(red)),
+	send(Self, slot, valveStatus, @VStatus),
+	send(Self, append(@VStatus,right)).
+
+update(Self) :->
+	random_permutation([pumpon,pumpoff,valveopen,valveclosed],[G|_]),
+	send(Self, G).
+
+pumpb(Self) :->
+	get(Self, label, MyName),
+	(MyName = 'Pump3' -> halt ; true),
+	atom_codes(MyName,[_,_,_,_|NCs]),
+	number_codes(PN,NCs),
+	writeln(pressedpumpb(PN)).
+
+shape(Self, W:[int], H:[int]) :->
+	send(Self, size, size(W,H)).
+
+font(_Self, _Font:[any]) :-> true.
+
+pumpon(Self) :->
+	get(Self, pumpStatus, Box),
+        send(Box, fill_pattern, colour(red)).
+
+pumpoff(Self) :->
+	get(Self, pumpStatus, Box),
+        send(Box, fill_pattern, colour(blue)).
+
+valveopen(Self) :->
+	get(Self, valveStatus, Box),
+        send(Box, fill_pattern, colour(orange)).
+
+valveclosed(Self) :->
+	get(Self, valveStatus, Box),
+        send(Box, fill_pattern, colour(black)).
+
+:- pce_end_class.
+
+
+:- pce_begin_class(hotbox, box).
+initialise(Self, Color:[name]) :->
+        "Initialise"::
+        send_super(Self, initialise(30,10)),
+	send(Self, colour, colour(black)),
+        send(Self, fill_pattern, colour(Color)).
+:- pce_end_class.

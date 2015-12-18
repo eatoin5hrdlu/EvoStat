@@ -1,0 +1,69 @@
+The following required for each EvoStat
+
+
+Definitions:
+   Lagoon - small container for independent evolving viral populations 
+   Driver - switched current source to activate a relay or motor
+
+
+
+Containers:
+   1 3D printed cap with septa for host cell container
+   4 3D printed caps for 250mL lagoons
+   4 3D printed caps for 100mL lagoons
+
+Heating:  
+    Heater for host cell container
+    Melexis (PIR) temperature detector
+    1 high-voltage solid state relay
+    4 (low-voltage) heaters for lagoons
+    1 in-line heater for nutrient
+    1 in-line heater for inducer
+    Drivers for Arduino control of all heating elements
+    Software
+
+
+Mixing:
+    Magnetic mixer for Host cell container
+    4 magnetic mixers for lagoons
+    Drivers for five mixing motors
+    Software
+
+Aeration:
+    2 stainless steel sparger arcs for host cell container
+    1 Aquarium air-pump
+    1 High-voltage solid-state relay for air-pump
+
+Flow
+    12 3D printed compression valves
+    1  3D-printed pointer
+    1  3D-printed motor bracket
+    Drivers for:
+    	    Nutrient valve and pump
+	    Inducer valve and pump
+	    Host cell valve and pump
+	    Outflow valve and pump
+    Driver for Rotary valve unit (torque control)
+    Step-encoder resistor network
+    Software for position sensing and torque control
+
+
+Optics:
+    Drivers for red, yellow, green, blue, and red laser LEDs
+    Arduino Software for light control
+    Light-tight insulation for thermal enclosure
+    System Software (OpenCV) for:
+        Level detection
+        Turbidity Measurement
+	Fluorescence
+
+Software:
+    Distributed Temperature control
+    Turbidity/Nutrient supply control
+    Level/Flow maintenance
+    Leak detection
+    Data logging
+    Text messaging
+   
+  
+

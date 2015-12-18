@@ -1,0 +1,404 @@
+MKKLLFAIPLVVPFYSHSAETVESCLAKPHTENSFTNVWKDDKTLDRYANYEGCLWNATGVVVCTGDETQCYGTWVPIGLAIPENEGGGSEGGGSEGGGSEGGGTKPPEYGDTPIPGYTYINPLDGTYPPGTEQNPANPNPSLEESQPLNTFMFQNNRFRNRQGALTVYTGTVTQGTDPVKTYYQYTPVSSKAMYDAYWNGKFRDCAFHSGFNEDPFVCEYQGQSSDLPQPPVNAGGGSGGGSGGGSEGGGSEGGGSEGGGSEGGGSGGGSGSGDFDYEKMANANKGAMTENADENALQSDAKGKLDSVATDYGAAIDGFIGDVSGLANGNGATGDFAGSNSQMAQVGDGDNSPLMNNFRQYLPSLPQSVECRPFVFSAGKPYEFSIDCDKINLFRGVFAFLLYVATFMYVFSTFANILRNKE
+
+
+LOCUS       NC_003287               6407 bp ss-DNA     circular PHG 17-APR-2009
+DEFINITION  Enterobacteria phage M13, complete genome.
+ACCESSION   NC_003287
+VERSION     NC_003287.2  GI:56718463
+DBLINK      BioProject: PRJNA14549
+KEYWORDS    RefSeq; circular; coat protein; genome; origin of replication;
+            overlapping genes.
+SOURCE      Enterobacteria phage M13
+  ORGANISM  Enterobacteria phage M13
+            Viruses; ssDNA viruses; Inoviridae; Inovirus.
+REFERENCE   1  (bases 1 to 6407)
+  AUTHORS   van Wezenbeek,P.M., Hulsebos,T.J. and Schoenmakers,J.G.
+  TITLE     Nucleotide sequence of the filamentous bacteriophage M13 DNA
+            genome: comparison with phage fd
+  JOURNAL   Gene 11 (1-2), 129-148 (1980)
+   PUBMED   6254849
+REFERENCE   2  (bases 1 to 6407)
+  CONSRTM   NCBI Genome Project
+  TITLE     Direct Submission
+  JOURNAL   Submitted (08-DEC-2001) National Center for Biotechnology
+            Information, NIH, Bethesda, MD 20894, USA
+COMMENT     VALIDATED REFSEQ: This record has undergone validation or
+            preliminary review. The reference sequence was derived from V00604.
+            On Dec 20, 2004 this sequence version replaced gi:17426217.
+            COMPLETENESS: full length.
+FEATURES             Location/Qualifiers
+     source          1..6407
+                     /organism="Enterobacteria phage M13"
+                     /mol_type="genomic DNA"
+                     /host="Escherichia coli"
+                     /db_xref="taxon:10870"
+     gene            join(6006..6407,1..831)
+                     /gene="II"
+                     /locus_tag="M13p01"
+                     /db_xref="GeneID:927328"
+     CDS             join(6006..6407,1..831)
+                     /gene="II"
+                     /locus_tag="M13p01"
+                     /note="The pII protein binds to the intergenic region in
+                     double-stranded, supercoiled DNA (replicative form) and
+                     nicks the positive strand. The resulting free 3' OH
+                     terminus serves as a primer for new strand synthesis using
+                     host factors (Rep helicase, DNA polymerase III). After a
+                     full round of replication, pII circularizes the displaced
+                     DNA strand. Newly synthesized (+) single stranded DNA is
+                     either converted to RF DNA or packaged as genomes,
+                     depending on the concentrations of ssDNA binding protein
+                     pV and a separately expressed fragment of pII termed pX.
+                     Functions: DNA replication initiation"
+                     /codon_start=1
+                     /transl_table=11
+                     /product="replication initiation protein"
+                     /protein_id="NP_510885.1"
+                     /db_xref="GI:17426218"
+                     /db_xref="GOA:P03659"
+                     /db_xref="UniProtKB/Swiss-Prot:P03659"
+                     /db_xref="GeneID:927328"
+                     /translation="MIDMLVLRLPFIDSLVCSRLSGNDLIAFVDLSKIATLSGMNLSA
+                     RTVEYHIDGDLTVSGLSHPFESLPTHYSGIAFKIYEGSKNFYPCVEIKASPAKVLQGH
+                     NVFGTTDLALCSEALLLNFANSLPCLYDLLDVNATTISRIDATFSARAPNENIAKQVI
+                     DHLRNVSNGQTKSTRSQNWESTVTWNETSRHRTLVAYLKHVELQHQIQQLSSKPSAKM
+                     TSYQKEQLKVLSNPDLLEFASGLVRFEARIKTRYLKSFGLPLNLFDAIRFASDYNSQG
+                     KDLIFDLWSFSFSELFKAFEGDSMNIYDDSAVLDAIQSKHFTITPSGKTSFAKASRYF
+                     GFYRRLVNEGYDSVALTMPRNSFWRYVSALVECGIPKSQLMNLSTCNNVVPLVRFINV
+                     DFSSQRPDWYNEPVLKIA"
+     gene            496..831
+                     /gene="X"
+                     /locus_tag="M13p02"
+                     /db_xref="GeneID:927329"
+     CDS             496..831
+                     /gene="X"
+                     /locus_tag="M13p02"
+                     /note="Protein pX is synthesized from an in-frame internal
+                     initiation codon in gene II and is identical to the
+                     C-terminal third of pII. Required for the accumulation of
+                     (+) single stranded genomic DNA."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="gene X product"
+                     /protein_id="NP_510886.1"
+                     /db_xref="GI:17426219"
+                     /db_xref="GOA:P03659"
+                     /db_xref="UniProtKB/Swiss-Prot:P03659"
+                     /db_xref="GeneID:927329"
+                     /translation="MNIYDDSAVLDAIQSKHFTITPSGKTSFAKASRYFGFYRRLVNE
+                     GYDSVALTMPRNSFWRYVSALVECGIPKSQLMNLSTCNNVVPLVRFINVDFSSQRPDW
+                     YNEPVLKIA"
+     gene            843..1106
+                     /gene="V"
+                     /locus_tag="M13p03"
+                     /db_xref="GeneID:927330"
+     CDS             843..1106
+                     /gene="V"
+                     /locus_tag="M13p03"
+                     /codon_start=1
+                     /transl_table=11
+                     /product="helix destabilising protein"
+                     /protein_id="NP_510887.1"
+                     /db_xref="GI:17426220"
+                     /db_xref="GOA:P03669"
+                     /db_xref="UniProtKB/Swiss-Prot:P03669"
+                     /db_xref="GeneID:927330"
+                     /translation="MIKVEIKPSQAQFTTRSGVSRQGKPYSLNEQLCYVDLGNEYPVL
+                     VKITLDEGQPAYAPGLYTVHLSSFKVGQFGSLMIDRLRLVPAK"
+     old_sequence    898
+                     /gene="V"
+                     /locus_tag="M13p03"
+                     /citation=[1]
+                     /replace="g"
+     gene            1108..1209
+                     /gene="VII"
+                     /locus_tag="M13p04"
+                     /db_xref="GeneID:927331"
+     CDS             1108..1209
+                     /gene="VII"
+                     /locus_tag="M13p04"
+                     /note="pVII minor coat proteins of E. coli filamentous
+                     phages are located at the tip of the virion that first
+                     emerges from the host cell."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="minor coat protein"
+                     /protein_id="NP_510888.1"
+                     /db_xref="GI:17426221"
+                     /db_xref="GOA:P03675"
+                     /db_xref="UniProtKB/Swiss-Prot:P03675"
+                     /db_xref="GeneID:927331"
+                     /translation="MEQVADFDTIYQAMIQISVVLCFALGIIAGGQR"
+     gene            1206..1304
+                     /gene="IX"
+                     /locus_tag="M13p05"
+                     /db_xref="GeneID:927332"
+     CDS             1206..1304
+                     /gene="IX"
+                     /locus_tag="M13p05"
+                     /note="pVII minor coat proteins of E. coli filamentous
+                     phages are located at the tip of the virion that first
+                     emerges from the host cell."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="minor coat protein"
+                     /protein_id="NP_510889.1"
+                     /db_xref="GI:17426222"
+                     /db_xref="GOA:P03677"
+                     /db_xref="UniProtKB/Swiss-Prot:P03677"
+                     /db_xref="GeneID:927332"
+                     /translation="MSVLVYSFASFVLGWCLRSGITYFTRLMETSS"
+     gene            1301..1522
+                     /gene="VIII"
+                     /locus_tag="M13p06"
+                     /db_xref="GeneID:927333"
+     CDS             1301..1522
+                     /gene="VIII"
+                     /locus_tag="M13p06"
+                     /note="Several thousand copies of the major coat protein
+                     form the tube containing the ssDNA genome to form the
+                     elongated body of filamentous phages."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="major coat protein"
+                     /protein_id="NP_510890.1"
+                     /db_xref="GI:17426223"
+                     /db_xref="GOA:P03617"
+                     /db_xref="UniProtKB/Swiss-Prot:P03617"
+                     /db_xref="GeneID:927333"
+                     /translation="MKKSLVLKASVAVATLVPMLSFAAEGDDPAKAAFNSLQASATEY
+                     IGYAWAMVVVIVGATIGIKLFKKFTSKAS"
+     gene            1579..2853
+                     /gene="III"
+                     /locus_tag="M13p07"
+                     /db_xref="GeneID:927334"
+     CDS             1579..2853
+                     /gene="III"
+                     /locus_tag="M13p07"
+                     /note="Minor coat protein pIII is located at the tail of
+                     the filamentous phage particle. It is involved in
+                     termination of assembly and infectivity. In the absence of
+                     pIII abnormally long phage particles are formed and remain
+                     attached to host cells. In addition, pIII is involved in
+                     initiating infection of host cells by binding to pili. In
+                     the case of the Ff phages, pIII binds to the tip of F-pili
+                     and then interacts with the TolA protein. The assembly
+                     termination function maps to the C-terminus of pIII,
+                     whereas the receptor binding maps to the N-terminus. Ike
+                     and f1 proteins cannot replace one another. Functions:
+                     receptor binding, morphogenesis, structural."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="attachment protein"
+                     /protein_id="NP_510891.1"
+                     /db_xref="GI:17426224"
+                     /db_xref="GOA:P03662"
+                     /db_xref="UniProtKB/Swiss-Prot:P03662"
+                     /db_xref="GeneID:927334"
+                     /translation="MKKLLFAIPLVVPFYSHSAETVESCLAKPHTENSFTNVWKDDKT
+                     LDRYANYEGCLWNATGVVVCTGDETQCYGTWVPIGLAIPENEGGGSEGGGSEGGGSEG
+                     GGTKPPEYGDTPIPGYTYINPLDGTYPPGTEQNPANPNPSLEESQPLNTFMFQNNRFR
+                     NRQGALTVYTGTVTQGTDPVKTYYQYTPVSSKAMYDAYWNGKFRDCAFHSGFNEDPFV
+                     CEYQGQSSDLPQPPVNAGGGSGGGSGGGSEGGGSEGGGSEGGGSEGGGSGGGSGSGDF
+                     DYEKMANANKGAMTENADENALQSDAKGKLDSVATDYGAAIDGFIGDVSGLANGNGAT
+                     GDFAGSNSQMAQVGDGDNSPLMNNFRQYLPSLPQSVECRPFVFSAGKPYEFSIDCDKI
+                     NLFRGVFAFLLYVATFMYVFSTFANILRNKES"
+     old_sequence    1838
+                     /gene="III"
+                     /locus_tag="M13p07"
+                     /citation=[1]
+                     /replace="c"
+     gene            2856..3194
+                     /gene="VI"
+                     /locus_tag="M13p08"
+                     /db_xref="GeneID:927335"
+     CDS             2856..3194
+                     /gene="VI"
+                     /locus_tag="M13p08"
+                     /note="The pVI proteins of Ff phages are minor coat
+                     proteins that are located at the end of the virion. They
+                     are involved in termination of assembly. In the absence of
+                     pVI, phage particles remain associated with the host
+                     membrane."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="minor coat protein"
+                     /protein_id="NP_510892.1"
+                     /db_xref="GI:17426225"
+                     /db_xref="GOA:P03673"
+                     /db_xref="UniProtKB/Swiss-Prot:P03673"
+                     /db_xref="GeneID:927335"
+                     /translation="MPVLLGIPLLLRFLGFLLVTLFGYLLTFLKKGFGKIAIAISLFL
+                     ALIIGLNSILVGYLSDISAQLPSDFVQGVQLILPSNALPCFYVILSVKAAIFIFDVKQ
+                     KIVSYLDWDK"
+     gene            3196..4242
+                     /gene="I"
+                     /locus_tag="M13p09"
+                     /db_xref="GeneID:927336"
+     CDS             3196..4242
+                     /gene="I"
+                     /locus_tag="M13p09"
+                     /note="The pI protein of filamentous phages is involved in
+                     morphogenesis and may hydrolyze ATP. It is an inner
+                     membrane protein and interacts with the outer membrane
+                     protein pIV. The N-termini of members of this cluster
+                     share homology to the zonular occludens toxin (Zot)
+                     encoded by phage CTXphi. However, the toxin activity of
+                     Zot was mapped to the C terminus, which is divergent in
+                     the proteins in this cluster. pXI is the product of
+                     translational reinitiationin gene I and interacts with
+                     pI."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="assembly protein"
+                     /protein_id="NP_510893.1"
+                     /db_xref="GI:17426226"
+                     /db_xref="GOA:P03656"
+                     /db_xref="UniProtKB/Swiss-Prot:P03656"
+                     /db_xref="GeneID:927336"
+                     /translation="MAVYFVTGKLGSGKTLVSVGKIQDKIVAGCKIATNLDLRLQNLP
+                     QVGRFAKTPRVLRIPDKPSISDLLAIGRGNDSYDENKNGLLVLDECGTWFNTRSWNDK
+                     ERQPIIDWFLHARKLGWDIIFLVQDLSIVDKQARSALAEHVVYCRRLDRITLPFVGTL
+                     YSLITGSKMPLPKLHVGVVKYGDSQLSPTVERWLYTGKNLYNAYDTKQAFSSNYDSGV
+                     YSYLTPYLSHGRYFKPLNLGQKMKLTKIYLKKFSRVLCLAIGFASAFTYSYITQPKPE
+                     VKKVVSQTYDFDKFTIDSSQRLNLSYRYVFKDSKGKLINSDDLQKQGYSLTYIDLCTV
+                     SIKKGNSNEIVKCN"
+     gene            4220..5500
+                     /gene="IV"
+                     /locus_tag="M13p10"
+                     /db_xref="GeneID:927337"
+     CDS             4220..5500
+                     /gene="IV"
+                     /locus_tag="M13p10"
+                     /note="pIV proteins of filamentous phages are multimeric
+                     proteins that form a channel in the outer membrane through
+                     which the phage particles exit the host cell. Function:
+                     morphogenesis."
+                     /codon_start=1
+                     /transl_table=11
+                     /product="phage assembly protein"
+                     /protein_id="NP_510894.1"
+                     /db_xref="GI:17426227"
+                     /db_xref="GOA:P03665"
+                     /db_xref="UniProtKB/Swiss-Prot:P03665"
+                     /db_xref="GeneID:927337"
+                     /translation="MKLLNVINFVFLMFVSSSSFAQVIEMNNSPLRDFVTWYSKQSGE
+                     SVIVSPDVKGTVTVYSSDVKPENLRNFFISVLRANNFDMVGSIPSIIQKYNPNNQDYI
+                     DELPSSDNQEYDDNSAPSGGFFVPQNDNVTQTFKINNVRAKDLIRVVELFVKSNTSKS
+                     SNVLSIDGSNLLVVSAPKDILDNLPQFLSTVDLPTDQILIEGLIFEVQQGDALDFSFA
+                     AGSQRGTVAGGVNTDRLTSVLSSAGGSFGIFNGDVLGLSVRALKTNSHSKILSVPRIL
+                     TLSGQKGSISVGQNVPFITGRVTGESANVNNPFQTIERQNVGISMSVFPVAMAGGNIV
+                     LDITSKADSLSSSTQASDVITNQRSIATTVNLRDGQTLLLGGLTDYKNTSQDSGVPFL
+                     SKIPLIGLLFSSRSDSNEESTLYVLVKATIVRAL"
+     old_sequence    5805
+                     /citation=[1]
+                     /replace="t"
+ORIGIN      
+        1 aacgctacta ctattagtag aattgatgcc accttttcag ctcgcgcccc aaatgaaaat
+       61 atagctaaac aggttattga ccatttgcga aatgtatcta atggtcaaac taaatctact
+      121 cgttcgcaga attgggaatc aactgttaca tggaatgaaa cttccagaca ccgtacttta
+      181 gttgcatatt taaaacatgt tgagctacag caccagattc agcaattaag ctctaagcca
+      241 tccgcaaaaa tgacctctta tcaaaaggag caattaaagg tactctctaa tcctgacctg
+      301 ttggagtttg cttccggtct ggttcgcttt gaagctcgaa ttaaaacgcg atatttgaag
+      361 tctttcgggc ttcctcttaa tctttttgat gcaatccgct ttgcttctga ctataatagt
+      421 cagggtaaag acctgatttt tgatttatgg tcattctcgt tttctgaact gtttaaagca
+      481 tttgaggggg attcaatgaa tatttatgac gattccgcag tattggacgc tatccagtct
+      541 aaacatttta ctattacccc ctctggcaaa acttcttttg caaaagcctc tcgctatttt
+      601 ggtttttatc gtcgtctggt aaacgagggt tatgatagtg ttgctcttac tatgcctcgt
+      661 aattcctttt ggcgttatgt atctgcatta gttgaatgtg gtattcctaa atctcaactg
+      721 atgaatcttt ctacctgtaa taatgttgtt ccgttagttc gttttattaa cgtagatttt
+      781 tcttcccaac gtcctgactg gtataatgag ccagttctta aaatcgcata aggtaattca
+      841 caatgattaa agttgaaatt aaaccatctc aagcccaatt tactactcgt tctggtgttt
+      901 ctcgtcaggg caagccttat tcactgaatg agcagctttg ttacgttgat ttgggtaatg
+      961 aatatccggt tcttgtcaag attactcttg atgaaggtca gccagcctat gcgcctggtc
+     1021 tgtacaccgt tcatctgtcc tctttcaaag ttggtcagtt cggttccctt atgattgacc
+     1081 gtctgcgcct cgttccggct aagtaacatg gagcaggtcg cggatttcga cacaatttat
+     1141 caggcgatga tacaaatctc cgttgtactt tgtttcgcgc ttggtataat cgctgggggt
+     1201 caaagatgag tgttttagtg tattctttcg cctctttcgt tttaggttgg tgccttcgta
+     1261 gtggcattac gtattttacc cgtttaatgg aaacttcctc atgaaaaagt ctttagtcct
+     1321 caaagcctct gtagccgttg ctaccctcgt tccgatgctg tctttcgctg ctgagggtga
+     1381 cgatcccgca aaagcggcct ttaactccct gcaagcctca gcgaccgaat atatcggtta
+     1441 tgcgtgggcg atggttgttg tcattgtcgg cgcaactatc ggtatcaagc tgtttaagaa
+     1501 attcacctcg aaagcaagct gataaaccga tacaattaaa ggctcctttt ggagcctttt
+     1561 tttttggaga ttttcaacat gaaaaaatta ttattcgcaa ttcctttagt tgttcctttc
+     1621 tattctcact ccgctgaaac tgttgaaagt tgtttagcaa aaccccatac agaaaattca
+     1681 tttactaacg tctggaaaga cgacaaaact ttagatcgtt acgctaacta tgagggttgt
+     1741 ctgtggaatg ctacaggcgt tgtagtttgt actggtgacg aaactcagtg ttacggtaca
+     1801 tgggttccta ttgggcttgc tatccctgaa aatgagggtg gtggctctga gggtggcggt
+     1861 tctgagggtg gcggttctga gggtggcggt actaaacctc ctgagtacgg tgatacacct
+     1921 attccgggct atacttatat caaccctctc gacggcactt atccgcctgg tactgagcaa
+     1981 aaccccgcta atcctaatcc ttctcttgag gagtctcagc ctcttaatac tttcatgttt
+     2041 cagaataata ggttccgaaa taggcagggg gcattaactg tttatacggg cactgttact
+     2101 caaggcactg accccgttaa aacttattac cagtacactc ctgtatcatc aaaagccatg
+     2161 tatgacgctt actggaacgg taaattcaga gactgcgctt tccattctgg ctttaatgag
+     2221 gatccattcg tttgtgaata tcaaggccaa tcgtctgacc tgcctcaacc tcctgtcaat
+     2281 gctggcggcg gctctggtgg tggttctggt ggcggctctg agggtggtgg ctctgagggt
+     2341 ggcggttctg agggtggcgg ctctgaggga ggcggttccg gtggtggctc tggttccggt
+     2401 gattttgatt atgaaaagat ggcaaacgct aataaggggg ctatgaccga aaatgccgat
+     2461 gaaaacgcgc tacagtctga cgctaaaggc aaacttgatt ctgtcgctac tgattacggt
+     2521 gctgctatcg atggtttcat tggtgacgtt tccggccttg ctaatggtaa tggtgctact
+     2581 ggtgattttg ctggctctaa ttcccaaatg gctcaagtcg gtgacggtga taattcacct
+     2641 ttaatgaata atttccgtca atatttacct tccctccctc aatcggttga atgtcgccct
+     2701 tttgtcttta gcgctggtaa accatatgaa ttttctattg attgtgacaa aataaactta
+     2761 ttccgtggtg tctttgcgtt tcttttatat gttgccacct ttatgtatgt attttctacg
+     2821 tttgctaaca tactgcgtaa taaggagtct taatcatgcc agttcttttg ggtattccgt
+     2881 tattattgcg tttcctcggt ttccttctgg taactttgtt cggctatctg cttacttttc
+     2941 ttaaaaaggg cttcggtaag atagctattg ctatttcatt gtttcttgct cttattattg
+     3001 ggcttaactc aattcttgtg ggttatctct ctgatattag cgctcaatta ccctctgact
+     3061 ttgttcaggg tgttcagtta attctcccgt ctaatgcgct tccctgtttt tatgttattc
+     3121 tctctgtaaa ggctgctatt ttcatttttg acgttaaaca aaaaatcgtt tcttatttgg
+     3181 attgggataa ataatatggc tgtttatttt gtaactggca aattaggctc tggaaagacg
+     3241 ctcgttagcg ttggtaagat tcaggataaa attgtagctg ggtgcaaaat agcaactaat
+     3301 cttgatttaa ggcttcaaaa cctcccgcaa gtcgggaggt tcgctaaaac gcctcgcgtt
+     3361 cttagaatac cggataagcc ttctatatct gatttgcttg ctattgggcg cggtaatgat
+     3421 tcctacgatg aaaataaaaa cggcttgctt gttctcgatg agtgcggtac ttggtttaat
+     3481 acccgttctt ggaatgataa ggaaagacag ccgattattg attggtttct acatgctcgt
+     3541 aaattaggat gggatattat ttttcttgtt caggacttat ctattgttga taaacaggcg
+     3601 cgttctgcat tagctgaaca tgttgtttat tgtcgtcgtc tggacagaat tactttacct
+     3661 tttgtcggta ctttatattc tcttattact ggctcgaaaa tgcctctgcc taaattacat
+     3721 gttggcgttg ttaaatatgg cgattctcaa ttaagcccta ctgttgagcg ttggctttat
+     3781 actggtaaga atttgtataa cgcatatgat actaaacagg ctttttctag taattatgat
+     3841 tccggtgttt attcttattt aacgccttat ttatcacacg gtcggtattt caaaccatta
+     3901 aatttaggtc agaagatgaa attaactaaa atatatttga aaaagttttc tcgcgttctt
+     3961 tgtcttgcga ttggatttgc atcagcattt acatatagtt atataaccca acctaagccg
+     4021 gaggttaaaa aggtagtctc tcagacctat gattttgata aattcactat tgactcttct
+     4081 cagcgtctta atctaagcta tcgctatgtt ttcaaggatt ctaagggaaa attaattaat
+     4141 agcgacgatt tacagaagca aggttattca ctcacatata ttgatttatg tactgtttcc
+     4201 attaaaaaag gtaattcaaa tgaaattgtt aaatgtaatt aattttgttt tcttgatgtt
+     4261 tgtttcatca tcttcttttg ctcaggtaat tgaaatgaat aattcgcctc tgcgcgattt
+     4321 tgtaacttgg tattcaaagc aatcaggcga atccgttatt gtttctcccg atgtaaaagg
+     4381 tactgttact gtatattcat ctgacgttaa acctgaaaat ctacgcaatt tctttatttc
+     4441 tgttttacgt gctaataatt ttgatatggt tggttcaatt ccttccataa ttcagaagta
+     4501 taatccaaac aatcaggatt atattgatga attgccatca tctgataatc aggaatatga
+     4561 tgataattcc gctccttctg gtggtttctt tgttccgcaa aatgataatg ttactcaaac
+     4621 ttttaaaatt aataacgttc gggcaaagga tttaatacga gttgtcgaat tgtttgtaaa
+     4681 gtctaatact tctaaatcct caaatgtatt atctattgac ggctctaatc tattagttgt
+     4741 tagtgcacct aaagatattt tagataacct tcctcaattc ctttctactg ttgatttgcc
+     4801 aactgaccag atattgattg agggtttgat atttgaggtt cagcaaggtg atgctttaga
+     4861 tttttcattt gctgctggct ctcagcgtgg cactgttgca ggcggtgtta atactgaccg
+     4921 cctcacctct gttttatctt ctgctggtgg ttcgttcggt atttttaatg gcgatgtttt
+     4981 agggctatca gttcgcgcat taaagactaa tagccattca aaaatattgt ctgtgccacg
+     5041 tattcttacg ctttcaggtc agaagggttc tatctctgtt ggccagaatg tcccttttat
+     5101 tactggtcgt gtgactggtg aatctgccaa tgtaaataat ccatttcaga cgattgagcg
+     5161 tcaaaatgta ggtatttcca tgagcgtttt tcctgttgca atggctggcg gtaatattgt
+     5221 tctggatatt accagcaagg ccgatagttt gagttcttct actcaggcaa gtgatgttat
+     5281 tactaatcaa agaagtattg ctacaacggt taatttgcgt gatggacaga ctcttttact
+     5341 cggtggcctc actgattata aaaacacttc tcaagattct ggcgtaccgt tcctgtctaa
+     5401 aatcccttta atcggcctcc tgtttagctc ccgctctgat tccaacgagg aaagcacgtt
+     5461 atacgtgctc gtcaaagcaa ccatagtacg cgccctgtag cggcgcatta agcgcggcgg
+     5521 gtgtggtggt tacgcgcagc gtgaccgcta cacttgccag cgccctagcg cccgctcctt
+     5581 tcgctttctt cccttccttt ctcgccacgt tcgccggctt tccccgtcaa gctctaaatc
+     5641 gggggctccc tttagggttc cgatttagtg ctttacggca cctcgacccc aaaaaacttg
+     5701 atttgggtga tggttcacgt agtgggccat cgccctgata gacggttttt cgccctttga
+     5761 cgttggagtc cacgttcttt aatagtggac tcttgttcca aactggaaca acactcaacc
+     5821 ctatctcggg ctattctttt gatttataag ggattttgcc gatttcggcc tattggttaa
+     5881 aaaatgagct gatttaacaa aaatttaacg cgaattttaa caaaatatta acgtttacaa
+     5941 tttaaatatt tgcttataca atcttcctgt ttttggggct tttctgatta tcaaccgggg
+     6001 tacatatgat tgacatgcta gttttacgat taccgttcat cgattctctt gtttgctcca
+     6061 gactctcagg caatgacctg atagcctttg tagacctctc aaaaatagct accctctccg
+     6121 gcatgaattt atcagctaga acggttgaat atcatattga tggtgatttg actgtctccg
+     6181 gcctttctca cccttttgaa tctttaccta cacattactc aggcattgca tttaaaatat
+     6241 atgagggttc taaaaatttt tatccttgcg ttgaaataaa ggcttctccc gcaaaagtat
+     6301 tacagggtca taatgttttt ggtacaaccg atttagcttt atgctctgag gctttattgc
+     6361 ttaattttgc taattctttg ccttgcctgt atgatttatt ggatgtt
+//

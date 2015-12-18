@@ -1,0 +1,20 @@
+config = {
+     'name' :  'template',
+     'numLagoons' :  4,
+     'lagoonRegion' : (290,240,400,550),
+     'lagoonHeight' :  60,
+     'lagoonWidth' :  20,
+     'levelScale' :  100,
+     'camera' :  'indoor',
+     'rotate' :  'false',
+     'mac' :  'c4:d6:55:34:8d:07',
+     'defaultIP' :  '172.16.3.136',
+     'userpwd' :  '&user=scrapsec&pwd=lakewould',
+     'brightness' :  100,
+     'brightnessCmd' :  '/camera_control.cgi?param=1&value=',
+     'contrast' :  4,
+     'contrastCmd' :  '/camera_control.cgi?param=2&value=',
+     'picCmd' :  '/snapshot.cgi?resolution=32&user=admin&pwd=lakewould',
+      
+
+}

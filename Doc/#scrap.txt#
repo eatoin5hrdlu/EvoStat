@@ -1,0 +1,46 @@
+
+Using stability measurements to determine protein structure.
+
+Background:
+
+By measuring the change in tryptophan fluorescence as you add controlled amounts of a denaturant (causing the protein to 'fall apart'), you can measure the stability of a protein.
+By seeing how this stability increases or decreases when you make specific mutations in the gene sequence, one can figure out the three-dimensional structure of the protein.
+
+A very expensive piece of equipment is needed to make the fluorescence measurements
+
+Two runs a day, but the researcher needed to measure the stability of 1000 variants (mutatnts).
+
+The 'Hummingbird' was constructed from an old image scanner (very precise positioning along one axis and two syringes geared together on a stepper motor so that when one of the syringes was forcing liquid out, the other was pulling the same amount of liquid in. 
+
+By preparing the samples.
+
+
+Evolution as tool for engineering proteins
+
+The linear sequence of nucleotides in DNA define a linear chain of amino acids which then folds into a complex protein structure.  However, what we want is an interaction, or binding between two proteins.  We may not care what their exact structure as long as they are complementary.
+
+A therapy may require a certain concentration of a therapeudic protein in order to achieve a desired degree of interaction.  In many cases it would be desirable to reduce this concentration (the dosage) because this would minimize side effects, reduce the amount of excess drug in the waste stream, and also reduce the body's need to metabolize and break down the drug.  Because the protein already binds with the target, the evolutionary approach works well to let this compete with mutations that will increase the strength of the binding.
+
+
+This is particularly
+
+Macromolecular engineering can employ the mechanisms of evolution: mutation and selection, to construct novel genetic sequences with desired properties.  Earlier means consisted of separate steps for mutation, selection, and cloning, with one or more manual steps, limiting the number of complete cycles to a few per day.  Recent advances use continuous cell cultivation techniques, such as a cellstat, to create an environment for continuous evolution.  One such method employs the evolution of a bacterial virus with a generation time on the order of a few minutes.  A requirement for the application of these mechanisms is the relatively long-term maintenance of environmental conditions required by the organisms or macromolecules involved.  Just as the simplest device to control a heating or cooling device from the feedback provided by a temperature sensor is called a thermostat, devices for controlling chemical concentrations, cell concentrations, and active bacterial virus populations are given the names chemostat, turbidostat, and phagestat.  In each case, particular measurements correlated with the condition being maintained must be sensed to provide feedback for the control of  temperature, nutrient concentration,  flow rate, or other condition.
+
+
+Researchers at Harvard University have developed improvements which turn this twice-a-day process of creating mutations and making a selection into 
+Researchers at Harvard University have developed improvements to make this a continuous process, in which a new generation of viruses form, with a bilwhich turn this twice-a-day process of creating mutations and making a selection into 
+PACE:  between $25,000 and $30,000 in off-the-shelf supplies to build this device.
+
+In order to reduce the incremental cost of building a single apparatus, making the apparatus reliable enough to run week-long experiments without intervention.
+
+
+The structure
+Sterile isolation of the individual containers, aeration and mixing, controlled heat and lighting and a way to maintain precise flow rates.
+
+
+
+
+
+
+PACE
+Glassware
