@@ -3,7 +3,8 @@
 // 2) Set number of samples and times
 //
 #include <EEPROM.h>
-const boolean debug = true;
+const boolean debug     = true;
+      boolean firstTime = true;
 
 // Set global 'RomAddress' and address will be bumped
 // by successive calls to moveData( SAVE|RESTORE, size, ptr)
@@ -35,37 +36,35 @@ volatile boolean closedPosition;                               // BOOLEAN
 void             closed_position() { closedPosition = true; }  // ISR
 
 int              countPin = 20;                                 // PIN
-int              phaseB = 19;                                 // PIN
-volatile int     count;
-void             encoderA()   { if (!digitalRead(phaseB)) count++; } // ISR
+int              phaseB = 19;                                   // PIN
+volatile int     ENC_count;
+void             encoderA()   { if (!digitalRead(phaseB)) ENC_count++; } // ISR
 
 
 
-//unsigned long sleepInterval = 36000000UL;  // 1 hour
-unsigned long sleepInterval = 30000UL;    // 6 seconds
 unsigned long openInterval = 5000L;          // 4.5 seconsd
  
 unsigned long now;
 unsigned long lastTime;
+unsigned long lastSampleTime;
 unsigned long onTime;
 unsigned long cycleTime;
 
 volatile int state;
 
-int ctr;
 const unsigned long phaseMS = 3000UL;
 #define phase   !((millis()/phaseMS)%2)
 
 // Platform Control
 
-int sampleTime;    // Time between samples
+int sampleTime;   // Time between samples
 int sampleNum;     // Total number of samples to take
 int groupNum;      // Number of samples per group
 int groupTime;     // Time between groups
-int aliquot;       // mSeconds for sample taking
+int aliquot;       // Seconds for sample taking
 
 int sampleCountdown;
-int timeCountdown;
+unsigned long int sampleTimeMS;
 
 void printHelp(void)
 {
@@ -88,7 +87,7 @@ void printHelp(void)
 // after using the 'z' command to zero the EEPROM.
 
 const int SAMPLE     =  3;
-const int ENDSTOP    =  4;
+const int ENDSTOP    =  2;
 const int SAMPLES    = 10;
 const int START_TIME =  6;
 
@@ -103,6 +102,7 @@ const int P2 =  9;
 const int P3 = 10;
 const int P4 = 11;
 
+
 const int MT = 10;  // mS delay between stepper motor phase shifts
 
 void set_indicator(int t)
@@ -116,19 +116,19 @@ void set_indicator(int t)
         else               digitalWrite(GREEN, LOW);
 }
 
-int nextSample = 0;
-
 void reset()
 {
 	if (debug) Serial.print("Starting reset (please wait)...");
-	delay(1000);
-	reverse(50*sampleNum);
+	while(digitalRead(ENDSTOP))
+	{
+		reverse(50);
+	}
 	sampleCountdown = sampleNum;  // Reset to start sample count
-	timeCountdown = sampleTime;
-	nextSample = sampleTime;
-	if (debug) Serial.println("finished.");
+	sampleTimeMS = sampleTime*1000UL;  // Sampling interval in milliseconds
+	if (debug) Serial.println("finished reset.");
 }
 
+int ctr;
 void setup()
 {
 	Serial.begin(9600);
@@ -166,7 +166,7 @@ void setup()
 		sampleNum  = 24;  // Two 96-well plates lengthwise
 		groupNum   = 1;   // Number of samples per group
 		groupTime  = 0;   // Time between groups
-		aliquot = 10000;
+		aliquot = 10;
 		saveRestore(SAVE);
 	}
 
@@ -261,7 +261,6 @@ void dump(void)    // Print configuration settings
   Serial.print("t "); Serial.println(sampleTime);
   Serial.print("n "); Serial.println(sampleNum);
   Serial.print("g "); Serial.println(groupNum);
-  Serial.print("t "); Serial.println(sampleTime);
   Serial.print("a(ms) "); Serial.println(aliquot);
 }
 
@@ -332,8 +331,9 @@ int i;
 
 void checkSample() { // Check Sampling State Machine
 	ctr++;
-	if (debug and (ctr % 100 == 0)) {
-		Serial.print(count);
+	if (debug and (ctr % 1000 == 0)) {
+		Serial.print("Encoder:");
+		Serial.print(ENC_count);
 		Serial.print(statename[state]);
 		Serial.println(digitalRead(closePin));
 	}
@@ -345,6 +345,7 @@ void checkSample() { // Check Sampling State Machine
                 closedPosition = false;
 		state = CLOSING;
 		analogWrite(drivePin, 255);
+		firstTime = true;
 		break;
 	case CLOSING:
 		if ( closedPosition && digitalRead(closePin) ) {  // BACK IN HOME POSITION
@@ -353,14 +354,23 @@ void checkSample() { // Check Sampling State Machine
 			detachInterrupt(digitalPinToInterrupt(closePin));
 			state = CLOSED;
 			lastTime = millis();
+			if  (firstTime)
+				firstTime = false;
+			else {
+				if (debug) Serial.print("Moving platform...");
+				forward(50);               // Move platform
+				if (debug) Serial.println(sampleCountdown);
+				lastSampleTime = millis(); // Reset Time
+				sampleCountdown--;         // Decrement Sample-count
+			}
 		}
 		break;
 	case CLOSED:
 		now = millis();
-		if (now > lastTime + sleepInterval)      // START CYCLE
+		if (now > lastSampleTime + sampleTimeMS)  // Time to sample
 		{
 			attachInterrupt(digitalPinToInterrupt(countPin),encoderA,RISING);
-			count = 0;
+			ENC_count = 0;
 			lastTime = now;
 			state = COUNTING;
 			analogWrite(drivePin,255);
@@ -369,17 +379,17 @@ void checkSample() { // Check Sampling State Machine
 	case COUNTING:
 		if (debug) {
 			Serial.print(statename[state]);
-	                Serial.println(count);
+	                Serial.println(ENC_count);
 		}
-		if (count > 400) {
+		if (ENC_count > 400) {
 			analogWrite(drivePin,0);
 			detachInterrupt(digitalPinToInterrupt(countPin));
 			state = OPENED;
 			if (debug)
 				Serial.print(statename[state]);
 		}
-		else if (count > 300) analogWrite(drivePin,100); // SLOW DOWN
-		else if (count > 200) analogWrite(drivePin,180); // SLOW DOWN
+		else if (ENC_count > 300) analogWrite(drivePin,100); // SLOW DOWN
+		else if (ENC_count > 200) analogWrite(drivePin,180); // SLOW DOWN
 		break;
 	case OPENED:
 		now = millis();
@@ -395,33 +405,9 @@ void checkSample() { // Check Sampling State Machine
 	}
 }
 
+
 void loop()
 {
-	flash();
-	delay(1000);  // Minimum Delay increment
-	flash();
-
-	timeCountdown--;
-	if (sampleCountdown > 0 && timeCountdown == 0)
-	{
-		timeCountdown = sampleTime;
-		if (debug) {
-			Serial.print("take sample ");
-			Serial.print(sampleNum - (sampleCountdown-1));
-		}
-		digitalWrite(SAMPLE,1);
-		delay(aliquot);
-		digitalWrite(SAMPLE,0);
-		delay(aliquot);
-		if (debug) {
-			Serial.print(" finished. Moving...");
-		}
-		sampleCountdown--;
-		forward(50);
-		if (debug) 
-			Serial.println("Stopped at next position.");
-	}
-	if (debug) Serial.print(".");
+	checkSample();
 	respondToRequest();
-	flash();
 }
