@@ -29,16 +29,17 @@ char *statename[] = {
 //#define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
 
-int drivePin = 3;   // DC motor, probably doesn't have to be PWM (ON/OFF okay?)
+int drivePin = 5;   // DC motor, probably doesn't have to be PWM (ON/OFF okay?)
 
-int              closePin = 2;                                 // PIN
+int              closePin = 2;                                 // PIN with ISR
 volatile boolean closedPosition;                               // BOOLEAN 
 void             closed_position() { closedPosition = true; }  // ISR
 
-int              countPin = 20;                                 // PIN
-int              phaseB = 19;                                   // PIN
+int              countPin = 3;                                  // PIN with ISR
+int              phaseB   = 4;                                  // PIN
 volatile int     ENC_count;
-void             encoderA()   { if (!digitalRead(phaseB)) ENC_count++; } // ISR
+int              last_ENC_count;
+void             encoderA()   { if (digitalRead(phaseB)) ENC_count++; } // ISR
 
 
 
@@ -86,8 +87,7 @@ void printHelp(void)
 // Values below are the defaults before they are saved to EEPROM or 
 // after using the 'z' command to zero the EEPROM.
 
-const int SAMPLE     =  3;
-const int ENDSTOP    =  2;
+const int ENDSTOP    =  6;
 const int SAMPLES    = 10;
 const int START_TIME =  6;
 
@@ -121,7 +121,8 @@ void reset()
 	if (debug) Serial.print("Starting reset (please wait)...");
 	while(digitalRead(ENDSTOP))
 	{
-		reverse(50);
+		Serial.println(digitalRead(ENDSTOP));
+		reverse(10);
 	}
 	sampleCountdown = sampleNum;  // Reset to start sample count
 	sampleTimeMS = sampleTime*1000UL;  // Sampling interval in milliseconds
@@ -134,9 +135,9 @@ void setup()
 	Serial.begin(9600);
 	
 	// Sampler Pins
-	pinMode(closePin, INPUT_PULLUP);
-	pinMode(countPin,  INPUT_PULLUP);
-	pinMode(phaseB,    INPUT_PULLUP);
+	pinMode(closePin, INPUT);
+	pinMode(countPin,  INPUT);
+	pinMode(phaseB,    INPUT);
 	pinMode(drivePin, OUTPUT);
 	analogWrite(drivePin,0);
 	closedPosition = false;
@@ -146,7 +147,6 @@ void setup()
 
 	// Platform Control
 
-	pinMode(SAMPLE,OUTPUT); digitalWrite(SAMPLE,0);
 	pinMode(P1, OUTPUT);	digitalWrite(P1,    0);
 	pinMode(P2, OUTPUT);	digitalWrite(P2,    0);
 	pinMode(P3, OUTPUT);	digitalWrite(P3,    0);
@@ -331,12 +331,7 @@ int i;
 
 void checkSample() { // Check Sampling State Machine
 	ctr++;
-	if (debug and (ctr % 1000 == 0)) {
-		Serial.print("Encoder:");
-		Serial.print(ENC_count);
-		Serial.print(statename[state]);
-		Serial.println(digitalRead(closePin));
-	}
+	if (debug and (ctr % 30000 == 0)) Serial.println(statename[state]);
 
 	switch(state) {
 
@@ -344,7 +339,7 @@ void checkSample() { // Check Sampling State Machine
 		attachInterrupt(digitalPinToInterrupt(closePin),closed_position,RISING);
                 closedPosition = false;
 		state = CLOSING;
-		analogWrite(drivePin, 255);
+		analogWrite(drivePin, 150);
 		firstTime = true;
 		break;
 	case CLOSING:
@@ -373,13 +368,19 @@ void checkSample() { // Check Sampling State Machine
 			ENC_count = 0;
 			lastTime = now;
 			state = COUNTING;
-			analogWrite(drivePin,255);
+			analogWrite(drivePin,150);
 		}
 		break;
 	case COUNTING:
-		if (debug) {
-			Serial.print(statename[state]);
-	                Serial.println(ENC_count);
+		if (debug and (ctr % 1000 == 0)) { // set faster (1000) with motor engaged
+		   if (ENC_count != last_ENC_count)
+                   {
+			Serial.print("  Encoder : ");
+			last_ENC_count = ENC_count;
+			Serial.print(last_ENC_count);
+			Serial.print("        boolean: ");
+			Serial.println(closedPosition);
+		   }
 		}
 		if (ENC_count > 400) {
 			analogWrite(drivePin,0);
@@ -388,8 +389,8 @@ void checkSample() { // Check Sampling State Machine
 			if (debug)
 				Serial.print(statename[state]);
 		}
-		else if (ENC_count > 300) analogWrite(drivePin,100); // SLOW DOWN
-		else if (ENC_count > 200) analogWrite(drivePin,180); // SLOW DOWN
+		else if (ENC_count > 300) analogWrite(drivePin,50); // SLOW DOWN
+		else if (ENC_count > 200) analogWrite(drivePin,80); // SLOW DOWN
 		break;
 	case OPENED:
 		now = millis();
@@ -398,7 +399,7 @@ void checkSample() { // Check Sampling State Machine
 		  if (debug) Serial.print("time to close");
 		  closedPosition = false;
 		  attachInterrupt(digitalPinToInterrupt(closePin),closed_position,RISING);
-		  analogWrite(drivePin, 255);
+		  analogWrite(drivePin, 150);
 		  state = CLOSING;
 		}
 		break;
