@@ -2,6 +2,46 @@
 // 1) Set Start Time
 // 2) Set number of samples and times
 //
+//
+// Pin numbers currently for Ardweeny
+
+//#define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
+
+#define FULL_POWER   150
+#define MEDIUM_POWER 100
+#define LOW_POWER     60
+#define PWM_OFF        0
+
+#define ENCODER_180  400  // PWM Power and this are GearMotor dependent
+
+#define ARDWEENY 1
+#ifdef ARDWEENY
+const int drivePin = 5; // DC motor, PWM with three power levels
+const int closePin = 2; // PIN with ISR for photo-interrupter
+const int countPin = 3; // PIN with ISR for Gearmotor Encoder Phase A
+const int phaseB   = 4; // PIN                        Encoder Phase B
+
+const int ENDSTOP    =  6;
+
+// Three-color LED control
+const int RED   = 7;
+const int GREEN = 13;
+const int BLUE  = 12;
+
+// Stepper Phases: forward (1-3-2-4) reverse (4-2-3-1)
+const int P1 =  8;
+const int P2 =  9;
+const int P3 = 10;
+const int P4 = 11;
+
+#endif
+
+const int DEFAULT_SAMPLES    = 24;
+const int DEFAULT_SAMPLETIME = 10;
+const int DEFAULT_ALIQUOT    = 5000UL;
+
+
+#define EOT     "end_of_data."
 #include <EEPROM.h>
 const boolean debug     = true;
       boolean firstTime = true;
@@ -13,6 +53,8 @@ const int   RESTORE   = 0;
       int   RomAddress;
 //
 //
+volatile int state;
+
 const int STARTUP  = 0;
 const int CLOSED   = 1;
 const int COUNTING = 2;
@@ -26,24 +68,20 @@ char *statename[] = {
 	"OPENED",
 	"CLOSING",
 };
-//#define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
-
-
-int drivePin = 5;   // DC motor, probably doesn't have to be PWM (ON/OFF okay?)
-
-int              closePin = 2;                                 // PIN with ISR
+// Interrupt variables and service routine (ISR)
 volatile boolean closedPosition;                               // BOOLEAN 
-void             closed_position() { closedPosition = true; }  // ISR
+void             closed_position() { closedPosition = true; }  // photointerrupter
 
-int              countPin = 3;                                  // PIN with ISR
-int              phaseB   = 4;                                  // PIN
-volatile int     ENC_count;
-int              last_ENC_count;
-void             encoderA()   { if (digitalRead(phaseB)) ENC_count++; } // ISR
+volatile int     ENCODER_count;
+int              last_ENCODER_count;
 
+void encoderA()                   // Interrupt on Phase A  0 -> 1
+{
+	if (digitalRead(phaseB))  // If (Phase B is HIGH)
+	   ENCODER_count++;           //        rotation is CCW
+}
 
-
-unsigned long openInterval = 5000L;          // 4.5 seconsd
+unsigned long openInterval = 5000UL;          // 5 seconds
  
 unsigned long now;
 unsigned long lastTime;
@@ -51,56 +89,37 @@ unsigned long lastSampleTime;
 unsigned long onTime;
 unsigned long cycleTime;
 
-volatile int state;
-
-const unsigned long phaseMS = 3000UL;
-#define phase   !((millis()/phaseMS)%2)
 
 // Platform Control
 
-int sampleTime;   // Time between samples
+int sampleTime;    // Time between samples
 int sampleNum;     // Total number of samples to take
 int groupNum;      // Number of samples per group
 int groupTime;     // Time between groups
-int aliquot;       // Seconds for sample taking
+int aliquot;       // Milliseconds for sample taking
 
-int sampleCountdown;
+int               sampleCountdown; // Set to SampleNum after RESET
 unsigned long int sampleTimeMS;
 
 void printHelp(void)
 {
-	Serial.println("c         :  clear - reset platform/start sampling");
-	Serial.println("d         :  dump (print) settings");
-	Serial.println("h         :  help - print this command menu\n");
-	Serial.println("a <value> : aliquot - sample extraction in seconds");
-	Serial.println("t <value> : time between samples");
-	Serial.println("e <value> : time between sample groups");
-	Serial.println("n <value> : total number of samples");
-	Serial.println("g <value> : number of samples in group\n");
-	Serial.println("s         : save current settings");
-	Serial.println("r         : restore stored settings");
-	Serial.println("z         : zero all EEPROM settings");
+	Serial.println("c('clear - reset platform/start sampling').");
+	Serial.println("d('dump (print) settings').");
+	Serial.println("h('help - print this command menu').");
+	Serial.println("a(value,'aliquot - sample extraction in milliseconds').");
+	Serial.println("t(value,'time between samples').");
+	Serial.println("e(value,'time between sample groups').");
+	Serial.println("n(value,'total number of samples').");
+	Serial.println("g(value,'number of samples in group').");
+	Serial.println("s('save current settings').");
+	Serial.println("r('restore stored settings').");
+	Serial.println("z('zero all EEPROM settings').");
 }
 
 // BEGIN DEFAULT CALIBRATION PARAMETERS
 // Values will be read from EEPROM, after being saved with the 's' command.
 // Values below are the defaults before they are saved to EEPROM or 
 // after using the 'z' command to zero the EEPROM.
-
-const int ENDSTOP    =  6;
-const int SAMPLES    = 10;
-const int START_TIME =  6;
-
-// Three-color LED control
-const int RED   = 12;
-const int GREEN = 13;
-const int BLUE  = 14;
-
-// Stepper Phases: forward (1-3-2-4) reverse (4-2-3-1)
-const int P1 =  8;
-const int P2 =  9;
-const int P3 = 10;
-const int P4 = 11;
 
 
 const int MT = 10;  // mS delay between stepper motor phase shifts
@@ -139,7 +158,7 @@ void setup()
 	pinMode(countPin,  INPUT);
 	pinMode(phaseB,    INPUT);
 	pinMode(drivePin, OUTPUT);
-	analogWrite(drivePin,0);
+	analogWrite(drivePin, PWM_OFF);
 	closedPosition = false;
 	lastTime = millis();
 	ctr = 0; 
@@ -162,11 +181,11 @@ void setup()
 	{
 		Serial.print("Setting defaults in EEPROM.");
 
-		sampleTime = 10;  // Seconds between samples
-		sampleNum  = 24;  // Two 96-well plates lengthwise
-		groupNum   = 1;   // Number of samples per group
-		groupTime  = 0;   // Time between groups
-		aliquot = 10;
+		sampleTime = DEFAULT_SAMPLETIME;// Seconds between samples
+		sampleNum  = DEFAULT_SAMPLES;   // Two 96-well plates lengthwise
+		groupNum   = 1;                 // Number of samples per group
+		groupTime  = 0;                 // Time between groups
+		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
 		saveRestore(SAVE);
 	}
 
@@ -283,8 +302,14 @@ void respondToRequest(void)
 	}
 }
 
+void printTermInt(char *functor, int arg)
+{ Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
+void printTermChar(char *functor, char arg)
+{ Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
+
 void process(char c, int value)
 {
+unsigned long time_left;
 int i;
 	switch(c) {
 		case 'a':
@@ -312,8 +337,13 @@ int i;
 		case 'r' :
 			saveRestore(RESTORE);
 			break;
-		case 't' :
-			sampleTime = value;
+		case 't' :        // Set Value or Report Time to next Sample
+		     	if (value == 0) {
+			   time_left = sampleTimeMS - (millis()-lastSampleTime);
+			   printTermInt("time", (int)(time_left/1000));
+			}
+			else 
+			     sampleTime = value;
 			break;
 		case 's' :
 			saveRestore(SAVE);
@@ -323,14 +353,17 @@ int i;
 			for(i=0;i<5*sizeof(int);i++) EEPROM.write(i,0);
 			break;
 		default :
-			Serial.print("Ignoring [");
-			Serial.write(c);
-			Serial.println("]");
+			printTermChar("ignored",c);
 	}
+        Serial.println(EOT);
 }
 
 void checkSample() { // Check Sampling State Machine
-	ctr++;
+
+       // The value of lastTime is usually updated just before the STATE change
+       // so it indicates how long we've been in the current STATE
+       
+	ctr++; // A counter so we don't flood the output with debug msg
 	if (debug and (ctr % 30000 == 0)) Serial.println(statename[state]);
 
 	switch(state) {
@@ -338,17 +371,16 @@ void checkSample() { // Check Sampling State Machine
 	case STARTUP:
 		attachInterrupt(digitalPinToInterrupt(closePin),closed_position,RISING);
                 closedPosition = false;
-		state = CLOSING;
-		analogWrite(drivePin, 150);
+		analogWrite(drivePin, FULL_POWER);
 		firstTime = true;
+		lastTime = millis();
+		state = CLOSING;
 		break;
 	case CLOSING:
 		if ( closedPosition && digitalRead(closePin) ) {  // BACK IN HOME POSITION
 			if (debug) Serial.println("HOME");
-			analogWrite(drivePin,0);
+			analogWrite(drivePin, PWM_OFF);
 			detachInterrupt(digitalPinToInterrupt(closePin));
-			state = CLOSED;
-			lastTime = millis();
 			if  (firstTime)
 				firstTime = false;
 			else {
@@ -358,6 +390,8 @@ void checkSample() { // Check Sampling State Machine
 				lastSampleTime = millis(); // Reset Time
 				sampleCountdown--;         // Decrement Sample-count
 			}
+			lastTime = millis();
+			state = CLOSED;
 		}
 		break;
 	case CLOSED:
@@ -365,32 +399,35 @@ void checkSample() { // Check Sampling State Machine
 		if (now > lastSampleTime + sampleTimeMS)  // Time to sample
 		{
 			attachInterrupt(digitalPinToInterrupt(countPin),encoderA,RISING);
-			ENC_count = 0;
+			ENCODER_count = 0;
+			analogWrite(drivePin, FULL_POWER);
 			lastTime = now;
 			state = COUNTING;
-			analogWrite(drivePin,150);
 		}
 		break;
 	case COUNTING:
 		if (debug and (ctr % 1000 == 0)) { // set faster (1000) with motor engaged
-		   if (ENC_count != last_ENC_count)
+		   if (ENCODER_count != last_ENCODER_count)
                    {
 			Serial.print("  Encoder : ");
-			last_ENC_count = ENC_count;
-			Serial.print(last_ENC_count);
+			last_ENCODER_count = ENCODER_count;
+			Serial.print(last_ENCODER_count);
 			Serial.print("        boolean: ");
 			Serial.println(closedPosition);
 		   }
 		}
-		if (ENC_count > 400) {
-			analogWrite(drivePin,0);
+		if (ENCODER_count > ENCODER_180) {
+			analogWrite(drivePin, PWM_OFF);
 			detachInterrupt(digitalPinToInterrupt(countPin));
+			lastTime = millis();
 			state = OPENED;
 			if (debug)
 				Serial.print(statename[state]);
 		}
-		else if (ENC_count > 300) analogWrite(drivePin,50); // SLOW DOWN
-		else if (ENC_count > 200) analogWrite(drivePin,80); // SLOW DOWN
+		else if (ENCODER_count > ENCODER_180 - 100) // Slow on approach
+		     analogWrite(drivePin, LOW_POWER);
+		else if (ENCODER_count > ENCODER_180 - 200) 
+		     analogWrite(drivePin,MEDIUM_POWER);
 		break;
 	case OPENED:
 		now = millis();
@@ -399,7 +436,8 @@ void checkSample() { // Check Sampling State Machine
 		  if (debug) Serial.print("time to close");
 		  closedPosition = false;
 		  attachInterrupt(digitalPinToInterrupt(closePin),closed_position,RISING);
-		  analogWrite(drivePin, 150);
+		  analogWrite(drivePin, FULL_POWER);
+		  lastTime = now;
 		  state = CLOSING;
 		}
 		break;
