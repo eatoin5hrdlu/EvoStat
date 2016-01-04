@@ -7,9 +7,9 @@
 
 //#define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
-#define FULL_POWER   150
-#define MEDIUM_POWER 100
-#define LOW_POWER     60
+#define FULL_POWER   200
+#define MEDIUM_POWER 150
+#define LOW_POWER    100
 #define PWM_OFF        0
 
 #define ENCODER_180  400  // PWM Power and this are GearMotor dependent
@@ -77,7 +77,7 @@ int              last_ENCODER_count;
 
 void encoderA()                   // Interrupt on Phase A  0 -> 1
 {
-	if (digitalRead(phaseB))  // If (Phase B is HIGH)
+//	if (digitalRead(phaseB))  // If (Phase B is HIGH)
 	   ENCODER_count++;           //        rotation is CCW
 }
 
@@ -173,7 +173,7 @@ void setup()
 	pinMode(RED, OUTPUT);	digitalWrite(RED,   0);	
 	pinMode(GREEN, OUTPUT);	digitalWrite(GREEN, 0);
 	pinMode(BLUE, OUTPUT);	digitalWrite(BLUE,  0);
-	pinMode(ENDSTOP, INPUT_PULLUP);
+	pinMode(ENDSTOP,        INPUT_PULLUP);
 
 	RomAddress  = 0;
 	saveRestore(RESTORE);
@@ -381,9 +381,10 @@ void checkSample() { // Check Sampling State Machine
 			if (debug) Serial.println("HOME");
 			analogWrite(drivePin, PWM_OFF);
 			detachInterrupt(digitalPinToInterrupt(closePin));
-			if  (firstTime)
+			if  (firstTime) {
 				firstTime = false;
-			else {
+				lastSampleTime = millis(); // Reset Time
+			} else {
 				if (debug) Serial.print("Moving platform...");
 				forward(50);               // Move platform
 				if (debug) Serial.println(sampleCountdown);
@@ -398,6 +399,7 @@ void checkSample() { // Check Sampling State Machine
 		now = millis();
 		if (now > lastSampleTime + sampleTimeMS)  // Time to sample
 		{
+			Serial.println("Attach encoder");
 			attachInterrupt(digitalPinToInterrupt(countPin),encoderA,RISING);
 			ENCODER_count = 0;
 			analogWrite(drivePin, FULL_POWER);
@@ -407,6 +409,7 @@ void checkSample() { // Check Sampling State Machine
 		break;
 	case COUNTING:
 		if (debug and (ctr % 1000 == 0)) { // set faster (1000) with motor engaged
+		   Serial.println(ENCODER_count);
 		   if (ENCODER_count != last_ENCODER_count)
                    {
 			Serial.print("  Encoder : ");
@@ -415,9 +418,11 @@ void checkSample() { // Check Sampling State Machine
 			Serial.print("        boolean: ");
 			Serial.println(closedPosition);
 		   }
+		   else Serial.print(".");
 		}
 		if (ENCODER_count > ENCODER_180) {
 			analogWrite(drivePin, PWM_OFF);
+			Serial.println("Detach encoder");
 			detachInterrupt(digitalPinToInterrupt(countPin));
 			lastTime = millis();
 			state = OPENED;
