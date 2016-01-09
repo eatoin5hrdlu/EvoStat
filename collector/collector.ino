@@ -1,11 +1,17 @@
-// Sample Collector
+// Sample Collector and Drain Valves
+// Requires Arduino with:
+// Two interrupt capable input pins for Home position photo-interruptor(pin 2) and Encoder A input (pin 3)
+// Two additional input pins for Encoder B (pin 4) and the sample platform endstop (pin 6).
+// Four outputs for the phases of the sample platform stepper (8-11)
+// Five outputs for the drains of Lagoons 1-4 and the CellStat (A1-A5).
+// 
 // 1) Set Start Time
 // 2) Set number of samples and times
 //
 //
 // Pin numbers currently for Ardweeny
 
-//#define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
+#define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
 #define FULL_POWER   200
 #define MEDIUM_POWER 150
@@ -23,11 +29,6 @@ const int phaseB   = 4; // PIN                        Encoder Phase B
 
 const int ENDSTOP    =  6;
 
-// Three-color LED control
-const int RED   = 7;
-const int GREEN = 13;
-const int BLUE  = 12;
-
 // Stepper Phases: forward (1-3-2-4) reverse (4-2-3-1)
 const int P1 =  8;
 const int P2 =  9;
@@ -39,7 +40,6 @@ const int P4 = 11;
 const int DEFAULT_SAMPLES    = 24;
 const int DEFAULT_SAMPLETIME = 10;
 const int DEFAULT_ALIQUOT    = 5000UL;
-
 
 #define EOT     "end_of_data."
 #include <EEPROM.h>
@@ -88,6 +88,8 @@ unsigned long lastTime;
 unsigned long lastSampleTime;
 unsigned long onTime;
 unsigned long cycleTime;
+unsigned long valveCycle;
+unsigned long lastValveCycle;
 
 
 // Platform Control
@@ -97,23 +99,32 @@ int sampleNum;     // Total number of samples to take
 int groupNum;      // Number of samples per group
 int groupTime;     // Time between groups
 int aliquot;       // Milliseconds for sample taking
+int valveInterval;
+int valveTime[5]; // Valve open time in milliseconds per interval
+int valvePin[5]; // Valve open time in milliseconds per interval
 
 int               sampleCountdown; // Set to SampleNum after RESET
 unsigned long int sampleTimeMS;
 
 void printHelp(void)
 {
+	Serial.println("a(value,'aliquot - sample extraction in milliseconds').");
 	Serial.println("c('clear - reset platform/start sampling').");
 	Serial.println("d('dump (print) settings').");
-	Serial.println("h('help - print this command menu').");
-	Serial.println("a(value,'aliquot - sample extraction in milliseconds').");
-	Serial.println("t(value,'time between samples').");
 	Serial.println("e(value,'time between sample groups').");
-	Serial.println("n(value,'total number of samples').");
 	Serial.println("g(value,'number of samples in group').");
+	Serial.println("h('help - print this command menu').");
+	Serial.println("i(value,'set lagoon1 drain time(ms)').");
+	Serial.println("j(value,'set lagoon2 drain time').");
+	Serial.println("k(value,'set lagoon3 drain time').");
+	Serial.println("l(value,'set lagoon4 drain time').");
+	Serial.println("m(value,'set cellStat drain time').");
+	Serial.println("n(value,'total number of samples').");
+	Serial.println("p(value,'set drain timing interval').");
+	Serial.println("t(value,'time between samples').");
 	Serial.println("s('save current settings').");
 	Serial.println("r('restore stored settings').");
-	Serial.println("z('zero all EEPROM settings').");
+	Serial.println("z('zero all EEPROM settings - defaults will be restored on next reset').");
 }
 
 // BEGIN DEFAULT CALIBRATION PARAMETERS
@@ -123,17 +134,6 @@ void printHelp(void)
 
 
 const int MT = 10;  // mS delay between stepper motor phase shifts
-
-void set_indicator(int t)
-{
-	if ( t < 6 ) return;     // Sensor not being used
-        digitalWrite(RED, HIGH);
-        digitalWrite(BLUE, HIGH);
-        digitalWrite(GREEN, HIGH);
-        if      ( t < 10 ) digitalWrite(BLUE, LOW);
-        else if ( t < 20 ) digitalWrite(RED, LOW);
-        else               digitalWrite(GREEN, LOW);
-}
 
 void reset()
 {
@@ -151,6 +151,7 @@ void reset()
 int ctr;
 void setup()
 {
+int i;
 	Serial.begin(9600);
 	
 	// Sampler Pins
@@ -159,6 +160,19 @@ void setup()
 	pinMode(phaseB,    INPUT);
 	pinMode(drivePin, OUTPUT);
 	analogWrite(drivePin, PWM_OFF);
+
+        // Five Drain Valves
+	pinMode(A1,OUTPUT);digitalWrite(A1,0);
+	pinMode(A2,OUTPUT);digitalWrite(A2,0);
+	pinMode(A3,OUTPUT);digitalWrite(A3,0);
+	pinMode(A4,OUTPUT);digitalWrite(A4,0);
+	pinMode(A5,OUTPUT);digitalWrite(A5,0);
+	valvePin[0] = A1;
+	valvePin[1] = A2;
+	valvePin[2] = A3;
+	valvePin[3] = A4;
+	valvePin[4] = A5;
+	
 	closedPosition = false;
 	lastTime = millis();
 	ctr = 0; 
@@ -170,9 +184,6 @@ void setup()
 	pinMode(P2, OUTPUT);	digitalWrite(P2,    0);
 	pinMode(P3, OUTPUT);	digitalWrite(P3,    0);
 	pinMode(P4, OUTPUT);	digitalWrite(P4,    0);
-	pinMode(RED, OUTPUT);	digitalWrite(RED,   0);	
-	pinMode(GREEN, OUTPUT);	digitalWrite(GREEN, 0);
-	pinMode(BLUE, OUTPUT);	digitalWrite(BLUE,  0);
 	pinMode(ENDSTOP,        INPUT_PULLUP);
 
 	RomAddress  = 0;
@@ -186,6 +197,8 @@ void setup()
 		groupNum   = 1;                 // Number of samples per group
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
+		for (i=0; i< 5; i++) valveTime[i] = 5000;
+		valveInterval = 30;
 		saveRestore(SAVE);
 	}
 
@@ -272,6 +285,8 @@ void saveRestore(int op)
 	moveData(op, sizeof(int), (byte *)&groupNum );
 	moveData(op, sizeof(int), (byte *)&groupTime );
 	moveData(op, sizeof(int), (byte *)&aliquot );
+	moveData(op, sizeof(int), (byte *)&valveInterval );
+	moveData(op, 5*sizeof(int), (byte *)&valveTime );
 }
 
 void dump(void)    // Print configuration settings
@@ -331,12 +346,20 @@ int i;
 		case 'h':
 			printHelp();
 			break;
+		case 'i': valveTime[0] = value; break;
+		case 'j': valveTime[1] = value; break;
+		case 'k': valveTime[2] = value; break;
+		case 'l': valveTime[3] = value; break;
+		case 'm': valveTime[4] = value; break;
+
 		case 'n':
 			sampleNum = value;
 			break;
 		case 'r' :
 			saveRestore(RESTORE);
 			break;
+		case 'p': valveInterval = value; break;
+		
 		case 't' :        // Set Value or Report Time to next Sample
 		     	if (value == 0) {
 			   time_left = sampleTimeMS - (millis()-lastSampleTime);
@@ -449,9 +472,34 @@ void checkSample() { // Check Sampling State Machine
 	}
 }
 
+boolean checkValves()  // Returns true if all valves are closed (so sampling would be okay)
+{
+int i;
+boolean allclosed;
+unsigned long elapsed;
+unsigned long now = millis();
+	elapsed = now - lastValveCycle;
+	for(i=0;i<5;i++) {
+	 	if (digitalRead(valvePin[i])) {  // Valve is open
+		   if (valveTime[i] > (int)elapsed)
+		      digitalWrite(valvePin[i],0);
+		   else allclosed = false;
+		}
+	}
+	if (elapsed > (unsigned long)valveInterval)
+	{
+		lastValveCycle = now;
+		for(i=0;i<5;i++) {
+		    if (valveTime[i] > 0)
+		       digitalWrite(valvePin[i],1);
+		}
+	}
+	return allclosed;
+}
 
 void loop()
 {
-	checkSample();
+	if (checkValves())
+	   checkSample();
 	respondToRequest();
 }
