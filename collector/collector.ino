@@ -114,11 +114,11 @@ void printHelp(void)
 	Serial.println("e(value,'time between sample groups').");
 	Serial.println("g(value,'number of samples in group').");
 	Serial.println("h('help - print this command menu').");
-	Serial.println("i(value,'set lagoon1 drain time(ms)').");
-	Serial.println("j(value,'set lagoon2 drain time').");
-	Serial.println("k(value,'set lagoon3 drain time').");
-	Serial.println("l(value,'set lagoon4 drain time').");
-	Serial.println("m(value,'set cellStat drain time').");
+	Serial.print("i(");Serial.print(valveTime[0]);Serial.println(",'set lagoon1 drain time(ms)').");
+	Serial.print("j(");Serial.print(valveTime[1]);Serial.println(",'set lagoon1 drain time(ms)').");
+	Serial.print("k(");Serial.print(valveTime[2]);Serial.println(",'set lagoon1 drain time(ms)').");
+	Serial.print("l(");Serial.print(valveTime[3]);Serial.println(",'set lagoon1 drain time(ms)').");
+	Serial.print("m(");Serial.print(valveTime[4]);Serial.println(",'set cellStat drain time(ms)').");
 	Serial.println("n(value,'total number of samples').");
 	Serial.println("p(value,'set drain timing interval').");
 	Serial.println("t(value,'time between samples').");
@@ -162,6 +162,7 @@ int i;
 	analogWrite(drivePin, PWM_OFF);
 
         // Five Drain Valves
+	pinMode(A0,OUTPUT);digitalWrite(A0,1);
 	pinMode(A1,OUTPUT);digitalWrite(A1,0);
 	pinMode(A2,OUTPUT);digitalWrite(A2,0);
 	pinMode(A3,OUTPUT);digitalWrite(A3,0);
@@ -198,7 +199,7 @@ int i;
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
 		for (i=0; i< 5; i++) valveTime[i] = 5000;
-		valveInterval = 30;
+		valveInterval = 10000;
 		saveRestore(SAVE);
 	}
 
@@ -312,7 +313,7 @@ void respondToRequest(void)
 	if ( is.length() > 0 )  {   // process the command
 		int value = 0;
 		if (is.length() > 2)
-			value = atoi(&is[2]);
+			value = atoi(&is[1]);
 		process(is[0], value);
 	}
 }
@@ -346,7 +347,7 @@ int i;
 		case 'h':
 			printHelp();
 			break;
-		case 'i': valveTime[0] = value; break;
+		case 'i': Serial.println(value); valveTime[0] = value; break;
 		case 'j': valveTime[1] = value; break;
 		case 'k': valveTime[2] = value; break;
 		case 'l': valveTime[3] = value; break;
@@ -374,6 +375,8 @@ int i;
 		case 'z' :
 			int i;
 			for(i=0;i<5*sizeof(int);i++) EEPROM.write(i,0);
+			Serial.println("EEPROM ZEROED");
+			delay(4000);
 			break;
 		default :
 			printTermChar("ignored",c);
@@ -475,19 +478,22 @@ void checkSample() { // Check Sampling State Machine
 boolean checkValves()  // Returns true if all valves are closed (so sampling would be okay)
 {
 int i;
-boolean allclosed;
+boolean allclosed = true;
 unsigned long elapsed;
 unsigned long now = millis();
 	elapsed = now - lastValveCycle;
 	for(i=0;i<5;i++) {
 	 	if (digitalRead(valvePin[i])) {  // Valve is open
-		   if (valveTime[i] > (int)elapsed)
+		   allclosed = false;
+		   if (valveTime[i] < (int)elapsed) {
 		      digitalWrite(valvePin[i],0);
-		   else allclosed = false;
+		      Serial.print("closed valve "); Serial.println(i);
+		   }
 		}
 	}
 	if (elapsed > (unsigned long)valveInterval)
 	{
+	        Serial.println("starting valve cycle");
 		lastValveCycle = now;
 		for(i=0;i<5;i++) {
 		    if (valveTime[i] > 0)
