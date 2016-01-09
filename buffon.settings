@@ -1,0 +1,23 @@
+{
+       'numLagoons' :  3,
+       'imageSize' : (600,500),
+       'lagoonRegion' : (240,36,440,575),
+       'cellstatRegion' : (80,200,240,400),
+       'lagoonHeight' :  160,
+       'lagoonWidth' :  80,
+       'levelScale' :  140,
+       'levelOffset' :  10,
+       'frames' :  100,
+       'darkness' :  60,
+       'camera' :  'outdoor',
+       'rotate' :  None,
+       'mac' :  1,
+       'defaultIP' :  '172.16.3.136',
+       'userpwd' :  '&user=scrapsec&pwd=lakewould',
+       'brightness' :  11,
+       'brightnessCmd' :  '/camera_control.cgi?param=1&value=',
+       'contrast' :  40,
+       'contrastCmd' :  '/camera_control.cgi?param=2&value=',
+       'picCmd' :  '/snapshot.cgi?resolution=32&user=admin&pwd=lakewould',
+        
+}
