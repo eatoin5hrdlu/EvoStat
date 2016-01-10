@@ -10,7 +10,17 @@
 //
 //
 // Pin numbers currently for Ardweeny
-
+//
+// Maxon Motor Encoder 8-pin header pinout
+// (Red stripe) Pin 1: Motor (+)
+//              Pin 2: Shield
+//              Pin 3: Channel B
+//              Pin 4: Vcc Enc (5V)
+//              Pin 5: Channel A
+//              Pin 6: Gnd Enc
+//              Pin 7: Shield
+//              Pin 8: Motor (-)
+//
 #define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
 #define FULL_POWER   200
