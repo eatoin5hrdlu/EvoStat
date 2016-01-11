@@ -24,8 +24,8 @@
 #define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
 #define FULL_POWER   200
-#define MEDIUM_POWER 150
-#define LOW_POWER    100
+#define MEDIUM_POWER 120
+#define LOW_POWER     80
 #define PWM_OFF        0
 
 #define ENCODER_180  400  // PWM Power and this are GearMotor dependent
@@ -113,7 +113,7 @@ int valveInterval;
 int valveTime[5]; // Valve open time in milliseconds per interval
 int valvePin[5]; // Valve open time in milliseconds per interval
 
-int               sampleCountdown; // Set to SampleNum after RESET
+int sampleCountdown; // Set to SampleNum after RESET
 unsigned long int sampleTimeMS;
 
 void printHelp(void)
@@ -165,14 +165,14 @@ int i;
 	Serial.begin(9600);
 	
 	// Sampler Pins
-	pinMode(closePin, INPUT);
-	pinMode(countPin,  INPUT);
-	pinMode(phaseB,    INPUT);
 	pinMode(drivePin, OUTPUT);
 	analogWrite(drivePin, PWM_OFF);
 
+	pinMode(closePin, INPUT);
+	pinMode(countPin,  INPUT);
+	pinMode(phaseB,    INPUT);
+
         // Five Drain Valves
-	pinMode(A0,OUTPUT);digitalWrite(A0,1);
 	pinMode(A1,OUTPUT);digitalWrite(A1,0);
 	pinMode(A2,OUTPUT);digitalWrite(A2,0);
 	pinMode(A3,OUTPUT);digitalWrite(A3,0);
@@ -407,10 +407,10 @@ void checkSample() { // Check Sampling State Machine
 	case STARTUP:
 		attachInterrupt(digitalPinToInterrupt(closePin),closed_position,RISING);
                 closedPosition = false;
-		analogWrite(drivePin, FULL_POWER);
 		firstTime = true;
 		lastTime = millis();
 		state = CLOSING;
+		analogWrite(drivePin, FULL_POWER);
 		break;
 	case CLOSING:
 		if ( closedPosition && digitalRead(closePin) ) {  // BACK IN HOME POSITION
@@ -432,6 +432,7 @@ void checkSample() { // Check Sampling State Machine
 		}
 		break;
 	case CLOSED:
+		if (sampleCountdown < 0) return;
 		now = millis();
 		if (now > lastSampleTime + sampleTimeMS)  // Time to sample
 		{
@@ -465,7 +466,7 @@ void checkSample() { // Check Sampling State Machine
 			if (debug)
 				Serial.print(statename[state]);
 		}
-		else if (ENCODER_count > ENCODER_180 - 100) // Slow on approach
+		else if (ENCODER_count > ENCODER_180 - 120) // Slow on approach
 		     analogWrite(drivePin, LOW_POWER);
 		else if (ENCODER_count > ENCODER_180 - 200) 
 		     analogWrite(drivePin,MEDIUM_POWER);
