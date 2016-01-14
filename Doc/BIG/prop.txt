@@ -1,0 +1,138 @@
+Proposal Requirements
+
+include the sections listed below
+Use headings provided.
+
+Table of Contents:
+An inexpensive Phagestat for Continuous Evolution Research
+Peter B. Reintjes
+North Carolina Museum of Life and Science
+
+Abstract
+Technical Proposal Narrative:
+  Problem
+  Current Status of Research
+  Technical Goals
+  Project Plan
+  Evaluation
+    1) Criteria for a go/no-go decision, include metrics
+    2) Discuss challenges
+
+  Commercial Proposal Narrative
+    Problem
+    Commercial Goals
+    Market
+    Intellectual Property
+    Project Plan
+
+
+
+Abstract:
+Continuous Evolution systems (PACE, PATHE) provide a powerful approach to protein engineering to increase Protein-DNA and Protein-Protein binding affinities through directed evolution.  Ad-hoc systems built from commercially available equipment have material costs on the order of ~$30,000.00 as well as high personell costs because of the requirement of continuous monitoring.  Alternatively, by using inexpensive computational systems, commodity electronic and plumbing componets and a few custom 3D-printed components a system can be built for $1000-$2000 which additionally eliminates much of the manpower requirement through non-contact sensing, image processing, and computer controlled feedback.  This inexpensive, easy-to-use apparatus will be able to support high-throughput directed evolution protein engineering.
+
+
+
+
+ (no more than one page): Provide an overview of the project, including a brief description of the technology, the name of the Commercialization Advisor, and a summary of the technical and commercialization goals.
+Technical Proposal Narrative: The technical narrative should be no more than 4 pages long and include all sections below. Use the headings provided.
+-Problem
+Define the problem that this invention could address.
+-Current Status of Research
+Describe the work that has been done to date, both in the lab of the scientist and in the field.
+-Technical Goals
+Explain the goals for the development of the technology to be achieved in this project.
+-Project Plan
+Describe the studies that will be performed to meet the stated technological goals, including key technical milestones and a timeline narrative.
+-Evaluation
+1) Define the criteria for a go/no-go decision within the technical phase. Include defined metrics that will indicate or demonstrate a successful outcome.
+2) Discuss the anticipated challenges within the technical aspects of the project.
+Commercial Proposal Narrative: The commercial narrative should be no more than 2 pages long and include all sections below. Use the headings provided.
+The Commercialization Advisor should participate in the preparation of this section of the proposal.
+-Problem
+Define the market problem that this invention could address.
+-Commercial Goals
+Explain the commercialization goals for this project.
+See the FAQs online for examples of commercialization goals.
+-Market
+Assess the potential for a solution to the market problem, the size of the market, and the relevant market drivers. Identify specific companies or industries with potential for commercialization of the technology.
+-Intellectual Property
+Discuss the current state of the art and probable freedom to operate with regard to IP.
+-Project Plan
+Describe the plan for meeting the commercialization goals, including key milestones and a timeline narrative.
+
+Include title, PI name, institution and page numbers.
+Abstract (no more than one page): Provide an overview of the project, including a brief description of the technology, the name of the Commercialization Advisor, and a summary of the technical and commercialization goals.
+Technical Proposal Narrative: The technical narrative should be no more than 4 pages long and include all sections below. Use the headings provided.
+-Problem
+Define the problem that this invention could address.
+-Current Status of Research
+Describe the work that has been done to date, both in the lab of the scientist and in the field.
+-Technical Goals
+Explain the goals for the development of the technology to be achieved in this project.
+-Project Plan
+Describe the studies that will be performed to meet the stated technological goals, including key technical milestones and a timeline narrative.
+-Evaluation
+1) Define the criteria for a go/no-go decision within the technical phase. Include defined metrics that will indicate or demonstrate a successful outcome.
+2) Discuss the anticipated challenges within the technical aspects of the project.
+Commercial Proposal Narrative: The commercial narrative should be no more than 2 pages long and include all sections below. Use the headings provided.
+The Commercialization Advisor should participate in the preparation of this section of the proposal.
+-Problem
+Define the market problem that this invention could address.
+-Commercial Goals
+Explain the commercialization goals for this project.
+See the FAQs online for examples of commercialization goals.
+-Market
+Assess the potential for a solution to the market problem, the size of the market, and the relevant market drivers. Identify specific companies or industries with potential for commercialization of the technology.
+-Intellectual Property
+Discuss the current state of the art and probable freedom to operate with regard to IP.
+-Project Plan
+Describe the plan for meeting the commercialization goals, including key milestones and a timeline narrative.
+
+
+U.S. Patent #5,728,963 for "Low-Power Music Synthesizer and Transmitter", technology for short-range radio-based toys and radio-location devices.
+
+ U.S. Patent #6,178,453 “Virtual circuit switching architecture” for IP-telephony and collaborative computing applications.
+
+``Logic and Language: Stretching Homologies to the Breaking Point'', Banquet Speech, ICPAP/PACT, Paris, April 1995.
+
+``Logic Programming for Manufacturing and Engineering'', Advanced Software Technology Seminars, London, December 1994.
+
+``Confessions of a Logical Programmer'', Keynote Address, International Conference on the Practical Applications of Prolog, London, April 1994.
+
+``MULTI/PLEX: Tools for Formal Languages'', Peter Reintjes and Suresh Rajgopal, Programming Environments Workshop, International Conference and Symposium on Logic Programming, Vancouver, November 1993.
+
+``Elegant Technologies'', Invited Talk, International Conference on the Practical Applications of Prolog, ALP, London, April 1992.
+
+``A Set of Tools for VHDL Design'', International Conference on Logic Programming, Paris, June 1991. MIT Press
+Also in Logic Programming in Action: Proceedings of the Second International Logic Programming Summer School, Zurich, September 1992, Springer-Verlag.
+
+``BIOSCAN: A VLSI-Based System for Biosequence Analysis'', White et. al..  1991 IEEE International Conference on Computer Design, October 1991, IEEE Computer Society Press
+
+``PREDITOR: A Prolog-based VLSI Editor'', The Practice of Prolog, Leon Sterling, Editor, pp.21-72, November 1990, MIT Press
+
+``A VHDL Parser in Prolog'', MCNC Technical Report 90-41, March 1990, Microelectronics Center of North Carolina
+
+``AUNT: A Universal Netlist Translator'', 1987 Symposium on Logic Programming, September 1987, IEEE Computer Society Press, also in Journal of Logic Programming, 1990:8:5-19 North Holland.
+
+``A Proposal for Symbolic Supercomputing'', MCNC Technical Report 89-13, March 1990, Microelectronics Center of North Carolina
+
+``AI Methodology as a Key for Software Reusability'', Tools for Artificial Intelligence - TAI-89, October 1989, IEEE Computer Society Press
+
+``AI Languages and Software Engineering'', AAAI Spring Symposium, March 1989, Stanford University.
+
+``A VLSI Design Environment in Prolog'', Logic Programming: The Proceedings of the Fifth International Conference and Symposium, August 1988, MIT Press
+
+``A History of Machine Translation in Word, Phrase, and Fable'', Videotape for IBM Corporation, Information Development Education, 1988.
+
+``AI Applications in VLSI CAD'', Artificial Intelligence Applications Symposium, February 1987, North Carolina State University.
+
+``Network Tools: Ideas for Intelligent Network Software'', Byte Magazine, October 1981.
+
+``UNIX/C Seminars'', 1980, Eatoin Corporation.
+
+``Phase-Locked Waveform Generator'', Electronics, February 1978, McGraw Hill.
+
+``Self-gating Sample-and-Hold controls Oscillator Frequency'', Electronics, June 1977.
+
+
+
