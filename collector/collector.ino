@@ -38,6 +38,8 @@ const int countPin = 3; // PIN with ISR for Gearmotor Encoder Phase A
 const int phaseB   = 4; // PIN                        Encoder Phase B
 
 const int ENDSTOP    =  6;
+const int SAMPLE_SPACE = 54;
+const int GROUP_SPACE = 100;
 
 // Stepper Phases: forward (1-3-2-4) reverse (4-2-3-1)
 const int P1 =  8;
@@ -48,7 +50,7 @@ const int P4 = 11;
 #endif
 
 const int DEFAULT_SAMPLES    = 24;
-const int DEFAULT_SAMPLETIME = 10;
+const int DEFAULT_SAMPLETIME = 5;
 const int DEFAULT_ALIQUOT    = 5000UL;
 
 #define EOT     "end_of_data."
@@ -91,7 +93,7 @@ void encoderA()                   // Interrupt on Phase A  0 -> 1
 	   ENCODER_count++;           //        rotation is CCW
 }
 
-unsigned long openInterval = 5000UL;          // 5 seconds
+unsigned long openInterval = 3000UL;          // 3 seconds
  
 unsigned long now;
 unsigned long lastTime;
@@ -143,7 +145,7 @@ void printHelp(void)
 // after using the 'z' command to zero the EEPROM.
 
 
-const int MT = 10;  // mS delay between stepper motor phase shifts
+const int MT = 7;  // mS delay between stepper motor phase shifts
 
 void reset()
 {
@@ -165,7 +167,7 @@ int i;
 	Serial.begin(9600);
 	
 	// Sampler Pins
-	pinMode(drivePin, OUTPUT);
+//	pinMode(drivePin, OUTPUT);
 	analogWrite(drivePin, PWM_OFF);
 
 	pinMode(closePin, INPUT);
@@ -205,7 +207,7 @@ int i;
 
 		sampleTime = DEFAULT_SAMPLETIME;// Seconds between samples
 		sampleNum  = DEFAULT_SAMPLES;   // Two 96-well plates lengthwise
-		groupNum   = 1;                 // Number of samples per group
+		groupNum   = 12;                // Number of samples per group
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
 		for (i=0; i< 5; i++) valveTime[i] = 5000;
@@ -394,7 +396,7 @@ int i;
         Serial.println(EOT);
 }
 
-void checkSample() { // Check Sampling State Machine
+void checkSample(boolean ok) { // Check Sampling State Machine
 
        // The value of lastTime is usually updated just before the STATE change
        // so it indicates how long we've been in the current STATE
@@ -410,6 +412,8 @@ void checkSample() { // Check Sampling State Machine
 		firstTime = true;
 		lastTime = millis();
 		state = CLOSING;
+		Serial.println("STATE CLOSING");
+		Serial.println(digitalRead(closePin));
 		analogWrite(drivePin, FULL_POWER);
 		break;
 	case CLOSING:
@@ -422,10 +426,16 @@ void checkSample() { // Check Sampling State Machine
 				lastSampleTime = millis(); // Reset Time
 			} else {
 				if (debug) Serial.print("Moving platform...");
-				forward(50);               // Move platform
+				sampleCountdown--;         // Decrement Sample-count
+				if ((sampleCountdown % groupNum) == 0) {
+				        Serial.println("Forward Group Spacing");
+				   	forward(GROUP_SPACE);
+				} else {
+				        Serial.println("Forward Sample Spacing");
+					forward(SAMPLE_SPACE); 
+				}
 				if (debug) Serial.println(sampleCountdown);
 				lastSampleTime = millis(); // Reset Time
-				sampleCountdown--;         // Decrement Sample-count
 			}
 			lastTime = millis();
 			state = CLOSED;
@@ -434,7 +444,7 @@ void checkSample() { // Check Sampling State Machine
 	case CLOSED:
 		if (sampleCountdown < 0) return;
 		now = millis();
-		if (now > lastSampleTime + sampleTimeMS)  // Time to sample
+		if (ok && ( now > lastSampleTime + sampleTimeMS))  // Time to sample
 		{
 			Serial.println("Attach encoder");
 			attachInterrupt(digitalPinToInterrupt(countPin),encoderA,RISING);
@@ -496,10 +506,8 @@ unsigned long now = millis();
 	for(i=0;i<5;i++) {
 	 	if (digitalRead(valvePin[i])) {  // Valve is open
 		   allclosed = false;
-		   if (valveTime[i] < (int)elapsed) {
+		   if (valveTime[i] < (int)elapsed)
 		      digitalWrite(valvePin[i],0);
-		      Serial.print("closed valve "); Serial.println(i);
-		   }
 		}
 	}
 	if (elapsed > (unsigned long)valveInterval)
@@ -516,7 +524,8 @@ unsigned long now = millis();
 
 void loop()
 {
-	if (checkValves())
-	   checkSample();
+	// checkSample will only start taking a sample
+	// when checkValves() returns true ( valves are all closed ).
+	checkSample( checkValves() );
 	respondToRequest();
 }
