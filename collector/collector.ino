@@ -50,8 +50,8 @@ const int P4 = 11;
 #endif
 
 const int DEFAULT_SAMPLES    = 24;
-const int DEFAULT_SAMPLETIME = 5;
-const int DEFAULT_ALIQUOT    = 5000UL;
+const int DEFAULT_SAMPLETIME = 6;
+const int DEFAULT_ALIQUOT    = 4000UL;
 
 #define EOT     "end_of_data."
 #include <EEPROM.h>
@@ -210,7 +210,7 @@ int i;
 		groupNum   = 12;                // Number of samples per group
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
-		for (i=0; i< 5; i++) valveTime[i] = 5000;
+		for (i=0; i< 5; i++) valveTime[i] = 3000;
 		valveInterval = 10000;
 		saveRestore(SAVE);
 	}
@@ -427,12 +427,15 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 			} else {
 				if (debug) Serial.print("Moving platform...");
 				sampleCountdown--;         // Decrement Sample-count
-				if ((sampleCountdown % groupNum) == 0) {
-				        Serial.println("Forward Group Spacing");
-				   	forward(GROUP_SPACE);
-				} else {
-				        Serial.println("Forward Sample Spacing");
-					forward(SAMPLE_SPACE); 
+				if (sampleCountdown > -1)
+				{
+					if (sampleCountdown % groupNum) == 0) {
+					   Serial.println("Forward Group Spacing");
+					   forward(GROUP_SPACE);
+					} else {
+				           Serial.println("Forward Sample Spacing");
+					   forward(SAMPLE_SPACE); 
+					}
 				}
 				if (debug) Serial.println(sampleCountdown);
 				lastSampleTime = millis(); // Reset Time
