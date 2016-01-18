@@ -429,7 +429,7 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 				sampleCountdown--;         // Decrement Sample-count
 				if (sampleCountdown > -1)
 				{
-					if (sampleCountdown % groupNum) == 0) {
+					if ((sampleCountdown % groupNum) == 0) {
 					   Serial.println("Forward Group Spacing");
 					   forward(GROUP_SPACE);
 					} else {
@@ -445,7 +445,7 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 		}
 		break;
 	case CLOSED:
-		if (sampleCountdown < 0) return;
+		if (sampleCountdown < 1) return;
 		now = millis();
 		if (ok && ( now > lastSampleTime + sampleTimeMS))  // Time to sample
 		{
