@@ -11,13 +11,13 @@
 #endif
 // Conversions between Analog In(A), Celcius (C), Farenheit (F)
 
-#define FULL_SCALE 1024  // Analog In 0-1023
+#define FULL_SCALE_FLOAT 1024.0  // Analog In 0-1023
 #define F_OFFSET 32.0
 #define F_SCALE_MULT 9.0
 #define F_SCALE_DIV 5.0
 #define C_TO_F(c) (F_OFFSET+(F_SCALE_MULT*c)/F_SCALE_DIV)
 #define F_TO_C(f) (F_SCALE_DIV*((f-F_OFFSET)/F_SCALE_MULT))
-#define A_TO_C(a) ((a*110)/1024.0)
+#define A_TO_C(a) ((a*scale + offset)/FULL_SCALE_FLOAT)
 #define A_TO_F(a) C_TO_F(A_TO_C(a))
 
 // Constructors:
@@ -35,11 +35,13 @@
 class TEMPERATURE
 {
  public:
-#define SAMPLES 10.0
+#define FLOAT_SAMPLES 10.0
 
   TEMPERATURE(int pin) {
     aIn = pin;
     analogReference(INTERNAL);
+    scale = 110.0;
+    offset = 0.0;
     sCL = -1;
     sDA = -1;  
   }
@@ -49,12 +51,12 @@ class TEMPERATURE
   float farenheit(void)     { return C_TO_F(celcius()); }
   float celcius(void)
   {
-    int sum  = 0;
-	for(int i=0; i< SAMPLES; i++) {
-		sum += analogRead(ANALOG_TEMPERATURE);
-		delay(2);
+    sum = 0.0;
+    for(int i=0; i < (int)FLOAT_SAMPLES; i++) {
+	  sum += (float) analogRead(ANALOG_TEMPERATURE);
+	  delay(2);
 	}
-	return A_TO_C(((float)sum)/SAMPLES);
+	return A_TO_C(sum/FLOAT_SAMPLES);
   }
 
   float getScale(void)      { return scale;  }
@@ -68,7 +70,7 @@ class TEMPERATURE
    int sDA;            // Melexis data
    float scale;
    float offset;
-   float avg;          // average accumulator
+   float sum;          // average accumulator
   };
 #endif
 

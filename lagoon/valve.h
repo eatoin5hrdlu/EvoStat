@@ -34,20 +34,19 @@ class VALVE
     lastcycle = millis();
   }
 
-  void enable(int d)
+  void enable(boolean d)
   {
-    if (d) disabled = false;
-    else   disabled = true;
-    swrite(valve_angle[0]);
+    if (!disabled && d) {
+      digitalWrite(VALVEDISABLE,1);
+      delay(500);
+      swrite(valve_angle[0]);
+    }
+    disabled = !d;
     current = 0;
   }
 
   void position(int v) {
     swrite(valve_angle[v]);
-  }
-
-  void set_drain_pin(int p) {
-    drain_pin = p;
   }
 
   void setup_valve(int v, int tm) {
@@ -93,25 +92,23 @@ boolean checkValve(void) {
   if (disabled)
     return false;
   
-   if ((outflowon+outflowms) < now )
-     {
-       digitalWrite(outflowPin,0);  // OUTFLOW OFF AT END OF outflowms
-       outflowon = 0;
-     }
-
   if (current != 0 &&  (now > valve_open[current] + valve_time[current]) )
     next_valve();
-  
-  if (now > lastcycle + cycletime) // Time to start valve sequence
+
+  if (now > lastcycle + cycletime - 300) // Time to start valve sequence
     {
+      digitalWrite(VALVEDISABLE,0);
+      delay(300);
       lastcycle = millis();
       current = 0;
       next_valve();
-      if (calibration != 1) {
-	digitalWrite(outflowPin,1);        // OUTFLOW ON AT START OF CYCLE
-	outflowon = millis();
-      }
     }
+
+  // If we are back to position zero, but servo is energized, turn it off.
+  if (current == 0 && digitalRead(VALVEDISABLE) == 0) {
+    delay(400);  // Give it time to reach zero position.
+    digitalWrite(VALVEDISABLE,1);
+  }
   return true;
 }
 
@@ -121,16 +118,10 @@ boolean checkValve(void) {
 
   byte *getAngles()              { return &valve_angle[0];   }
   int setAngle(char vchar, int a){ valve_angle[(int)(vchar-'0')] = a; }
-  int setOutflowms(int outms)   { outflowms = outms; }
-  int setOutflowpin(int p)      { outflowPin = p; }
-
-  byte *getOutflowms()          { return (byte *)&outflowms; }
-  void calibrate(int c)         { calibration = c; }
 
  private:
   int size;                         // Number of positions
   int current;                      // Current position
-  int calibration;                  // Calibration Mode 1=inflow, 2=outflow
   boolean up;
   boolean disabled;
   byte     flow;
@@ -140,9 +131,6 @@ boolean checkValve(void) {
 
   unsigned long lastcycle;  // Beginning of current time interval
   unsigned long cycletime; // Cycle duration (always > valve on time)
-  unsigned long outflowon;
-  int outflowms;
-  int outflowPin;
  } ;
 #endif
 

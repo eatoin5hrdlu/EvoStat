@@ -7,15 +7,14 @@
 
 #define NUM_VALVES      4
 
-#define LAGOONOUT       2
-#define VALVEENABLE     8
-#define VALVEPIN        9
+#define VALVEDISABLE    8    // Power to valve servo 
+#define VALVEPIN        9    // Control of valve servo
 
 #define LED            10     // Meniscus light
-#define HEATER         11
-#define MIXER           3     // PWM for 12V motor
+#define HEATER         11     // Power resistors
+#define MIXER           3     // PWM for 5V motor
 
-#define MIXERSPEED 50   // PWM value for top mixer speed
+#define MIXERSPEED 80         // PWM value for top mixer speed
 
-#define DEFAULT_CYCLETIME 30 // This can be changed remembered(EEPROM)
+#define DEFAULT_CYCLETIME 30  // Can be changed/stored in EEPROM
 

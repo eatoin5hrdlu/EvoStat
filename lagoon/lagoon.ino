@@ -14,16 +14,16 @@
 #include <Servo.h>
 Servo myservo;
 
-int calibration;
+boolean debug;
+/*
+ * Servo write has to be here because this is the main routine and the
+ * servo object library has to be included here.  This is Arduino compiler crap.
+ * Clearly, the servo control should be inside valve.h (try it, I dare you).
+ */
 
 void swrite(int val) {
-     if (calibration != 2) {  // Do not enable(LOW) when calibrating outflow
-	digitalWrite(VALVEENABLE,0);
-	delay(150);
-     }
+     if (debug) Serial.println(val);
      myservo.write(val);
-     delay(150);
-     digitalWrite(VALVEENABLE,1);
 }
 
 #include "valve.h"        // Includes param.h (change constants there)
@@ -41,6 +41,7 @@ boolean auto_mixer;  // Automatically cycle mixer
 
 #ifdef STANDALONE
 #include "EEPROM.h"
+int eeSize;
 int RomAddress  = 0;
 
 int mixerspeed;
@@ -77,7 +78,6 @@ char *saveRestore(int op)
 	moveData(op, 1, &id);
 	moveData(op, sizeof(float),      (byte *) &target_temperature);
 	moveData(op, sizeof(int),        (byte *) &mixerspeed);
-	moveData(op, sizeof(int),                valve.getOutflowms());
 	moveData(op, (NUM_VALVES+1)*sizeof(int), valve.getTimes());
 	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getAngles());
 	if (op == SAVE) return("save.");
@@ -88,10 +88,11 @@ char *saveRestore(int op)
 /* Commands:
  *  a0 :    Auto modes off
  *  a1 :    Auto modes on
- *  cN :    Calibration modes (0,1,2)
  *  dNaa :  Set angle for valve position N
  *   EXAMPLE  Set angle for 0th valve position at 10 degrees (rather than 0)    "d010"
  *   EXAMPLE  Set angle for 4th valve position at 178 degrees (rather than 180) "d4178"
+ *  e0 :    Disable auto modes and input flow
+ *  e1 :    Enable auto modes and input valve schedule
  *  h0 :    Heater off
  *  h1 :    Heater on
  *  l0 :    Meniscus light off
@@ -109,9 +110,14 @@ char *saveRestore(int op)
 
 void printHelp(void)
 {
+int i;
+byte *bp = valve.getAngles();
+
 	Serial.println("cmd(a,[0,1],'set auto modes off/on').");
-	Serial.println("cmd(c,[0,1,2],'Calibrate modes(0=normal,1=inflow,2=outflow').");
-	Serial.println("cmd(d,[0,1,2,3,4],[45,90,135,180],'set angle:(0-180) for Nth valve position').");
+	Serial.print("cmd(d,[0,1,2,3,4],[");
+	 for(i=0;i<5;i++) { Serial.print(*bp++); if (i != 4) Serial.print(","); }
+        Serial.println("],'set angle:(0-180) for Nth valve position').");
+	Serial.println("cmd(e,[0,1],'enable inputs vs. flow calibration').");
 	Serial.println("cmd(h,[0,1],'heater off/on auto_temp off').");
 	Serial.println("cmd(l,[0,1],'light off/on').");
 	Serial.println("cmd(m,[0,1],'mixer off/on').");
@@ -119,7 +125,9 @@ void printHelp(void)
 	Serial.println("cmd(p,[1],[0,1,2,3,4],'set valve to position N, auto_valve off').");
 	Serial.println("cmd(r,'Restore settings from EEPROM').");
 	Serial.println("cmd(s,'Save settings in EEPROM').");
-	Serial.println("cmd(t,[371],'Set target temperature in tenth degrees:37.1C').");
+	Serial.print("cmd(t,[");
+	Serial.print((int) (target_temperature*10.0));
+	Serial.println("],'Set target temperature in tenth degrees C').");
 	Serial.println("cmd(t,'Get temperature').");
 }
 
@@ -160,19 +168,19 @@ int tmp;
 				auto_mixer = false;
 			}
 			break;
-		case 'c':
-		        calibration = c2 - '0';
-			auto_temp = false;
-			auto_valve = false;
-			valve.enable(1);
-			valve.position(0);
-			valve.calibrate(calibration);
-			break;
 		case 'd':
 		        valve.setAngle(c2,value);
 			break;
 		case 'e':
-			valve.enable(d);
+			if (d == 1) {
+				valve.enable(true);
+				auto_temp = true;
+				auto_valve = true;
+			} else {
+			        valve.enable(false);
+				auto_temp = false;
+				auto_valve = false;
+			}
 			break;
 		case 'h':
 			digitalWrite(HEATER, d);
@@ -200,16 +208,9 @@ int tmp;
 			mixer(d);
 			break;
 		case 'n':
-		        calibration = 0;
-			valve.calibrate(0);
-			valve.enable(1);
-			valve.position(0);
+		        valve.enable(1);
 			auto_temp = true;  // Maintain Temperature Control
 			auto_valve = true;  // Maintain Flow
-			break;
-		case 'o':
-		        if (c2 == 'f') valve.setOutflowms(value);
-			else           return false;
 			break;
 		case 'p':
 		        if (c2 == 'h') printHelp();
@@ -252,6 +253,14 @@ int tmp;
 		case 'v':
 			valve.setup_valve(c2-'0', value);
 			break;
+		case 'z':
+			int i;
+			for(i=0; i < 5*sizeof(int); i++)
+				EEPROM.write(i,0);
+			Serial.println("eeprom(0).");
+			delay(4000);
+			break;
+
 		default:
 			return false;
 	}
@@ -281,40 +290,6 @@ void respondToRequest(void)
 }
 
 /*
- * average() throw out two extreme values and average the rest
- */
-
-float average(int *arr, int size)
-{
-	float avg = 0;
-	int mx = 0;
-        int mn = 2000;
-	for (int i=0; i<size; i++) 
-	{
-		avg += arr[i];
-		if (arr[i] < mn) mn = arr[i];
-		if (arr[i] > mx) mx = arr[i];
-	}
-	return ( ( avg - (mn+mx) )/(size-2));
-}
-
-float stdev(int *arr, int size, float avg)
-{
-	float sumsq = 0;
-	int mx = 0;
-        int mn = 2000;
-	for (int i=0; i<size; i++)
-	{
-		sumsq += (avg - arr[i])*(avg - arr[i]);
-		if (arr[i] < mn) mn = arr[i];
-		if (arr[i] > mx) mx = arr[i];
-	}
-	sumsq = sumsq - (avg - mn)*(avg - mn);
-	sumsq = sumsq - (avg - mx)*(avg - mx);
-	return sqrt(sumsq/(size-2));
-}
-
-/*
  * setup()	1) Initializes serial link
  *		2) Restores settings from EEPROM
  *		2) Calls flow_setup (pumps)
@@ -325,34 +300,43 @@ boolean once;
 
 void setup()
 {
-	pinMode(VALVEENABLE,OUTPUT); digitalWrite(VALVEENABLE,1); //no power to valve
-	pinMode(LAGOONOUT, OUTPUT);  digitalWrite(LAGOONOUT, 0);
+	Serial.begin(9600);
+	debug = false;
+
+	//  Active Low (power to valve) default 1 == no power
 	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 0);
 	pinMode(LED,       OUTPUT);  digitalWrite(LED, 1);
 
-	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
+	pinMode(VALVEDISABLE,OUTPUT);
+
+	//  Enable servo power , move to position 0 and then disable
+	digitalWrite(VALVEDISABLE,0);
+	delay(300);
 	myservo.attach(VALVEPIN);
 	valve.position(0);
+	delay(500);
+	digitalWrite(VALVEDISABLE,1);
+
         analogWrite(MIXER, 0 );     // Mixer off
 	interval = millis();
+
+	eeSize = sizeof(float) + (NUM_VALVES+2)*sizeof(int) + (NUM_VALVES+2)*sizeof(byte);
 
 //	if (true)
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = '2';	// Default Lagoon ID 
-		target_temperature = 34.5;
+		target_temperature = 37.0;
 		mixerspeed = MIXERSPEED;
-		valve.setOutflowms(15000);
-		valve.setOutflowPin(LAGOONOUT);
 		valve.setAngle('0',0);
-		valve.setAngle('1',45);
-		valve.setup_valve(1, 8000);
+		valve.setAngle('1',50);
+		valve.setup_valve(1, 6000);
 		valve.setAngle('2',90);
-		valve.setup_valve(2, 6000);
-		valve.setAngle('3',135);
-		valve.setup_valve(3, 4000);
-		valve.setAngle('4',180);
-		valve.setup_valve(4, 2000);
+		valve.setup_valve(2, 3000);
+		valve.setAngle('3',120);
+		valve.setup_valve(3, 3000);
+		valve.setAngle('4',160);
+		valve.setup_valve(4, 1000);
 		saveRestore(SAVE);
 	}
 	else
@@ -360,12 +344,9 @@ void setup()
 		saveRestore(RESTORE); // Valve timing copied to valve object
 	}
 	once = true;
-	auto_temp = true;  // Maintain Temperature Control
+	auto_temp = true;   // Maintain Temperature Control
 	auto_valve = true;  // Maintain Flow
 	auto_mixer = true;  // Cycle magnetic mixer to avoid stalled stir-bar
-
-calibration = 0;    // In/Out flows normal (calibration off)
-	valve.calibrate(calibration);
 }
 
 int cnt_light = 0;
