@@ -9,8 +9,9 @@
  *     d) set auto/manual flow control
  * 3) Check temperature and manage lagoon heater
  */
+#include <avr/wdt.h>
 #include "param.h"
-
+ 
 #include <Servo.h>
 Servo myservo;
 
@@ -129,6 +130,7 @@ byte *bp = valve.getAngles();
 	Serial.print((int) (target_temperature*10.0));
 	Serial.println("],'Set target temperature in tenth degrees C').");
 	Serial.println("cmd(t,'Get temperature').");
+	Serial.println("cmd(z,'Zero EEPROM').");
 }
 
 void mixer(byte v)
@@ -255,10 +257,8 @@ int tmp;
 			break;
 		case 'z':
 			int i;
-			for(i=0; i < 5*sizeof(int); i++)
-				EEPROM.write(i,0);
-			Serial.println("eeprom(0).");
-			delay(4000);
+			for(i=0; i < 5*sizeof(int); i++) EEPROM.write(i,0);
+			strcpy(reply, "eeprom(0).");
 			break;
 
 		default:
@@ -300,8 +300,9 @@ boolean once;
 
 void setup()
 {
+//	wdt_disable();
 	Serial.begin(9600);
-	debug = false;
+	debug = true;
 
 	//  Active Low (power to valve) default 1 == no power
 	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 0);
@@ -347,6 +348,8 @@ void setup()
 	auto_temp = true;   // Maintain Temperature Control
 	auto_valve = true;  // Maintain Flow
 	auto_mixer = true;  // Cycle magnetic mixer to avoid stalled stir-bar
+//	wdt_enable(WDTO_8S);
+	Serial.println("RESET");
 }
 
 int cnt_light = 0;
@@ -355,6 +358,7 @@ void loop()
 {
 int t;
 	respondToRequest();     // Check for command
+//	wdt_reset();            // the program is alive...for now. 
 	delay(100);
 	if (auto_temp)		// Check and update heater(s)
 		checkTemperature();
@@ -369,6 +373,7 @@ int t;
 	   for (t=0;t<5;t++) {
 	   	if (auto_valve) valve.checkValve();
 		delay(400);
+//		wdt_reset();  // the program is alive...for now. 
 	   }
 	   mixer(1);
 	}
