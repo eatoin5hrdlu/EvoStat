@@ -23,9 +23,9 @@
 //
 #define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
-#define FULL_POWER   200
+#define FULL_POWER   180
 #define MEDIUM_POWER 120
-#define LOW_POWER     80
+#define LOW_POWER     70
 #define PWM_OFF        0
 
 #define ENCODER_180  400  // PWM Power and this are GearMotor dependent
@@ -55,7 +55,7 @@ const int DEFAULT_ALIQUOT    = 4000UL;
 
 #define EOT     "end_of_data."
 #include <EEPROM.h>
-const boolean debug     = true;
+const boolean debug     = false;
       boolean firstTime = true;
 
 // Set global 'RomAddress' and address will be bumped
@@ -152,7 +152,8 @@ void reset()
 	if (debug) Serial.print("Starting reset (please wait)...");
 	while(digitalRead(ENDSTOP))
 	{
-		Serial.println(digitalRead(ENDSTOP));
+		if (debug)
+		   Serial.println(digitalRead(ENDSTOP));
 		reverse(10);
 	}
 	sampleCountdown = sampleNum;  // Reset to start sample count
@@ -203,7 +204,8 @@ int i;
 	saveRestore(RESTORE);
 	if (EEPROM.read(0) == 0 or EEPROM.read(0) == 255) // firsttime
 	{
-		Serial.print("Setting defaults in EEPROM.");
+		if (debug)
+		   Serial.print("Setting defaults in EEPROM.");
 
 		sampleTime = DEFAULT_SAMPLETIME;// Seconds between samples
 		sampleNum  = DEFAULT_SAMPLES;   // Two 96-well plates lengthwise
@@ -332,6 +334,13 @@ void respondToRequest(void)
 
 void printTermInt(char *functor, int arg)
 { Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
+
+void printTerm2Int(char *functor, int arg1, int arg2)
+{ 
+  Serial.print(functor); Serial.print("(");
+  Serial.print(arg1);Serial.println(",");
+  Serial.print(arg2);Serial.println(")."); 
+}
 void printTermChar(char *functor, char arg)
 { Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
 
@@ -359,11 +368,21 @@ int i;
 		case 'h':
 			printHelp();
 			break;
-		case 'i': Serial.println(value); valveTime[0] = value; break;
-		case 'j': valveTime[1] = value; break;
-		case 'k': valveTime[2] = value; break;
-		case 'l': valveTime[3] = value; break;
-		case 'm': valveTime[4] = value; break;
+		case 'i': 
+		     if (debug) printTerm2Int("valve",0,value);
+		     valveTime[0] = value; break;
+		case 'j': 
+		     if (debug) printTerm2Int("valve",1,value);
+		     valveTime[1] = value; break;
+		case 'k': 
+		     if (debug) printTerm2Int("valve",2,value);
+		     valveTime[2] = value; break;
+		case 'l': 
+		     if (debug) printTerm2Int("valve",3,value);
+		     valveTime[3] = value; break;
+		case 'm': 
+		     if (debug) printTerm2Int("valve",4,value);
+		     valveTime[4] = value; break;
 
 		case 'n':
 			sampleNum = value;
@@ -412,8 +431,10 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 		firstTime = true;
 		lastTime = millis();
 		state = CLOSING;
-		Serial.println("STATE CLOSING");
-		Serial.println(digitalRead(closePin));
+		if (debug) {
+				Serial.println("STATE CLOSING");
+				Serial.println(digitalRead(closePin));
+		}
 		analogWrite(drivePin, FULL_POWER);
 		break;
 	case CLOSING:
@@ -430,10 +451,12 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 				if (sampleCountdown > -1)
 				{
 					if ((sampleCountdown % groupNum) == 0) {
-					   Serial.println("Forward Group Spacing");
+					   if (debug)
+					      Serial.println("Forward Group Spacing");
 					   forward(GROUP_SPACE);
 					} else {
-				           Serial.println("Forward Sample Spacing");
+				           if (debug)
+					      Serial.println("Forward Sample Spacing");
 					   forward(SAMPLE_SPACE); 
 					}
 				}
@@ -449,7 +472,7 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 		now = millis();
 		if (ok && ( now > lastSampleTime + sampleTimeMS))  // Time to sample
 		{
-			Serial.println("Attach encoder");
+			if (debug) Serial.println("Attach encoder");
 			attachInterrupt(digitalPinToInterrupt(countPin),encoderA,RISING);
 			ENCODER_count = 0;
 			analogWrite(drivePin, FULL_POWER);
@@ -459,27 +482,32 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 		break;
 	case COUNTING:
 		if (debug and (ctr % 1000 == 0)) { // set faster (1000) with motor engaged
-		   Serial.println(ENCODER_count);
+		   if (debug)
+		      Serial.println(ENCODER_count);
 		   if (ENCODER_count != last_ENCODER_count)
                    {
-			Serial.print("  Encoder : ");
+			if (debug)
+			   Serial.print("  Encoder : ");
 			last_ENCODER_count = ENCODER_count;
-			Serial.print(last_ENCODER_count);
-			Serial.print("        boolean: ");
-			Serial.println(closedPosition);
+			if (debug) {
+			   Serial.print(last_ENCODER_count);
+			   Serial.print("        boolean: ");
+			   Serial.println(closedPosition);
+			}
 		   }
-		   else Serial.print(".");
+		   else if (debug) Serial.print(".");
 		}
-		if (ENCODER_count > ENCODER_180) {
+		if (ENCODER_count > (ENCODER_180-45)) {
 			analogWrite(drivePin, PWM_OFF);
-			Serial.println("Detach encoder");
+			if (debug)
+			   Serial.println("Detach encoder");
 			detachInterrupt(digitalPinToInterrupt(countPin));
 			lastTime = millis();
 			state = OPENED;
 			if (debug)
-				Serial.print(statename[state]);
+			   Serial.print(statename[state]);
 		}
-		else if (ENCODER_count > ENCODER_180 - 120) // Slow on approach
+		else if (ENCODER_count > ENCODER_180 - 140) // Slow on approach
 		     analogWrite(drivePin, LOW_POWER);
 		else if (ENCODER_count > ENCODER_180 - 200) 
 		     analogWrite(drivePin,MEDIUM_POWER);
@@ -515,7 +543,8 @@ unsigned long now = millis();
 	}
 	if (elapsed > (unsigned long)valveInterval)
 	{
-	        Serial.println("starting valve cycle");
+		if (debug)
+	           Serial.println("starting valve cycle");
 		lastValveCycle = now;
 		for(i=0;i<5;i++) {
 		    if (valveTime[i] > 0)
@@ -529,6 +558,9 @@ void loop()
 {
 	// checkSample will only start taking a sample
 	// when checkValves() returns true ( valves are all closed ).
+
+
 	checkSample( checkValves() );
 	respondToRequest();
+
 }
