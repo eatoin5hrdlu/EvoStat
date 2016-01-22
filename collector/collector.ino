@@ -23,9 +23,15 @@
 //
 #define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 
-#define FULL_POWER   180
-#define MEDIUM_POWER 120
-#define LOW_POWER     70
+//
+// The following numbers work for the 12-volt motor supply
+// With four tubes to compress, 5-volts wasn't enough torque
+// These numbers should be stored in EEPROM and re-programmable
+//
+
+#define FULL_POWER   240
+#define MEDIUM_POWER 180
+#define LOW_POWER    120
 #define PWM_OFF        0
 
 #define ENCODER_180  400  // PWM Power and this are GearMotor dependent
@@ -51,7 +57,7 @@ const int P4 = 11;
 
 const int DEFAULT_SAMPLES    = 24;
 const int DEFAULT_SAMPLETIME = 6;
-const int DEFAULT_ALIQUOT    = 4000UL;
+const int DEFAULT_ALIQUOT    = 500UL;
 
 #define EOT     "end_of_data."
 #include <EEPROM.h>
@@ -93,7 +99,7 @@ void encoderA()                   // Interrupt on Phase A  0 -> 1
 	   ENCODER_count++;           //        rotation is CCW
 }
 
-unsigned long openInterval = 3000UL;          // 3 seconds
+unsigned long openInterval = 1000UL;          // 3 seconds
  
 unsigned long now;
 unsigned long lastTime;
@@ -216,7 +222,7 @@ int i;
 		valveInterval = 10000;
 		saveRestore(SAVE);
 	}
-
+	openInterval = aliquot;
 	if (debug)
 		printHelp();
 	reset();
@@ -351,6 +357,7 @@ int i;
 	switch(c) {
 		case 'a':
 			aliquot = value;
+			openInterval = aliquot;
 			break;
 		case 'c':
 			reset();
