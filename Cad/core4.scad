@@ -52,5 +52,16 @@ module cores(num, rad, spacing, size, os)
     }
 	} // end of for(spacing...)
 }
-//  cores(4, 1.5, 18, 30, 4);
+
+//   cores(4, 1.5, 18, 30, 4);
+
+module modcores(A,B,C,D,E)
+{
+  difference() {
+       cores(A,B,C,D,E);
+       translate([0,0,0])
+        cube([6,200,60],center=true);
+   }
+}
+// modcores(4, 1.5, 18, 30, 4);
 

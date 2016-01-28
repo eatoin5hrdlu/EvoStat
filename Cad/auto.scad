@@ -36,7 +36,7 @@ module frame(width,length,height,mount_length)
         // MOTOR MOUNTING HOLE
         translate([0,length/2,0])
          rotate([90,0,0])
-          cylinder(r=(width-width/4)/2,h=8+length/2,center=true);
+          cylinder(r=0.5+(width-width/4)/2,h=8+length/2,center=true);
         // BEARING (through) HOLE
         translate([0,-length/2,0])
           rotate([90,0,0])
@@ -50,6 +50,8 @@ module frame(width,length,height,mount_length)
         // Photointerrupter Slot
         translate([-12,28.5,8])
 			  cube([14,17,20],center=true);
+     translate([-2,0,15])
+                 cube([3,130,6],center=true);
 
 	}
 }
@@ -77,7 +79,7 @@ difference() {
    union() {
       autosampler(width,length);
       translate([0,33,0])
-        cores(channels, tube_radius, spacing, 30, offset);
+        modcores(channels, tube_radius, spacing, 30, offset);
    }
    translate([0,-(2+length/2),0])
       slots(4,18);
