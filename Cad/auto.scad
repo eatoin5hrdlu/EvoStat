@@ -56,7 +56,7 @@ module frame(width,length,height,mount_length)
 // Mounting screw for Interrupter board
         translate([-15,28.5,-8])
           rotate([0,90,0])
-                     cylinder(r=0.5,h=8,center=true,$fn=12);
+                     cylinder(r=0.7,h=8,center=true,$fn=12);
 
 //Curtain rod slots
         translate([-2,0,15.2])
