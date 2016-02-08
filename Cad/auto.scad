@@ -17,7 +17,7 @@ module tubes(num, radius, spacing)
  }
 }
 
-module frame(width,length,height,mount_length)
+module frame(width,length,height,mount_length,motorradius)
 {
    offset = width/4;
 
@@ -36,7 +36,7 @@ module frame(width,length,height,mount_length)
         // MOTOR MOUNTING HOLE
         translate([0,length/2,0])
          rotate([90,0,0])
-          cylinder(r=0.5+(width-width/4)/2,h=8+length/2,center=true);
+          cylinder(r=motorradius,h=8+length/2,center=true);
         // BEARING (through) HOLE
         translate([0,-length/2,0])
           rotate([90,0,0])
@@ -49,9 +49,10 @@ module frame(width,length,height,mount_length)
              tubes(4,1.9,spacing);
         // Photointerrupter Slot
         translate([-12,28.5,8])
-			  cube([14,17,20],center=true);
+	   cube([14,17,20],center=true);
+        // Space for photo-interruptor board
         translate([-15,28.5,8])
-			  cube([2,24,38],center=true);
+	   cube([2,24,38],center=true);
 
 // Mounting screw for Interrupter board
         translate([-15,28.5,-8])
@@ -62,8 +63,6 @@ module frame(width,length,height,mount_length)
         translate([-2,0,15.2])
              rotate([90,0,0])
                  cylinder(r=1.2,h=200,center=true,$fn=12);
-         //       cube([3,130,6],center=true);
-
 	}
 }
 
@@ -83,7 +82,7 @@ module slots(num, spacing)
 module autosampler(width, length)
 {
    mount_length = length/4;
-   frame(width,length,width,mount_length);
+   frame(width,length,width,mount_length,11.5);
 }
 
 difference() {
@@ -94,5 +93,6 @@ difference() {
    }
    translate([0,-(2+length/2),0])
       slots(4,18);
+   translate([0,90,0]) cube([60,20,60],center=true);
 }
 
