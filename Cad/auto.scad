@@ -45,6 +45,12 @@ module frame(width,length,height,mount_length,motorradius)
         translate([0,5-length/2,0])
           rotate([90,0,0])
             cylinder(r=7.9,h=6,center=true,$fn=36);
+         // Space for set screw
+        translate([0,11-length/2,0])
+          rotate([90,0,0])
+            cylinder(r=10,h=5,center=true,$fn=36);
+
+
         translate([-4,-(3+spacing*3),-12])
              tubes(4,1.9,spacing);
         // Photointerrupter Slot
