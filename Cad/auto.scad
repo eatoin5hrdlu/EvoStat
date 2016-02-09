@@ -44,26 +44,29 @@ module frame(width,length,height,mount_length,motorradius)
         // BEARING HOLDER
         translate([0,5-length/2,0])
           rotate([90,0,0])
-            cylinder(r=7.8,h=6,center=true,$fn=36);
+            cylinder(r=7.9,h=6,center=true,$fn=36);
         translate([-4,-(3+spacing*3),-12])
              tubes(4,1.9,spacing);
         // Photointerrupter Slot
         translate([-12,28.5,8])
 	   cube([14,17,20],center=true);
         // Space for photo-interruptor board
-        translate([-15,28.5,8])
+        translate([-13,28.5,8])
 	   cube([2,24,38],center=true);
 
 // Mounting screw for Interrupter board
-        translate([-15,28.5,-8])
-          rotate([0,90,0])
-                     cylinder(r=0.7,h=8,center=true,$fn=12);
+  //      translate([-15,28.5,-8])
+  //        rotate([0,90,0])
+   //                  cylinder(r=0.7,h=8,center=true,$fn=12);
 
 //Curtain rod slots
-        translate([-2,0,15.2])
+        translate([-2,0,14.4])
              rotate([90,0,0])
-                 cylinder(r=1.2,h=200,center=true,$fn=12);
+                 cylinder(r=1.4,h=200,center=true,$fn=12);
+        translate([-2,0,15])
+                 cube([1.6,200,2],center=true);
 	}
+
 }
 
 module slots(num, spacing)
