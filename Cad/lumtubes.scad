@@ -27,5 +27,5 @@ module base(radius, height, depth)
 			cylinder(r=2.5,h=5*radius,center=true);
 	}
 }
-
+color([0.6,0.6,0.5])
 base(default_radius,default_height,default_depth);
