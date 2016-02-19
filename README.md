@@ -1,6 +1,6 @@
 EvoStat:  A PhageStat to support PACE and PATHE Experiments
 ====
-Software and Hardware for a low-cost platform for PACE and PATHE experiments.
+Software and Hardware for an automated platform for PACE and PATHE experiments.
 
 PATHE (Phage-Assisted Three-Hybrid Evolution) is an enhancement to PACE (Phage Assisted Continuous Evolution) described by Kevin M. Esvelt, Jacob C. Carlson, and David R. Liu in http://www.ncbi.nlm.nih.gov/pubmed/21478873
 
