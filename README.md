@@ -8,8 +8,7 @@ This project contains Arduino code for a Host CellStat (Turbidostat), Sample Col
 as well as the server software to provide an on-screen interface to Temperature, Turbidity, Flowrate,
 and Sample Collector control and Web interface.
 
-SWI-Prolog based web server, GUI, and Turbidostat control software
-is written mostly in Prolog/Xpce with some Python (e.g. pySerial, for a 
+SWI-Prolog based web server, GUI, and Turbidostat control software written mostly in Prolog/Xpce with some Python (e.g. pySerial, for a 
 portable serial interface to Arduino) and HTML. Bluetooth interface added as foreign function library to SWI-Prolog currently eliminates the need for pySerial. See github.com/eatoin5hrdlu/plblue 
 
 Running EvoStat on a Linux or Windows machine provides an interface for multiple phageStats with using Bluetooth connected Arduino running host.ino for the Host Cellstat, multiple Bluetooth connected Arduinos for Lagoons (lagoon.ino), and a sample collector: Bluetooth connected Arduino running collector.ino. (Using a WiFi camera and bluetooth modules has reduced apparatus wiring by 90%)
