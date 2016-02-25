@@ -86,9 +86,13 @@ shape(Self, W:[int], H:[int]) :->
 
 update(Self) :->
 	get(Self, imageDirectory, Path),
-	snapshot(Path, File),
-	new(I, image(File)),
-	send(Self,selection,I).
+	get(Self, imageFile, OldFile),
+	snapshot(Path, NewFile),
+	( NewFile = OldFile -> true
+	; new(I, image(NewFile)),
+	  send(Self, slot, imageFile, NewFile),
+	  send(Self,selection,I)
+	).
 
 :- pce_end_class.
 

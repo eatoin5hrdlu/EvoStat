@@ -1,5 +1,5 @@
-#!C:/cygwin/Python27/python -u
 #!/usr/bin/python -u
+#!C:/cygwin/Python27/python -u
 #!C:/Python27/python -u
 import sys, os, time, socket, subprocess, re, traceback
 import base64, urllib2
@@ -11,11 +11,11 @@ import cv2
 import cv2.cv as cv
 import evocv
 
+def levelTerm(Levels, What) :
+    return What + "( "+", ".join([str(Levels[k]) for k in Levels.keys()])+")."
+
 def on_exit(msg,nLagoons) :
-    if (nLagoons == 3) :
-        print levelTerm([80,60,40],'levels')
-    else :
-        print levelTerm([80,60,40,20],'levels')
+    print("levels(80, 60, 40, 20).")
     print "message('" + msg + "')."
     exit(0)
 
@@ -186,10 +186,10 @@ class ipCamera(object):
             try :
 #                x = self.usbcam.read()
 #                time.sleep(0.1)
-                (rval, im1) = self.usbcam.read()
+                (rval, img1) = self.usbcam.read()
 #                print "usb.read() returned " + str(rval)
                 if (rval) :
-                    return im1
+                    pass
                 else :
                     print "Usb camera read failed"
                     return None
@@ -213,19 +213,14 @@ class ipCamera(object):
                 print "camera('", msg, "-", self.ip,"')."
                 exit(0)
 
-            if (img1 == None) :
-                debug = debug + "No image returned in IPcamera.grab()"
-                return None
+        if (img1 == None) :
+            debug = debug + "No image returned in IPcamera.grab()"
+            return None
                 
-            if (self.params['rotate']) :
-                img2 = cv2.imdecode(img1,1)
-                if (img2 == None) :
-                    debug = debug + "No image returned by imdecode() in grab()"
-                    return None
-                
-                return self.rotateImage(img2, self.params['rotate'])
-            else :
-                return(cv2.imdecode(img1, 1))
+        if (self.params['rotate']) :
+            return self.rotateImage(img1, self.params['rotate'])
+        else :
+            return(img1)
         return None
 
     def lagoonImage(self):
@@ -369,8 +364,13 @@ class ipCamera(object):
 
     def exportImage(self, image) :
         global seq
-        seq2 = seq + 1
-        cv2.imwrite("mypic"+str(seq2)+".jpg",cv2.resize(image, self.params['imageSize']))
+        (x1,y1,x2,y2) = self.params['lagoonRegion']
+        (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
+        if (image != None) :
+            cv2.rectangle(image,(y1,x1),(y2,x2),(0,255,0),2)
+            cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
+            seq2 = seq + 1
+            cv2.imwrite("mypic"+str(seq2)+".jpg",cv2.resize(image, self.params['imageSize']))
         if (os.path.exists("mypic"+str(seq)+".jpg")) :
             os.remove("mypic"+str(seq)+".jpg")
 
@@ -464,11 +464,9 @@ class ipCamera(object):
                     debug = debug + str(howmany) + " : " + str(previous)
 
             if (tries == 0) :
-                on_exit(debug,3)
+                on_exit(debug,params['numLagoons'])
             return Levels
 
-    def levelTerm(Levels, What) :
-        return What + "( "+", ".join([str(Levels[k]) for k in Levels.keys()])+")."
         
 
 # End of ipCamera Class
@@ -604,7 +602,7 @@ if __name__ == "__main__" :
     bbfp = None   # END OF LOCATE/BBOX HELPER
     previous = [] # START OF LAGOON LEVELS
     notDone = True
-    needed = self.params['numLagoons']
+    needed = ipcam.params['numLagoons']
     tries = 3;
     while(notDone and tries > 0) :
         ipcam.updateLagoons(pause=10) # blob contours shown for 4 seconds
@@ -636,6 +634,7 @@ if __name__ == "__main__" :
             debug = debug + str(howmany) + " : " + str(previous)
 
     if (tries == 0) :
+        print "failing in main"
         on_exit(debug,3)
     else :
-        print levelTerm(Levels)
+        print levelTerm(Levels,'levels')

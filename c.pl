@@ -14,11 +14,11 @@ level_cmd_dir(['C:\\Python27\\python.exe','ipcam.py'],
     current_prolog_flag(windows,true), !.
 
 level_cmd_dir(['C:\\cygwin\\Python27\\python.exe','ipcam.py'],
-	       'C:\\cygwin\\home\\peterr\\src\\PACE') :-
+	       'C:\\cygwin\\home\\peterr\\src\\EvoStat') :-
   current_prolog_flag(windows,true), !.
 
-level_cmd_dir(['/usr/bin/python','/home/peter/src/PACE/ipcam.py'],
-	      '/home/peter/src/PACE').
+level_cmd_dir(['/usr/bin/python','/home/peter/src/EvoStat/ipcam.py'],
+	      '/home/peter/src/EvoStat').
 
 :- [gbutton].
 
@@ -64,7 +64,7 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-logfile(logfile).
+%logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -505,7 +505,7 @@ c :- main([]).
 c(Name) :-
     free(@gui),
     new(@gui, evostat(Name)),
-    send(@gui?frame, icon, bitmap('./open/images/evo.xpm')),
+    send(@gui?frame, icon, bitmap('./evo.xpm')),
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@gui, destroy)
@@ -542,7 +542,8 @@ main(_Argv) :-
         (PID < 900 -> sleep(30) ; true),  % Delay if OS just started (low PID)
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),
-        load_foreign_library(foreign(plblue)),
+%        load_foreign_library(foreign(plblue)),
+        load_foreign_library(plblue),
 
 	config_name(Root),          %  Find out configuration name
 	consult(Root),              % Consult it
