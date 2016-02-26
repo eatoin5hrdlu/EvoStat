@@ -2,9 +2,10 @@
 #!C:/cygwin/Python27/python -u
 #!C:/Python27/python -u
 import sys, os, time, socket, subprocess, re, traceback
-import base64, urllib2
-from os  import popen
 
+from os  import popen
+import glob
+import base64, urllib2
 from suppress_stdout_stderr import suppress_stdout_stderr
 import numpy as np
 import cv2
@@ -42,7 +43,6 @@ debug = ""
 lagoon = {}
 Levels = {}
 toggle = True
-seq = 1
 
 #
 # IPCamera knows about different IP cameras (as well as USB cams) and
@@ -363,16 +363,14 @@ class ipCamera(object):
         return outlines
 
     def exportImage(self, image) :
-        global seq
+        global newSnapshot
         (x1,y1,x2,y2) = self.params['lagoonRegion']
         (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
-        if (image != None) :
+        if (image != None and newSnapshot != None ) :
             cv2.rectangle(image,(y1,x1),(y2,x2),(0,255,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
-            seq2 = seq + 1
-            cv2.imwrite("mypic"+str(seq2)+".jpg",cv2.resize(image, self.params['imageSize']))
-        if (os.path.exists("mypic"+str(seq)+".jpg")) :
-            os.remove("mypic"+str(seq)+".jpg")
+            cv2.imwrite(newSnapshot,cv2.resize(image,self.params['imageSize']))
+            newSnapshot = None
 
     def drawLagoons(self, image, pause=10) :
         global toggle
@@ -567,13 +565,20 @@ def getFluor(ipcam) :
             subi = fluor[bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]]
             print k + "(" + str(np.average( tuple(ord(i) for i in subi.tostring()))) + ").\n"
 
+newSnapshot = None
 
 if __name__ == "__main__" :
     debug = "openCV('" + str(cv2.__version__) + "')."
-    for f in os.listdir('.') :
-        if (f.startswith('mypic')) :
-            os.remove(f)
     ipcam = setupCamera()  # Needs  {<arg1>|<hostname>}.settings
+    jpg = glob.glob('mypic?.jpg')
+    if (len(jpg) == 1):
+        os.remove(jpg[0])
+        if (jpg[0].endswith('1.jpg')) :
+            newSnapshot = 'mypic2.jpg'
+        else :
+            newSnapshot = 'mypic1.jpg'
+    else :
+        newSnapshot = 'mypic1.jpg'
     if ('fluor' in sys.argv) :
         getFluor(ipcam)
         exit(0)

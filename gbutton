@@ -91,7 +91,10 @@ update(Self) :->
 	( NewFile = OldFile -> true
 	; new(I, image(NewFile)),
 	  send(Self, slot, imageFile, NewFile),
-	  send(Self,selection,I)
+	  send(Self,selection, I),
+	  writeln('free the image?'),
+	  free(I),
+	  writeln('freed the image')
 	).
 
 :- pce_end_class.
