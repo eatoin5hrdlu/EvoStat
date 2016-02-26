@@ -5,7 +5,18 @@
 %   [ mac('98:D3:31:70:2B:70'), temp(37.9), od(0.4), shape(60,30)]),
 %   [ mac('98:D3:31:40:1D:A4') ])
 %]).
-% New numbers from splatspace outdoor camera for reference (this template is wrong because it combines outdoor levels with indoor commands
+% Numbers from splatspace outdoor camera for ref
+% (this template is wrong: it combines outdoor levels with indoor commands
+%
+% For Linux running LXDE, add this autostart file
+% /etc/xdg/lxsession/LXDE/autostart:
+%@lxpanel --profile LXDE
+%@pcmanfm --desktop --profile LXDE
+%@xscreensaver -no-splash
+%@/home/peter/src/PACE/evostat
+%END_OF_autostart
+%  
+								
 config( [
 	 numLagoons(4),
          imageSize(600,500),
