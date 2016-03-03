@@ -4,6 +4,7 @@
 %   [ mac('98:D3:31:70:2B:70'), temp(37.9), od(0.4), shape(60,30)]),
 %   [ mac('98:D3:31:70:2B:70'), temp(37.9), od(0.4), shape(60,30)]),
 %   [ mac('98:D3:31:40:1D:A4') ])
+% CellStat0(mac('98:D3:31:20:23:36'))
 %]).
 % Numbers from splatspace outdoor camera for ref
 % (this template is wrong: it combines outdoor levels with indoor commands

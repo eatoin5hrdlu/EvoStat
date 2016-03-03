@@ -9,7 +9,7 @@
 :- pce_global(@finder, new(finder)).
 
 level_cmd_dir(['C:\\Python27\\python.exe','ipcam.py'],
-	       'C:\\cygwin\\home\\peter\\srclab\\PACE') :-
+	       'C:\\cygwin\\home\\peter\\src\\EvoStat') :-
     gethostname(elapse),
     current_prolog_flag(windows,true), !.
 
@@ -64,7 +64,7 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-%logfile(logfile).
+logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -527,7 +527,10 @@ main :-      pce_main_loop(main).
 
 main(_Argv) :-
         use_module(library(pce)),
-        ( current_prolog_flag(windows, true) -> retract(logfile(_)) ; true ),
+        ( logfile(_), current_prolog_flag(windows, true)
+         -> retract(logfile(_))
+         ; true
+        ),
         level_cmd_dir(_,HomeDir),
         cd(HomeDir),              % savestate can be run from anywhere
 	(logfile(File)
