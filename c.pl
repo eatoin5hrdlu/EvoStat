@@ -33,9 +33,10 @@ level_cmd_dir(['/usr/bin/python','/home/peter/src/EvoStat/ipcam.py'],
 	      '/home/peter/src/EvoStat').
 
 :- [gbutton].
+:- [dialin].
 
 :- dynamic target_value/2, current_value/4, current_value/2, screen/4.
-:- dynamic component/2, levelStream/1, air/0, toggle_auto/0.
+:- dynamic component/2, levelStream/1, air/0, mix/0, toggle_auto/0.
 
 %
 % System Configuration
@@ -336,9 +337,13 @@ initialise(W, Label:[name]) :->
          send_super(W, open, Location).
 
 cellstat(_W) :-> "User pressed the CellStat button"::
-        ( air ->
-	     retract(air), Cmd = 'o-'
-	 ;   assert(air), Cmd = 'o2'
+%        ( air ->
+%	     retract(air), Cmd = 'o-'
+%	 ;   assert(air), Cmd = 'o2'
+%	),
+        ( mix ->
+	     retract(mix), Cmd = 'm0'
+	 ;   assert(mix), Cmd = 'm1'
 	),
         component(cellstat,CellStat),
         send(CellStat,converse,Cmd).

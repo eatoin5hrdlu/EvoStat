@@ -123,8 +123,15 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, temperature, 0.0),
 	send(Self, slot, od600, 0.0),
 	send(Self, slot, socket, -1),
+	new(Code2, message(Self, show_conversation)),
+	send(Self, recogniser, click_gesture(right,'',single,Code2)),
 	send(Self, slot, mac, discover).
 
+show_conversation(Self) :->
+        Self = @Name,
+        get(Self, socket, Socket),
+	new(@dialin, dialin(Name,Socket)).
+	
 levelUnits(Self,Units) :->
        send(Self, slot, levelUnits, Units).
 
@@ -154,7 +161,7 @@ converse(Self, Cmd) :->
 	 -> get(Self, mac, Addr),
 	    concat_atom(['no_connection(',Who,',''',Addr,''').'], Error1),
 	    send(Self, slot, reply, Error1)
-	 ; ( bt_converse(Socket, Cmd, Reply)
+	 ; ( bt_converse(Socket, Cmd, Reply),writeln(raw(Reply))
 	    -> send(Self, slot, reply, Reply)
 	    ; concat_atom(['failed(',Who,',"',Cmd,'").'],Error2),
 	      send(Self, slot, reply, Error2)
@@ -453,9 +460,11 @@ prompt(W, Value:name) :<-
 converse(Self, Cmd) :->
 	"Send command to Bluetooth Socket and save Reply"::
         get(Self, socket, Socket),
+	writeln(cvrs(Socket,Cmd)),
 	( Socket > -1,
 	  bt_converse(Socket, Cmd, Reply)
-	  -> read_term_from_atom(Reply,RTerm,[]),
+	  -> writeln(raw(Reply)),
+	     read_term_from_atom(Reply,RTerm,[]),
 	     send(Self, slot, reply, RTerm)
 	  ; send(Self, slot, reply, no_connection)
 	).

@@ -1,0 +1,45 @@
+#!/usr/bin/xpce
+:- use_module(library(time)).
+:- use_module(library(pce)).
+:- use_module(library(process)).
+:- use_module(library(charsio)).
+:- use_module(library(helpidx)).
+:- use_module(library(lists)).
+:- use_module(library(ctypes)).
+
+:- use_module(library(time)).
+:- use_module(library(process)).
+
+:- pce_begin_class(dialin, dialog, "Conversation").
+
+variable(socket,  int, get, "Bluetooth/IP Socket" ).
+
+initialise(Self, Label:[name], Socket:[int]) :->
+	"Have a short conversation over Bluetooth"::
+        send_super(Self, initialise(Label)),
+        free(@diaed),
+        free(@diatxt),
+        new(@diatxt, text_buffer(bluetooth_socket(Socket))),
+        new(@diaed,  editor(@diatxt)),
+	send(Self,append(@diaed)),
+        get(@diaed, area, Area),
+	send(Area, set( width := 300, height := 200) ),
+	send(Self, slot, socket, Socket),
+	send(Self?frame, icon, bitmap('./evo.xpm')),
+	send_super(Self, open, point(400,200)).
+
+
+converse(Self, Socket, Cmd) :->
+	"Send command to Bluetooth Socket and show Reply"::
+	get(Self,label,Who),
+	(Socket = -1
+	 -> concat_atom(['no_connection(',Who,',''',Socket,''').'], Message)
+	 ; ( bt_converse(Socket, Cmd, Message)
+	    -> true
+	    ; concat_atom(['failed(',Who,',"',Cmd,'").'],Message)
+	   )
+	),
+	send(@diawin?text_buffer, append, Message).
+
+:- pce_end_class.
+
