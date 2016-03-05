@@ -8,6 +8,18 @@
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
+camera_reset(List) :-
+    level_cmd_dir(_,Dir),
+    Cmd = '/usr/bin/uvcdynctrl',
+    config_name(Host),
+    concat_atom([Host,'.gpfl'], Settings),
+    memberchk(mac(Num),List),
+    concat_atom(['--device=/dev/video',Num],Device),
+    Args = ['-L', Settings, Device],
+    writeln(resettingCamera(Dir, Cmd, Args)),
+    process_create(Cmd,Args,[cwd(Dir)]),
+    writeln(resetCamera(Cmd,Args)).
+
 level_cmd_dir(['C:\\Python27\\python.exe','ipcam.py'],
 	       'C:\\cygwin\\home\\peter\\src\\EvoStat') :-
     gethostname(elapse),
@@ -64,7 +76,7 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-logfile(logfile).
+%logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -555,6 +567,7 @@ main(_Argv) :-
 
 	member(screen(W,H,Pos), List),
 	assert(screen(Root,W,H,Pos)),
+        camera_reset(List),
 
 	member(layout(Components),List),
 	Layout =.. [Root,Components],

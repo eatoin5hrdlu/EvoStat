@@ -1,9 +1,9 @@
 #include "param.h"        // Includes param.h (change constants there)
 #include <Wire.h>
-#include <Adafruit_MLX90614.h>pwd
+#include "Adafruit_MLX90614.h"
 Adafruit_MLX90614 mlx;
-// #define DEBUG 1
-#define EOT "end_of_data"
+//#define DEBUG 1
+#define EOT "end_of_data."
 /*
  * Host controller
  *
@@ -103,11 +103,11 @@ bool wfProcess_command(char c1, char c2, int value)
 }
 
 #include "valves.h"        // Includes param.h (change constants there)
-#include "temperature.h" 
+// #include "temperature.h" 
 
 VALVES valves = VALVES(2);
 // TEMPERATURE temp = TEMPERATURE(0);  // Analog pin number
-TEMPERATURE temp = TEMPERATURE(A5,A4);  // Digital pins SCL, SDA
+//TEMPERATURE temp = TEMPERATURE(A5,A4);  // Digital pins SCL, SDA
 
 /* EEPROM SAVE AND RESTORE OF ID AND CALIBRATION CONSTANTS */
 
@@ -129,20 +129,23 @@ int reading[10];
 
 void checkTemperature()
 {
-float t = temp.celcius();
-	if (t < target_temperature) {
+float tmp = (float) mlx.readObjectTempC();
+float t = tmp*10.0;
+int hit =  (int) t/10.0;
+int lot =  abs(((int)t) % 10);
+	if (tmp < target_temperature) {
 #ifdef DEBUG
-                sprintf(reply, "temperature(low,%f).",t);
+                sprintf(reply, "temperature(low,%d.%d).",hit,lot);
 		sout(reply);
 #endif
 	        digitalWrite(HEATER,1);
 	        digitalWrite(LED,1);
 	}
-	if (t > target_temperature + 0.25) {
+	if (tmp > target_temperature + 0.25) {
 		digitalWrite(HEATER,0);
 		digitalWrite(LED,0);
 #ifdef DEBUG
-                sprintf(reply, "temperature(high,%f).",t);
+                sprintf(reply, "temperature(high,%d.%d).",hit,lot);
 		sout(reply);
 #endif
 	}
@@ -314,7 +317,7 @@ int hight,lowt,tries;
 			}
 			break;
 		case 'l':
-			digitalWrite(LED, d);
+			digitalWrite(JARLIGHT, d);
 			break;
 		case 'm':
 		        sprintf(reply,"mixer(%d).",d);
@@ -346,16 +349,23 @@ int hight,lowt,tries;
 			saveRestore(SAVE);
 			break;
 		case 't':
-		        tf = temp.celcius() * 10.0;
+		        switch(c2) {
+			  case 't':
+			   sprintf(reply,"target_temperature(%d).",(int) target_temperature);
+			   soutln(reply);
+			   break;
+			 default:
+		        tf = (float)mlx.readObjectTempC() * 10.0;
 			tries = 0;
 			while ( ( abs(tf) > 1000.0 || abs(tf) < 40.0) && tries++ < 3) {
 			      delay(100);
-			      tf = temp.celcius() * 10.0;
+			      tf = (float)mlx.readObjectTempC() * 10.0;
 			}
 			hight = (int) tf/10.0;
 			lowt =  abs(((int)tf) % 10); // negative number after decimal unparsable
 		        sprintf(reply,"temperature(%d.%d%d).",hight,lowt,tries);
 			soutln(reply);
+			}
 			break;
 		case 'v':
 			valves.adjust(c2,10);
@@ -460,7 +470,7 @@ int i;
 	pinMode(HEATER, OUTPUT); digitalWrite(HEATER, 0);
 	pinMode(AIR, OUTPUT); digitalWrite(AIR, 0);
 	pinMode(LED, OUTPUT);  digitalWrite(LED, 0);
-	pinMode(JARLIGHT, OUTPUT);  digitalWrite(JARLIGHT, 0);
+	pinMode(JARLIGHT, OUTPUT);  digitalWrite(JARLIGHT, 1);
 	pinMode(LASER, OUTPUT);  digitalWrite(LASER, 1);
 	pinMode(MIXER, OUTPUT);  // Don't need pinMode for PWM output
         analogWrite(MIXER, 0);
@@ -469,6 +479,7 @@ int i;
 	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
 	mlx = Adafruit_MLX90614();
 	mlx.begin();   // Initialize Mexexis Thermometer
+	
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = 'h';	// Default Lagoon ID (haldane)
@@ -488,7 +499,7 @@ int i;
 //		soutln(reply);
 #endif
 	}
-	valves.setCycletime(gcycletime);
+        valves.setCycletime(gcycletime);
 	once = true;
 	for (i=0;i<10;i++) checkTurbidity(); // Fill averaging vector
 	mixer(1);
@@ -508,7 +519,8 @@ int cnt_mixer = 0;
 void loop()
 {
 int tb_thresh;
- while(1) {
+
+while(1) {
 	respondToRequest();     // Check for command
 	delay(1000);
 	if (auto_temp)		// Check and update heater(s)
