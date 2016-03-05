@@ -45,7 +45,7 @@ SpokeWidth = 3;
 SpokeSpan = RotorDisplacement*2 - RotorEdgeSpan / 2;
 
 // RotorHeight is how tall the Rotor is when placed on end. It's important that this be larger than the diameter of the Eppies used, or the holes cut for the Eppies will be larger than the rotor's rim!
-RotorHeight = 12.5;
+RotorHeight = 25;
 
 // ===== Modules ======
 module Spoke(SpokeH,SpokeL,SpokeW,SpokeRo){
@@ -68,31 +68,40 @@ module Rotor(SpurR,SpurH,RimW,RimR,SpokeW,Height,BoreD,BoreW,ScrewW){
 	}
 }
 module EppieCutouts(CutOutSize,Rotation){
+extra = 5;
 		// Cylinder for Eppie:
-		translate([0,0,1+RotorHeight/2]) rotate([0,90,Rotation]) translate([0,0,-RotorDisplacement-1])
-			cylinder(RotorEdgeSpan+3,CutOutSize,CutOutSize);
-		translate([0,0,1+RotorHeight/2]) rotate([0,90,Rotation]) 
-			translate([0,0,-RotorDisplacement+RotorEdgeSpan-0.5])
-				cylinder(3,CutOutSize+1.2,EppieLipRad);
+		translate([0,0,extra+1+RotorHeight/2])
+       rotate([0,90,Rotation]) 
+        translate([0,0,-RotorDisplacement-1])
+			rotate([0,45,0])
+            cylinder(RotorEdgeSpan+3,CutOutSize,CutOutSize);
+//		translate([0,0,extra+1+RotorHeight/2]) rotate([0,90,Rotation]) 
+//			translate([0,extra,-RotorDisplacement+RotorEdgeSpan-0.5])
+//			rotate([0,45,0])
+//				cylinder(3,CutOutSize+1.2,EppieLipRad);
 		// Box cutout for ease of insertion:
-		translate([0,0,RotorHeight-2]) rotate([0,90,Rotation]) translate([0,0,-RotorDisplacement+3.7])
-					cube([5,CutOutSize*2-0.48,RotorEdgeSpan+2],center = true);
+//		translate([0,0,RotorHeight-2]) rotate([0,90,Rotation]) translate([0,0,-RotorDisplacement+3.7])
+//					cube([5,CutOutSize*2-0.48,RotorEdgeSpan+2],center = true);
 		// Box cutout to preserve cap closure:
-		translate([0,0,1.9]) rotate([0,90,Rotation]) translate([0,0,-RotorDisplacement+RotorEdgeSpan])
-					cube([4,CutOutSize*2-0.5,4],center = true);
+//		translate([0,0,1.9]) rotate([0,90,Rotation]) translate([0,0,-RotorDisplacement+RotorEdgeSpan])
+	//				cube([4,CutOutSize*2-0.5,4],center = true);
 
 		// Matching Cylinder for facing Eppie:
-		translate([0,0,1+RotorHeight/2]) rotate([0,90,Rotation+180]) translate([0,0,-RotorDisplacement-1])
-			cylinder(RotorEdgeSpan+3,CutOutSize,CutOutSize);
-		translate([0,0,1+RotorHeight/2]) rotate([0,90,Rotation+180])
-			translate([0,0,-RotorDisplacement+RotorEdgeSpan-0.5])
-				cylinder(3,CutOutSize+1.2,EppieLipRad);
+		translate([0,0,extra+1+RotorHeight/2])
+       rotate([0,90,Rotation+180]) 
+        translate([0,0,-RotorDisplacement-1])
+         rotate([0,45,0])
+			 cylinder(RotorEdgeSpan+3,CutOutSize,CutOutSize);
+//		translate([0,0,extra+1+RotorHeight/2]) rotate([0,90,Rotation+180])
+//			translate([0,extra,-RotorDisplacement+RotorEdgeSpan-0.5])
+//           rotate([0,45,0])
+//				cylinder(3,CutOutSize+1.2,EppieLipRad);
 		// Box cutout for ease of insertion:
-		translate([0,0,RotorHeight-2]) rotate([0,90,Rotation+180]) translate([0,0,-RotorDisplacement+3.7])
-					cube([5,CutOutSize*2-0.48,RotorEdgeSpan+2],center = true);
+	//	translate([0,0,RotorHeight-2]) rotate([0,90,Rotation+180]) translate([0,0,-RotorDisplacement+3.7])
+	//				cube([5,CutOutSize*2-0.48,RotorEdgeSpan+2],center = true);
 		// Box cutout to preserve cap closure:
-		translate([0,0,1.9]) rotate([0,90,Rotation+180]) translate([0,0,-RotorDisplacement+RotorEdgeSpan])
-					cube([4,CutOutSize*2-0.5,4],center = true);
+	//	translate([0,0,1.9]) rotate([0,90,Rotation+180]) translate([0,0,-RotorDisplacement+RotorEdgeSpan])
+	//				cube([4,CutOutSize*2-0.5,4],center = true);
 }
 
 module RotorWithHoles(){
@@ -100,12 +109,14 @@ module RotorWithHoles(){
 		Rotor(2*AxleRad, AxleLength, RotorEdgeSpan, RotorDisplacement, SpokeWidth, RotorHeight,AxleInnerDepth,AxleInnerRad,ScrewHoleRad);
             for(a=[0:20:120]) {
                   rotate([0,0,a])
-                      cylinder(r=6.35,h=40,center=true,$fn=3);
+                      cylinder(r=6.35,h=80,center=true,$fn=3);
                 }   
 		EppieCutouts(EppieRad,30);
 		EppieCutouts(EppieRad,90);
 		EppieCutouts(EppieRad,150);
+      translate([0,0,12]) cylinder(r1=10,r2=20,h=20,center=true);
 		}
 	}
 
 RotorWithHoles();
+
