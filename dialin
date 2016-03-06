@@ -44,3 +44,12 @@ converse(Self, Socket, Cmd) :->
 
 :- pce_end_class.
 
+%
+%
+%
+%
+%
+% send(@diatxt, recogniser, new(K, key_binding(@nil, argument))),
+% send(K, function, 'RET', send(@dialin, converse)),
+%
+%
