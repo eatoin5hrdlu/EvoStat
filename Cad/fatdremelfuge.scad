@@ -18,7 +18,8 @@ include <Eppie.scad>
 $fn = 80;
 
 // EppieRad is how wide the top of the eppie is, but not the lip! The Lip should exceed this width by a good margin!
-EppieRad = 5.35;
+//EppieRad = 5.35;
+EppieRad = 6;
 EppieLipRad = 6.65;
 // AxleRad is the radius of the axle that protudes from the top, which is accepted by the drill/dremel to spin the device.
 // AxleLength is how long the Axle is, including the rotor.
@@ -74,8 +75,8 @@ extra = 0;
        rotate([0,90,Rotation]) 
         translate([0,0,-RotorDisplacement-1])
 			rotate([0,45,0])
-           translate([0,0,-4])
-            cylinder(3*RotorEdgeSpan+3,CutOutSize,CutOutSize);
+           translate([0,0,-5])
+            cylinder(4*RotorEdgeSpan+3,CutOutSize,CutOutSize);
 //		translate([0,0,extra+1+RotorHeight/2]) rotate([0,90,Rotation]) 
 //			translate([0,extra,-RotorDisplacement+RotorEdgeSpan-0.5])
 //			rotate([0,45,0])
@@ -92,8 +93,8 @@ extra = 0;
        rotate([0,90,Rotation+180]) 
         translate([0,0,-RotorDisplacement-1])
          rotate([0,45,0])
-          translate([0,0,-4])
-			 cylinder(3*RotorEdgeSpan+3,CutOutSize,CutOutSize);
+          translate([0,0,-5])
+			 cylinder(4*RotorEdgeSpan+3,CutOutSize,CutOutSize);
 //		translate([0,0,extra+1+RotorHeight/2]) rotate([0,90,Rotation+180])
 //			translate([0,extra,-RotorDisplacement+RotorEdgeSpan-0.5])
 //           rotate([0,45,0])
@@ -111,7 +112,7 @@ module RotorWithHoles(){
 		Rotor(2*AxleRad, AxleLength, RotorEdgeSpan, RotorDisplacement, SpokeWidth, RotorHeight,AxleInnerDepth,AxleInnerRad,ScrewHoleRad);
             for(a=[0:20:120]) {
                   rotate([0,0,a])
-                      cylinder(r=6.35,h=80,center=true,$fn=3);
+                      cylinder(r=6.7,h=80,center=true,$fn=3);
                 }   
 		EppieCutouts(EppieRad,30);
 		EppieCutouts(EppieRad,90);
