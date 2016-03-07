@@ -130,7 +130,7 @@ initialise(Self, Label:[name]) :->
 show_conversation(Self) :->
         Self = @Name,
         get(Self, socket, Socket),
-	new(@dialin, dialin(Name,Socket)).
+	new(_, dialin(Name,Socket)).
 	
 levelUnits(Self,Units) :->
        send(Self, slot, levelUnits, Units).

@@ -1,38 +1,23 @@
 #!/usr/bin/xpce
-:- use_module(library(time)).
-:- use_module(library(pce)).
-:- use_module(library(process)).
-:- use_module(library(charsio)).
-:- use_module(library(helpidx)).
-:- use_module(library(lists)).
-:- use_module(library(ctypes)).
-
-:- use_module(library(time)).
-:- use_module(library(process)).
 
 :- pce_begin_class(dialin, dialog, "Conversation").
-
-variable(socket,  int, get, "Bluetooth/IP Socket" ).
 
 initialise(Self, Label:[name], Socket:[int]) :->
 	"Have a short conversation over Bluetooth"::
         send_super(Self, initialise(Label)),
-        free(@diaed),
-        free(@diatxt),
-	concat_atom(['socket=',Socket],Smsg),
-        new(@diatxt, text_buffer(Smsg)),
-        new(@diaed,  editor(@diatxt)),
-	send(Self,append(@diaed)),
-        get(@diaed, area, Area),
+	send(Self?frame, icon, bitmap('./evo.xpm')),     % Our logo
+        new(Diatxt, text_buffer('')),    % Text object in an
+        new(Diaed,  editor(Diatxt)),    % Emacs-like window
+	send(Self,append(Diaed)),
+        get(Diaed, area, Area),                         % Resize it 
 	send(Area, set( width := 300, height := 200) ),
-	send(Self, slot, socket, Socket),
-	send(Self?frame, icon, bitmap('./evo.xpm')),
-	send_super(Self, open, point(400,200)).
+	new(Code, message(Self, converse, Label, Socket, Diatxt?contents, Diaed)),
+        send(Self, append, button(send_command, Code)),
+	send_super(Self, open, point(600,200)).         % In the right place 
 
-
-converse(Self, Socket, Cmd) :->
+converse(_, Who, Socket, Contents, Editor) :->
 	"Send command to Bluetooth Socket and show Reply"::
-	get(Self,label,Who),
+	get(Contents, value, Cmd),
 	(Socket = -1
 	 -> concat_atom(['no_connection(',Who,',''',Socket,''').'], Message)
 	 ; ( bt_converse(Socket, Cmd, Message)
@@ -40,16 +25,7 @@ converse(Self, Socket, Cmd) :->
 	    ; concat_atom(['failed(',Who,',"',Cmd,'").'],Message)
 	   )
 	),
-	send(@diawin?text_buffer, append, Message).
+	send(Editor?text_buffer, append, Message).
 
 :- pce_end_class.
 
-%
-%
-%
-%
-%
-% send(@diatxt, recogniser, new(K, key_binding(@nil, argument))),
-% send(K, function, 'RET', send(@dialin, converse)),
-%
-%
