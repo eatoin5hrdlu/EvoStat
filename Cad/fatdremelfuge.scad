@@ -112,8 +112,9 @@ module RotorWithHoles(){
 		Rotor(2*AxleRad, AxleLength, RotorEdgeSpan, RotorDisplacement, SpokeWidth, RotorHeight,AxleInnerDepth,AxleInnerRad,ScrewHoleRad);
             for(a=[0:20:120]) {
                   rotate([0,0,a])
-                      cylinder(r=6.7,h=80,center=true,$fn=3);
-                }   
+                      cylinder(r=7.2,h=80,center=true,$fn=3);
+                }  
+      cylinder(r=5.9,h=40,center=true); 
 		EppieCutouts(EppieRad,30);
 		EppieCutouts(EppieRad,90);
 		EppieCutouts(EppieRad,150);
