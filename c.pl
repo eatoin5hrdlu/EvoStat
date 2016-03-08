@@ -529,10 +529,10 @@ hostname_root(H) :-
 % Bluetooth interface, with error checking and fail messages
 % bluetalk(+Socket, +Cmd, -Reply).
 
-bluetalk(@nil,  _,  'No Connection'  ).
-bluetalk(   _,  '', 'Nothing to Send').
-bluetalk(   S, Cmd,     Reply        ) :- bt_converse(S ,Cmd, Reply).
-bluetalk(   _,   _, 'Send Failed'    ).
+bluetalk(@nil,  _,  'no_connection.'  ).
+bluetalk(   _,  '', 'nothing_to_send.').
+bluetalk(   S, Cmd,     Reply    ) :- bt_converse(S ,Cmd, Reply).
+bluetalk(   _,   _, 'send_failed.'    ).
 
 
 c :- main([]).
