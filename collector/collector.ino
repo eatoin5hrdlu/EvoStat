@@ -55,6 +55,7 @@ const int P4 = 11;
 
 #endif
 
+const int DEFAULT_VALVECYCLE = 20000UL;
 const int DEFAULT_SAMPLES    = 24;
 const int DEFAULT_SAMPLETIME = 6;
 const int DEFAULT_ALIQUOT    = 500UL;
@@ -124,6 +125,7 @@ int valvePin[5]; // Valve open time in milliseconds per interval
 int sampleCountdown; // Set to SampleNum after RESET
 unsigned long int sampleTimeMS;
 
+
 void printHelp(void)
 {
 	Serial.println("a(value,'aliquot - sample extraction in msec').");
@@ -142,7 +144,7 @@ void printHelp(void)
 	Serial.println("t(value,'time between samples').");
 	Serial.println("s('save current settings').");
 	Serial.println("r('restore stored settings').");
-	Serial.println("z('zero all EEPROM settings - defaults will be restored on next reset').");
+	Serial.println("z('zero EEPROM - defaults restored after reset').");
 }
 
 // BEGIN DEFAULT CALIBRATION PARAMETERS
@@ -155,16 +157,19 @@ const int MT = 7;  // mS delay between stepper motor phase shifts
 
 void reset()
 {
-	if (debug) Serial.print("Starting reset (please wait)...");
-	while(digitalRead(ENDSTOP))
+int toolong = 100;
+	if (debug) Serial.print("reset(start).");
+	while(digitalRead(ENDSTOP) && toolong--)
 	{
-		if (debug)
-		   Serial.println(digitalRead(ENDSTOP));
 		reverse(10);
+		respondToRequest();
 	}
 	sampleCountdown = sampleNum;  // Reset to start sample count
 	sampleTimeMS = sampleTime*1000UL;  // Sampling interval in milliseconds
-	if (debug) Serial.println("finished reset.");
+	if (debug) {
+		if (toolong < 1) Serial.println("reset(timeout).");
+		Serial.println("reset(finished).");
+	}
 }
 
 int ctr;
@@ -208,6 +213,7 @@ int i;
 
 	RomAddress  = 0;
 	saveRestore(RESTORE);
+//	if (true)
 	if (EEPROM.read(0) == 0 or EEPROM.read(0) == 255) // firsttime
 	{
 		if (debug)
@@ -219,7 +225,7 @@ int i;
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
 		for (i=0; i< 5; i++) valveTime[i] = 3000;
-		valveInterval = 10000;
+		valveInterval = DEFAULT_VALVECYCLE;
 		saveRestore(SAVE);
 	}
 	openInterval = aliquot;
@@ -344,7 +350,7 @@ void printTermInt(char *functor, int arg)
 void printTerm2Int(char *functor, int arg1, int arg2)
 { 
   Serial.print(functor); Serial.print("(");
-  Serial.print(arg1);Serial.println(",");
+  Serial.print(arg1);Serial.print(",");
   Serial.print(arg2);Serial.println(")."); 
 }
 void printTermChar(char *functor, char arg)
@@ -376,21 +382,25 @@ int i;
 			printHelp();
 			break;
 		case 'i': 
-		     if (debug) printTerm2Int("valve",0,value);
-		     valveTime[0] = value; break;
+			if (value == 0) printTerm2Int("valve",0,valveTime[0]);
+			else		valveTime[0] = value;
+			break;
 		case 'j': 
-		     if (debug) printTerm2Int("valve",1,value);
-		     valveTime[1] = value; break;
+			if (value == 0) printTerm2Int("valve",1,valveTime[1]);
+			else 		valveTime[1] = value;
+			break;
 		case 'k': 
-		     if (debug) printTerm2Int("valve",2,value);
-		     valveTime[2] = value; break;
+			if (value == 0) printTerm2Int("valve",2,valveTime[2]);
+			else 		valveTime[2] = value;
+			break;
 		case 'l': 
-		     if (debug) printTerm2Int("valve",3,value);
-		     valveTime[3] = value; break;
+			if (value == 0) printTerm2Int("valve",3,valveTime[3]);
+			else 		valveTime[3] = value;
+			break;
 		case 'm': 
-		     if (debug) printTerm2Int("valve",4,value);
-		     valveTime[4] = value; break;
-
+			if (value == 0) printTerm2Int("valve",4,valveTime[4]);
+			else 		valveTime[4] = value;
+			break;
 		case 'n':
 			sampleNum = value;
 			break;
