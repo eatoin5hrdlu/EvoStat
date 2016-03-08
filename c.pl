@@ -181,8 +181,12 @@ pathe_report(moderate) :-
     append(File),
     writeln(moderate_test_report).
 
+pathe_report(_) :-
+    writeln('No Logging Enabled').
+
 resize(Thing) :-
-    screen(_,_,Height,_),
+    writeln(resize),
+    screen(_Root,_Width,Height,_),
     BH is Height/16,
     BW is 2*BH,
     send(Thing, size(size(BW,BH))).
@@ -306,11 +310,14 @@ newFlux(FluxTerm, Stream) :-
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
           send_super(W, initialise(Label)),
-          screen(Label,WinWidth,WinHeight,Location),
-          send(W, size, size(WinWidth, WinHeight)),
+	  screen(_,SW,SH,Location),
+	  EWidth is 2*SW/3,
+	  EHeight is SH - SH/20,
+          send(W, size, size(EWidth, EHeight)),
+	  writeln(evostat(width(EWidth),height(EHeight))),
 
 % MENU BAR
-	  send(W, append, new(MB, menu_bar)),
+	  send(W,  append, new(MB, menu_bar)),
 	  send(MB, append, new(File, popup(file))),
 	  send(MB, append, new(Help, popup(help))),
 	
@@ -519,6 +526,15 @@ hostname_root(H) :-
      atom_chars(Name,Cs),
      ( append(RCs,['.'|_],Cs) -> atom_chars(H,RCs) ; H = Name ).
 
+% Bluetooth interface, with error checking and fail messages
+% bluetalk(+Socket, +Cmd, -Reply).
+
+bluetalk(@nil,  _,  'No Connection'  ).
+bluetalk(   _,  '', 'Nothing to Send').
+bluetalk(   S, Cmd,     Reply        ) :- bt_converse(S ,Cmd, Reply).
+bluetalk(   _,   _, 'Send Failed'    ).
+
+
 c :- main([]).
 
 c(Name) :-
@@ -572,8 +588,10 @@ main(_Argv) :-
 	config(List),                         % Get the configuration data
 %	writeln(configuration(List)),
 
-	member(screen(W,H,Pos), List),
-	assert(screen(Root,W,H,Pos)),
+	get(@display?size, width, W),
+	get(@display?size, height, H),
+	DefaultX is W/3,
+	assert(screen(Root,W,H,point(DefaultX,3))),
         camera_reset(List),
 
 	member(layout(Components),List),

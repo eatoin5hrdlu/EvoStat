@@ -52,6 +52,22 @@ repeat1(1) :- !.
 repeat1(_).
 repeat1(N) :- M is N-1, repeat1(M).
 
+:- dynamic d_bt_address/2.
+
+bt_address(Name, Address) :-
+    d_bt_address(_Any,_Addr),
+    !,
+    d_bt_address(Name,Address).
+		
+bt_address(Name, Address) :-
+    bt_scan(Macs,Names),
+    (select(Each, Names, Mac, Macs),
+     assert(d_bt_address(Each, Mac)),
+     fail
+    ;true
+    ),
+    d_bt_address(Name,Address).
+
 :- writeln(ingbutton),
    ( current_prolog_flag(arch,'i386-win32')
      -> load_foreign_library(foreign(plblue))
@@ -67,22 +83,26 @@ variable(imageFile,      name, get, "Current Image Filename" ).
 initialise(Self, Label:[name]) :->
 	"Initialise the image area"::
         send_super(Self, initialise(Label)),
-	send(Self, size, size(650,480)),
 	snapshot('./',File),
-%	writeln(snapshot(File)),
 	send(Self, slot, imageFile, File),
 	send(Self, slot, imageDirectory, './'),
 	new(I, image(File)),
-	send(Self, selection, I),
+	new(B, bitmap(I)),
+	send(B, size, size(200,100)),
+	send(Self, selection, B),
 	assert(tog(1)).
+
+shape(Self, W:[int], H:[int]) :->
+	screen(_Root, FullWidth, FullHeight, _Loc),
+	MyWidth is integer(FullWidth*W/200),
+	MyHeight is integer(FullHeight*H/110),
+	writeln(size(Self,MyWidth,MyHeight)),
+	send(Self, size, size(MyWidth,MyHeight)).
 
 image(Self, File:[name])      :->
 	send(Self,slot,imageFile, File).
 
 imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
-
-shape(Self, W:[int], H:[int]) :->
-	send(Self, size, size(W,H)).
 
 update(Self) :->
 	get(Self, imageDirectory, Path),
@@ -101,10 +121,10 @@ update(Self) :->
 
 :- pce_begin_class(ebutton, button).
 
-variable(socket,  int, get, "Bluetooth/IP Socket" ).
-variable(mac, name, get,    "Bluetooth/IP MAC Address" ).
-variable(reply, name, get, "Last Message from Device" ).
-variable(levelUnits, name,  get, "% or mL (usually)").
+variable(socket,      any, get, "Bluetooth/IP Socket"      ).
+variable(mac,        name, get, "Bluetooth/IP MAC Address" ).
+variable(reply,      name, get, "Last Message from Device" ).
+variable(levelUnits, name, get, "% or mL (usually)"        ).
 
 % Current Settings
 variable(od600,       int, get, "Optical Density (600nM)").
@@ -122,11 +142,21 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, od600_t, 400),
 	send(Self, slot, temperature, 0.0),
 	send(Self, slot, od600, 0.0),
-	send(Self, slot, socket, -1),
+	send(Self, slot, socket, @nil),
+	( bt_address(Label,Mac),
+	  send(Self, slot, mac, Mac),
+	  send(Self, connect)
+	; true
+	),
 	new(Code2, message(Self, show_conversation)),
-	send(Self, recogniser, click_gesture(right,'',single,Code2)),
-	send(Self, slot, mac, discover).
+	send(Self, recogniser, click_gesture(right,'',single,Code2)).
 
+update(Self) :->
+	( get(Self, slot, socket, @nil)
+	-> send(Self,colour,colour(red))
+	;  send(Self,colour,colour(green))
+	).
+	
 show_conversation(Self) :->
         Self = @Name,
         get(Self, socket, Socket),
@@ -143,8 +173,13 @@ mix_colors( _, green, orange).
 
 compute(_) :-> true.
 
+% Shape is defined as a percentage of the screen
 shape(Self, W:[int], H:[int]) :->
-	   send(Self, size(size(W,H))).
+	screen(_Root,FullWidth,FullHeight,_Pos),
+	MyWidth is integer(FullWidth*W/200),
+	MyHeight is integer(FullHeight*H/110),
+	writeln(shape(Self,MyWidth,MyHeight)),
+	send(Self, size, size(MyWidth,MyHeight)).
 
 od(Self, OD600:[real]) :->
 	 send(Self, slot, od600, OD600).
@@ -152,35 +187,29 @@ od(Self, OD600:[real]) :->
 temp(Self, Temp:[real]) :->
 	 send(Self, slot, temperature, Temp).
 
-% Cellstat and Lagoon Bluetooth Communications
+% Cellstat, Lagoon, and Autosampler Bluetooth Communications
+
 converse(Self, Cmd) :->
 	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
         get(Self, socket, Socket),
-	get(Self,label,Who),
-	(Socket = -1
-	 -> get(Self, mac, Addr),
-	    concat_atom(['no_connection(',Who,',''',Addr,''').'], Error1),
-	    send(Self, slot, reply, Error1)
-	 ; ( bt_converse(Socket, Cmd, Reply),writeln(raw(Reply))
-	    -> send(Self, slot, reply, Reply)
-	    ; concat_atom(['failed(',Who,',"',Cmd,'").'],Error2),
-	      send(Self, slot, reply, Error2)
-	   )
-	).
-
-mac(Self, Addr:[name]) :->
-	send(Self, slot, mac, Addr),
-	send(Self, connect).
+	bluetalk(Socket, Cmd, Reply),
+	send(Self, slot, reply, Reply).
 
 connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::
 	get(Self, mac, Addr),
 	get(Self, socket, OldSocket),
-        ( OldSocket > -1 -> bt_close(OldSocket) ; true),
+        ( OldSocket == @nil -> true
+	; bt_close(OldSocket),
+	  send(Self, slot, socket, @nil)
+	),
 	( bt_socket(Addr, BTSocket) ->
-	  send(Self, slot, socket, BTSocket),
-	  send(Self,colour,colour(green))
-	; send(Self,colour,colour(red))
+	  ( BTSocket > -1 ->
+	    send(Self, slot, socket, BTSocket),
+	    send(Self,colour,colour(green))
+	    ; send(Self,colour,colour(red))
+	  )
+	  ; send(Self,colour,colour(red))
 	).
 
 insertIP(Cmd, IP, Result) :-
@@ -207,20 +236,12 @@ mac(Self, MAC:[name]) :->
         getIPfromMAC(MAC,IP),
 	send(Self, ip, ip(IP)).
 
-bt(Self, MacAddr) :->
-	get(Self, socket, OldSocket),
-        ( OldSocket > -1 -> bt_close(OldSocket) ; true),
-	repeat(5),
-		bt_socket(MacAddr,Socket),
-	( Socket > -1; sleep(1),fail ),
-	!,
-	send(Self,slot,socket,Socket).
-
-:- pce_end_class.
+:- pce_end_class. % ebutton
 
 :- pce_begin_class(cellstat, ebutton).
 
 update(Self) :->
+	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
 	writeln(cellstatreply(Reply)),
@@ -241,7 +262,7 @@ update(Self) :->
  		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label),
 	send(Self, label, Label).
 
-:- pce_end_class.
+:- pce_end_class.  % cellstat
 
 :- pce_begin_class(lagoon, ebutton).
 
@@ -269,11 +290,7 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, fluorescence, 0.0).
 
 update(Self) :->
-        get(Self,slot,socket,-1),
-	!,
-	send(Self,colour,colour(red)).
-
-update(Self) :->
+        send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
 	writeln(lagoonreply(Reply)),
@@ -378,28 +395,26 @@ done(Self) :->
 %    send(Self,command,[ao,DeltaOutput]),
     send(Self,slot,calibration,normal).
 
-:- pce_end_class.
+:- pce_end_class.  % lagoon
+
 
 :- pce_begin_class(sampler, ebutton).
 
 initialise(Self, Label:[name]) :->
-	"Initialise the sampler"::
+	"Initialise the autosampler"::
         send_super(Self, initialise(Label)).
 
 update(Self) :->
-	( tog(1) ->
-	   send(Self, colour, colour(black))
-	;
-	   send(Self, colour, colour(blue))
-	).
+	send_super(Self, update).
 
-:- pce_end_class.
+:- pce_end_class.  % autosampler
+
 
 :- pce_begin_class(spacer, box).
 
 initialise(Self, _Name:[name]) :->
 	screen(_,W,_H,_Pos),
-	NWid is W - 30,
+	NWid is 2*W/3 - 20,
         send_super(Self, initialise(NWid, 6)),
 	send(Self, colour, colour(black)),
 	send(Self, fill_pattern, colour(black)).
@@ -412,150 +427,13 @@ update(_Self) :-> true.
 
 :- pce_end_class.
 
-:- pce_begin_class(pumps, dialog_group, "Pump Rail").
-
-variable(socket,  int, get, "Bluetooth/IP Socket" ).
-variable(mac,    name, get, "Bluetooth/IP MAC Address" ).
-variable(reply,  name, get, "Last Message from Device" ).
-
-initialise(Self,Label:[name]) :->
-	"Initialise the window and fill it"::
-        send_super(Self,initialise(Label)),
-	send(Self, size,size(600,84)),
-	send(Self, slot, socket, -1),
-	send(Self, slot, mac, discover),
-	send(Self,colour,colour(black)),
-        ( childName(pump, 5, PName),
-          free(@PName),
-	  new(@PName, pump(PName)),
-          (PName='pump1' -> Align=next_row ; Align=right ),
-	  send(Self, append(@PName,Align)),
-          fail
-        ; true
-        ).
-
-childName(Root, Num, C) :-
-	between(1, Num, N),
-	concat_atom([Root,N],C).
-
-update(_Self) :->
-        ( childName(pump, 5, PName),
-	  send(@PName,update),
-          fail
-        ; true
-        ).
-
-ok(Self) :->
-        send(Self,return(ok)).
-
-cancel(Self) :->
-        send(Self,return(notok)),
-        halt.
-
-prompt(W, Value:name) :<-
-        "Open it, destroy it and return the result"::
-        get(W,confirm,Value).
-
-% Bluetooth Connectivity for Pumps
-converse(Self, Cmd) :->
-	"Send command to Bluetooth Socket and save Reply"::
-        get(Self, socket, Socket),
-	writeln(cvrs(Socket,Cmd)),
-	( Socket > -1,
-	  bt_converse(Socket, Cmd, Reply)
-	  -> writeln(raw(Reply)),
-	     read_term_from_atom(Reply,RTerm,[]),
-	     send(Self, slot, reply, RTerm)
-	  ; send(Self, slot, reply, no_connection)
-	).
-
-mac(Self, Addr:[name]) :->
-	send(Self, slot, mac, Addr),
-	send(Self, connect).
-
-connect(Self) :->
-	"Connect (or re-connect) the Bluetooth channel"::
-	get(Self, mac, Addr),
-	get(Self, socket, OldSocket),
-        ( OldSocket > -1 -> bt_close(OldSocket) ; true),
-	( bt_socket(Addr, BTSocket) ->
-	  send(Self, slot, socket, BTSocket),
-	  send(Self,colour,colour(green))
-	; send(Self,colour,colour(red))
-	).
-
-:- pce_end_class.
-
-:- pce_begin_class(pump, dialog_group).
-variable(pumpStatus, name, get, "Pump/Valve status").
-variable(pumpButton, any, get, "Pump Button").
-
-variable(pumpStatus, any, get, "Pump Status Box").
-variable(valveStatus, any, get, "Valve Status Box").
-
-initialise(Self, Label:[name]) :->
-        "Initialise the Pump"::
-        send_super(Self, initialise(Label)),
-	send(Self, size,size(100,60)),
-	send(Self, slot, pumpStatus,'Off / Closed'),
-
-	concat_atom([Label,'b'],Button),
-        free(@Button),
-	new(@Button,button(pumpb)),
-        send(@Button,label,'Off/Closed'),
-        send(@Button,colour,colour(red)),
-	send(Self, slot, pumpButton, @Button),
-        send(Self, append(@Button)),
-
-	concat_atom([Label,'p'],PStatus),
-        new(@PStatus, hotbox(blue)),
-	send(Self, append(@PStatus,next_row)),
-	send(Self, slot, pumpStatus, @PStatus),
-
-	concat_atom([Label,'v'],VStatus),
-        new(@VStatus, hotbox(red)),
-	send(Self, slot, valveStatus, @VStatus),
-	send(Self, append(@VStatus,right)).
-
-update(Self) :->
-	random_permutation([pumpon,pumpoff,valveopen,valveclosed],[G|_]),
-	send(Self, G).
-
-pumpb(Self) :->
-	get(Self, label, MyName),
-	(MyName = 'Pump3' -> halt ; true),
-	atom_codes(MyName,[_,_,_,_|NCs]),
-	number_codes(PN,NCs),
-	writeln(pressedpumpb(PN)).
-
-shape(Self, W:[int], H:[int]) :->
-	send(Self, size, size(W,H)).
-
-font(_Self, _Font:[any]) :-> true.
-
-pumpon(Self) :->
-	get(Self, pumpStatus, Box),
-        send(Box, fill_pattern, colour(red)).
-
-pumpoff(Self) :->
-	get(Self, pumpStatus, Box),
-        send(Box, fill_pattern, colour(blue)).
-
-valveopen(Self) :->
-	get(Self, valveStatus, Box),
-        send(Box, fill_pattern, colour(orange)).
-
-valveclosed(Self) :->
-	get(Self, valveStatus, Box),
-        send(Box, fill_pattern, colour(black)).
-
-:- pce_end_class.
-
-
 :- pce_begin_class(hotbox, box).
 initialise(Self, Color:[name]) :->
         "Initialise"::
-        send_super(Self, initialise(30,10)),
+	screen(_,W,H,_Pos),
+	Width is W/100,
+	Height is H*2/100,
+        send_super(Self, initialise(Width,Height)),
 	send(Self, colour, colour(black)),
         send(Self, fill_pattern, colour(Color)).
 :- pce_end_class.

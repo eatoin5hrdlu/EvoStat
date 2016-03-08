@@ -126,7 +126,7 @@ unsigned long int sampleTimeMS;
 
 void printHelp(void)
 {
-	Serial.println("a(value,'aliquot - sample extraction in milliseconds').");
+	Serial.println("a(value,'aliquot - sample extraction in msec').");
 	Serial.println("c('clear - reset platform/start sampling').");
 	Serial.println("d('dump (print) settings').");
 	Serial.println("e(value,'time between sample groups').");

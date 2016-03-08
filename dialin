@@ -2,7 +2,7 @@
 
 :- pce_begin_class(dialin, dialog, "Conversation").
 
-variable(socket, int, get, "Bluetooth Socket").
+variable(socket, any, get, "Bluetooth Socket").
 
 strip_atom(Raw, Stripped) :-
 	atom_codes(Raw,Codes),
@@ -14,15 +14,20 @@ strip_codes([W|T],     Out) :- W < 33, !, strip_codes(T,Out).
 strip_codes([C|In],[C|Out]) :- strip_codes(In,Out).
 
 
-initialise(Self, Label:[name], Socket:[int]) :->
+initialise(Self, Label:[name], Socket:[any]) :->
 	"Have a short conversation over Bluetooth"::
         send_super(Self, initialise(Label)),
 	send(Self, slot, socket, Socket),
 	send(Self?frame, icon, bitmap('./evo.xpm')), % Our logo
         new(Diatxt, text_buffer),                    % Text object in
         new(Editor, editor(Diatxt)),                 % Emacs-like edit window
-        get(Editor,  area, Area),                     % Resize it 
-	send(Area, set(width:=300,height:=200)),
+
+        get(@display?size,width,DW),
+	get(@display?size,height,DH),
+        get(Editor,  area, Area),                     % Resize it
+	MyW is 30+DW/3,
+	MyH is DH/2,
+	send(Area, set(width:=MyW,height:=MyH)),
 	send_list(Self, append, [Editor, button(send), button(clear)]),
 	send_super(Self, open, point(600,200)).      % Show it to the User
 
@@ -32,15 +37,10 @@ send(Self) :->
 	chain_list(Self?graphicals, [Editor|_]),      % Contents of 
 	get(Editor?text_buffer?contents, value, Raw), % Edit pane
 	strip_atom(Raw, Cmd),
-	converse(Socket, Cmd, Msg),
+	bluetalk(Socket, Cmd, Msg),
 	send(Editor?text_buffer, append, '\n'),
 	send(Editor?text_buffer, append, Msg),
 	send(Self, keyboard_focus, Editor).
-
-converse(-1,  _, 'No Connection').
-converse(_,  '', 'Nothing to Send').
-converse(S, Cmd,     Reply )   :- bt_converse(S ,Cmd, Reply).
-converse(_,   _, 'Send Failed').
 
 clear(Self) :->
 	chain_list(Self?graphicals, [Editor|_]),
