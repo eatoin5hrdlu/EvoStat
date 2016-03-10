@@ -12,6 +12,11 @@
 
 :- dynamic tog/1.
 
+window_percent(WFraction,HFraction,W,H) :-
+	screen(DW,DH, WW, WH, _Loc),
+	W is integer(DW*WW*WFraction/10000),
+	H is integer(DH*WH*HFraction/11000).
+
 parse_reply(Reply, Term, Default) :-
 	catch( atom_to_term(Reply,Term,_TMBindings),
 	       Exception,
@@ -93,9 +98,7 @@ initialise(Self, Label:[name]) :->
 	assert(tog(1)).
 
 shape(Self, W:[int], H:[int]) :->
-	screen(_Root, FullWidth, FullHeight, _Loc),
-	MyWidth is integer(FullWidth*W/200),
-	MyHeight is integer(FullHeight*H/110),
+	window_percent(W,H,MyWidth,MyHeight),
 	writeln(size(Self,MyWidth,MyHeight)),
 	send(Self, size, size(MyWidth,MyHeight)).
 
@@ -175,9 +178,7 @@ compute(_) :-> true.
 
 % Shape is defined as a percentage of the screen
 shape(Self, W:[int], H:[int]) :->
-	screen(_Root,FullWidth,FullHeight,_Pos),
-	MyWidth is integer(FullWidth*W/200),
-	MyHeight is integer(FullHeight*H/110),
+	window_percent(W,H,MyWidth,MyHeight),
 	writeln(shape(Self,MyWidth,MyHeight)),
 	send(Self, size, size(MyWidth,MyHeight)).
 
@@ -413,8 +414,8 @@ update(Self) :->
 :- pce_begin_class(spacer, box).
 
 initialise(Self, _Name:[name]) :->
-	screen(_,W,_H,_Pos),
-	NWid is 2*W/3 - 20,
+        screen(DW,_,WW,_,_),
+	NWid is DW*WW/110,
         send_super(Self, initialise(NWid, 6)),
 	send(Self, colour, colour(black)),
 	send(Self, fill_pattern, colour(black)).
@@ -430,9 +431,7 @@ update(_Self) :-> true.
 :- pce_begin_class(hotbox, box).
 initialise(Self, Color:[name]) :->
         "Initialise"::
-	screen(_,W,H,_Pos),
-	Width is W/100,
-	Height is H*2/100,
+        window_percent(1,2,Width,Height),
         send_super(Self, initialise(Width,Height)),
 	send(Self, colour, colour(black)),
         send(Self, fill_pattern, colour(Color)).

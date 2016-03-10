@@ -37,7 +37,7 @@ level_cmd_dir(['/usr/bin/python','/home/peter/src/EvoStat/ipcam.py'],
 :- [gbutton].
 :- [dialin].
 
-:- dynamic target_value/2, current_value/4, current_value/2, screen/4.
+:- dynamic target_value/2, current_value/4, current_value/2, screen/5.
 :- dynamic component/2, levelStream/1, air/0, mix/0, toggle_auto/0.
 
 %
@@ -184,78 +184,6 @@ pathe_report(moderate) :-
 pathe_report(_) :-
     writeln('No Logging Enabled').
 
-resize(Thing) :-
-    writeln(resize),
-    screen(_Root,_Width,Height,_),
-    BH is Height/16,
-    BW is 2*BH,
-    send(Thing, size(size(BW,BH))).
-
-create_label(value(Device,Parameter,Target),Name) :-
-    assert(target_value(Name, Target)),
-    assert(current_value(Name, Device, Parameter, 0)).
-
-create_label(text(Label),Name) :-
-    assert(current_value(Name, evostat, label, Label)).
-
-row_item(button(Name,What),@Name) :-
-    free(@Name),
-    new(@Name,ebutton(Name)),
-    send(@Name, accelerator, @nil),
-    resize(@Name),
-    send(@Name, colour(red)),
-    new(M, move_gesture),
-    new(P, popup_gesture(new(Pop, popup))),
-    send_list(Pop, append,
-              [ menu_item(reconnect, message(@Name,colour,colour(black)))
-                , menu_item(disconnect,message(@Name,colour,colour(white)))
-                , menu_item(dark, message(@Name,colour,colour(black)))
-                , menu_item(light,message(@Name,colour,colour(white))) 
-	      ]),
-    new(G, handler_group(M, P)),
-    send(@Name, recogniser, G),
-    create_label(What, Name).
-
-%    new(H1, message(File, displayed, @on)),
-
-%    new(HIn, message(@Name, colour, colour(brown))),
-%    new(Hout, message(@Name, colour, colour(red))),
-%    send(@Name, recogniser,handler(area_enter, HIn)),
-%    send(@Name, recogniser,handler(area_exit, Hout)),
-
-
-row_item(cellstat(Name, text(Evo), size(Width,Height)),@Name) :-
-    free(@Name),
-    new(@Name,button(Name)),
-    send(@Name, colour(blue)),
-    send(@Name, size, size(Width, Height)),
-    create_label(text(Evo),Name).
-
-row_item(spacer(Color,Height), @Spacer) :-
-    atom(Color),
-    screen(_,Width,_H,_Location),
-    NWid is Width - 30,
-    new(@Spacer, box(NWid,Height)),
-    send(@Spacer, colour, Color),
-    send(@Spacer, fill_pattern, colour(Color)).
-
-%row_item(label(Name,_What),@Name) :-
-%    free(@Name),
-%    new(@Name,button(Name)),
-%    send(@Name, colour(red)).
-
-row_item(image(Name,File),@Name) :-
-    free(@Name),
-    new(@Name, label(Name)),
-    new(I, image(File)),
-%    screen(_,Width,_,_),
-%    NewWidth is Width - Width/10,
-%    NewHeight is integer(Width*0.675),
-%    get(I, size, Size),
-%    send(Size, width(NewWidth)),
-%    send(Size, height(NewHeight)),
-    send(@Name, selection, I).
-
 freeall :-
     catch( get(@gui, graphicals, Chain),
 	   ( chain_list(Chain, CList), freeall(CList) ),
@@ -310,9 +238,9 @@ newFlux(FluxTerm, Stream) :-
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
           send_super(W, initialise(Label)),
-	  screen(_,SW,SH,Location),
-	  EWidth is 2*SW/3,
-	  EHeight is SH - SH/20,
+	  screen(WW,WH,DW,DH,Location),
+	  EWidth is WW*DW/100,
+	  EHeight is WH*DH/100,
           send(W, size, size(EWidth, EHeight)),
 	  writeln(evostat(width(EWidth),height(EHeight))),
 
@@ -586,12 +514,10 @@ main(_Argv) :-
 	config_name(Root),          %  Find out configuration name
 	consult(Root),              % Consult it
 	config(List),                         % Get the configuration data
-%	writeln(configuration(List)),
-
-	get(@display?size, width, W),
-	get(@display?size, height, H),
-	DefaultX is W/3,
-	assert(screen(Root,W,H,point(DefaultX,3))),
+        member(screen(WF,HF,Loc),List),
+        get(@display?size,width,Width),
+        get(@display?size,height,Height),
+	assert(screen(Width,Height,WF,HF,Loc)),
         camera_reset(List),
 
 	member(layout(Components),List),
