@@ -18,6 +18,7 @@ config( [
 	 contrast(40),
 	 contrastCmd('/camera_control.cgi?param=2&value='),
 	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),
+	 screen(60,90,point(200,1)),
 	 layout([
 		 cellstat(cellstat,below,[od(0.4),temp(37.0),shape(20,6),CF]),
 		 spacer(        x1, next_row, [color(blue)]),
