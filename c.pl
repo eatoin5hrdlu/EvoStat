@@ -9,7 +9,10 @@
 :- pce_global(@finder, new(finder)).
 
 camera_reset(_) :- current_prolog_flag(windows,true), !.
-camera_reset(_) :- \+ exists_file('/dev/video0'),writeln(no_camera),!.
+camera_reset(_) :-
+    \+ access_file('/dev/video0',exist),
+    writeln(no_camera),
+    !.
 camera_reset(List) :-
     level_cmd_dir(_,Dir),
     Cmd = '/usr/bin/uvcdynctrl',
