@@ -5,8 +5,8 @@
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
-:- pce_autoload(finder, library(find_file)).
-:- pce_global(@finder, new(finder)).
+%:- pce_autoload(finder, library(find_file)).
+%:- pce_global(@finder, new(finder)).
 
 camera_reset(_) :- current_prolog_flag(windows,true), !.
 camera_reset(_) :-
@@ -82,7 +82,7 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-%logfile(logfile).
+logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -253,8 +253,7 @@ initialise(W, Label:[name]) :->
 	  send(MB, append, new(Help, popup(help))),
 	
 		send_list(File, append,
-				  [ menu_item(load,
-					      message(W, load, @finder?file)),
+				  [
 				    menu_item(ok,
 					      message(W, return, ok)),
 				    menu_item(quit,
@@ -492,7 +491,9 @@ c(Name) :-
 main :-      pce_main_loop(main).
 
 main(_Argv) :-
-        use_module(library(pce)),
+        assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
+%        use_module(library(pce)),
+    
         ( logfile(_), current_prolog_flag(windows, true)
          -> retract(logfile(_))
          ; true
@@ -511,8 +512,9 @@ main(_Argv) :-
         (PID < 900 -> sleep(30) ; true),  % Delay if OS just started (low PID)
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),
-%        load_foreign_library(foreign(plblue)),
-        load_foreign_library(plblue),
+        load_foreign_library(foreign(plblue)),
+%        load_foreign_library(plblue),
+%        load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
 
 	config_name(Root),          %  Find out configuration name
 	consult(Root),              % Consult it
@@ -538,22 +540,22 @@ main(_Argv) :-
 	c(Root),
         !.
 
-os_emulator(E) :-    
-    current_prolog_flag(windows, true),
-    !,
-    ( logfile(_)
-     -> E = swi('bin/xpce-stub.exe') % All msgs to logfile
-     ;  E = swi('bin/swipl-win.exe') % Use window for msgs
-    ).
+os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
+    current_prolog_flag(windows, true),!.
+    
+os_emulator('/usr/bin/swipl') :- % Linux
+     pce_autoload_all,
+     pce_autoload_all.
 
-os_emulator('/usr/bin/swipl').
-
+% 'C:\\cygwin\\swipl\\bin\\swipl-win.exe'
+%  '/cygdrive/c/cygwin/swipl/bin/swipl-win.exe'
+%  '/usr/bin/swipl-win'
+%  swi('bin/xpce-stub.exe'
+%  swi('bin/swipl-win.exe'
 
 save_evostat :-
     os_emulator(Emulator),
-    retract(debug),
-    pce_autoload_all,
-    pce_autoload_all,
+    retractall(debug),
     Options = [stand_alone(true), goal(main)],
     qsave_program(evostat, [emulator(Emulator)|Options]).
 

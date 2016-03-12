@@ -60,6 +60,9 @@ repeat1(N) :- M is N-1, repeat1(M).
 :- dynamic d_bt_address/2.
 
 % This was for windows, but linux bt_scan/2 is also flaky
+
+bt_address(Name, Addr) :- !, fail.  % Use this when no devices are around
+
 bt_address(Name, Addr) :- !, % saves time
    nth0(N,[  cellstat,
              lagoon1,
@@ -84,7 +87,7 @@ bt_address(Name, Address) :-
     ),
     d_bt_address(Name,Address).
 
-:- writeln(ingbutton),
+x :- writeln(ingbutton),
    ( current_prolog_flag(arch,'i386-win32')
      -> load_foreign_library(foreign(plblue))
      ;  load_foreign_library(plblue)
