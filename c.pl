@@ -276,7 +276,7 @@ initialise(W, Label:[name]) :->
 	 new(Msg1, message(W, update10)),
 	 free(@ut),
 	 send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
-	 send(@ut, start),
+%	 send(@ut, start),
          send_super(W, open, Location).
 
 cellstat(_W) :-> "User pressed the CellStat button"::

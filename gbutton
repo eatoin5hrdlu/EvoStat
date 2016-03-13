@@ -63,19 +63,26 @@ repeat1(N) :- M is N-1, repeat1(M).
 
 % bt_address(Name, Addr) :- !, fail.  % Use this when no devices are around
 
+% bt_device(labcellstat,   '98:D3:31:90:29:0E').
+% bt_device(cellstat,     '98:D3:31:90:29:0E').
+% bt_device(autosampler,  '98:D3:31:40:1D:D4').
+%           '98:D3:31:20:23:4F',
+%           '98:D3:31:70:2B:70',
+
+bt_device( cellstat,     '98:D3:31:90:2B:82').
+bt_device(  lagoon1,     '98:D3:31:70:2A:22').
+bt_device(  lagoon2,     '98:D3:31:40:31:BA').
+bt_device(  lagoon3,     '98:D3:31:20:2B:EB').
+
 bt_address(Name, Addr) :- !, % saves time
-   nth0(N,[  cellstat,
+   nth0(N,[
              lagoon1,
 	     lagoon2,
-	     lagoon3,
-             autosampler    ], Name),
-   nth0(N,['98:D3:31:90:29:0E',
+	     lagoon3    ], Name),
+   nth0(N,[
            '98:D3:31:70:2A:22',
-%           '98:D3:31:20:23:4F',
            '98:D3:31:40:31:BA',
-%           '98:D3:31:70:2B:70',
-           '98:D3:31:20:2B:EB',
-           '98:D3:31:40:1D:D4'],Addr).
+           '98:D3:31:20:2B:EB'],Addr).
 
 bt_address(Name, Address) :-
     d_bt_address(_Any,_Addr),
@@ -164,7 +171,7 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, temperature, 0.0),
 	send(Self, slot, od600, 0.0),
 	send(Self, slot, socket, @nil),
-	( bt_address(Label,Mac),
+	( bt_device(Label,Mac),
 	  send(Self, slot, mac, Mac),
 	  send(Self, connect)
 	; true
@@ -265,7 +272,6 @@ mac(Self, MAC:[name]) :->
 
 update(Self) :->
 	send_super(Self, update),
-	trace,
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
 	writeln(cellstatreply(Reply)),
