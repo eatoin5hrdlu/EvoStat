@@ -61,16 +61,20 @@ repeat1(N) :- M is N-1, repeat1(M).
 
 % This was for windows, but linux bt_scan/2 is also flaky
 
-bt_address(Name, Addr) :- !, fail.  % Use this when no devices are around
+% bt_address(Name, Addr) :- !, fail.  % Use this when no devices are around
 
 bt_address(Name, Addr) :- !, % saves time
    nth0(N,[  cellstat,
              lagoon1,
 	     lagoon2,
+	     lagoon3,
              autosampler    ], Name),
    nth0(N,['98:D3:31:90:29:0E',
-           '98:D3:31:20:2B:EB',
+           '98:D3:31:70:2A:22',
+%           '98:D3:31:20:23:4F',
            '98:D3:31:40:31:BA',
+%           '98:D3:31:70:2B:70',
+           '98:D3:31:20:2B:EB',
            '98:D3:31:40:1D:D4'],Addr).
 
 bt_address(Name, Address) :-
@@ -87,7 +91,7 @@ bt_address(Name, Address) :-
     ),
     d_bt_address(Name,Address).
 
-x :- writeln(ingbutton),
+:- writeln(ingbutton),
    ( current_prolog_flag(arch,'i386-win32')
      -> load_foreign_library(foreign(plblue))
      ;  load_foreign_library(plblue)
@@ -218,14 +222,18 @@ connect(Self) :->
 	; bt_close(OldSocket),
 	  send(Self, slot, socket, @nil)
 	),
+	writeln(calling(bt_socket)),
 	( bt_socket(Addr, BTSocket) ->
+	  writeln(returned(bt_socket(BTSocket))),
 	  ( BTSocket > -1 ->
 	    send(Self, slot, socket, BTSocket),
 	    send(Self,colour,colour(darkgreen))
 	    ; send(Self,colour,colour(red))
 	  )
-	  ; send(Self,colour,colour(red))
-	).
+	  ; writeln(failed(bt_socket)),
+	    send(Self,colour,colour(red))
+	),
+	writeln(leaving(connect)).
 
 insertIP(Cmd, IP, Result) :-
         atom_codes(Cmd, Cs),
@@ -257,6 +265,7 @@ mac(Self, MAC:[name]) :->
 
 update(Self) :->
 	send_super(Self, update),
+	trace,
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
 	writeln(cellstatreply(Reply)),
@@ -425,8 +434,9 @@ update(Self) :->
 	; send_super(Self,converse,'t'),
 	  get_super(Self, reply, Reply),
 	  parse_reply(Reply, remaining(Time), remaining(99)),
-	  Hours is integer(Time/3600),
-	  Minutes is integer(Time/60),
+	  writeln(Time),
+	  Hours is floor(Time/3600),
+	  Minutes is floor(mod(Time,3600)/60),
 	  Seconds is Time mod 60,
 	  concat_atom(['\nAutoSampler\n',
 	  Hours, ':', Minutes, ':', Seconds, '  to next sample\n'],Label),

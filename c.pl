@@ -82,7 +82,7 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-logfile(logfile).
+% logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -208,7 +208,9 @@ send_levels([Level|Levels], N) :-
 
 get_new_levels :-
     ( retract(levelStream(Previous)) ->
-	catch(read(Previous, Levels),Ex,(writeln(caught(Ex,Cmd)),fail)),
+	catch( read(Previous, Levels),
+	       Ex,
+	       (writeln(caught(Ex,Cmd)),sleep(3),fail)),
         check_error(Levels),
         ( Levels =..[levels|LVals] ->
 	   config(List),
@@ -218,7 +220,7 @@ get_new_levels :-
 	   newFlux(Levels,Previous)
         ),
 	close(Previous)
-    ; true
+     ; true
     ),
     level_cmd_dir([Cmd|Args],Cwd),
     process_create(Cmd,Args,[stdout(pipe(Out)),cwd(Cwd)]),
@@ -241,6 +243,7 @@ newFlux(FluxTerm, Stream) :-
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
           send_super(W, initialise(Label)),
+          writeln(evostat_object(W)),
 	  screen(WW,WH,DW,DH,Location),
 	  EWidth is WW*DW/100,
 	  EHeight is WH*DH/100,
@@ -249,6 +252,7 @@ initialise(W, Label:[name]) :->
 
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
+	  writeln(menu_bar(MB)),
 	  send(MB, append, new(File, popup(file))),
 	  send(MB, append, new(Help, popup(help))),
 	
@@ -347,7 +351,7 @@ quit(W) :->
 
 load(W, File:[file]) :->
         "User pressed the Load button"::
-%	send(@ut, stop),     % Shut down the label update timer
+%	send(@ut, stop),     % Shut down the label update timerg
 	retractall(current_value(_,_,_,_)),
 	retractall(current_value(_,_)),
 	retractall(target_value(_,_)),
@@ -373,11 +377,13 @@ range_color(Target, Current, Color) :-
 
 update10(W) :->
     get_new_levels,
+    writeln('update10 after get_new_levels'),
+    send(@ut, stop),   % Shut down the update10 timer (for debug)
     get(W, graphicals, Chain),
     chain_list(Chain, CList),
-    write('update [ '),
+    writeln('update [ '),
     member(Object, CList),
-    component(_Name,Object),        % If one has been created
+    component(_,Object),            % If one has been created
     ( send(Object, update) -> write(Object) ; write(failed(Object)) ),
     write(' '),
     flush_output,
