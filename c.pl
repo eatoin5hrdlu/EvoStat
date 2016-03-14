@@ -1,3 +1,4 @@
+d
 :- use_module(library(time)).
 :- use_module(library(pce)).
 :- use_module(library(process)).
@@ -518,8 +519,10 @@ main(_Argv) :-
         (PID < 900 -> sleep(30) ; true),  % Delay if OS just started (low PID)
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),
-        load_foreign_library(foreign(plblue)),
-%        load_foreign_library(plblue),
+	( current_prolog_flag(windows, true)
+         -> load_foreign_library(foreign(plblue))
+	  ; load_foreign_library(plblue)
+        ),
 %        load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
 
 	config_name(Root),          %  Find out configuration name
@@ -549,6 +552,12 @@ main(_Argv) :-
 os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
     current_prolog_flag(windows, true),!.
     
+os_emulator('/home/peter/bin/swipl') :- % Haldane at SplatSpace
+     gethostname(haldane),
+     !,
+     pce_autoload_all,
+     pce_autoload_all.
+
 os_emulator('/usr/bin/swipl') :- % Linux
      pce_autoload_all,
      pce_autoload_all.
