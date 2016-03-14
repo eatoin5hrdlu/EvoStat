@@ -18,6 +18,7 @@ config( [
 	 contrast(40),
 	 contrastCmd('/camera_control.cgi?param=2&value='),
 	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),
+	 screen(60,90,point(200,1)),
 	 layout([
 		 cellstat(cellstat,below,[od(0.4),temp(37.0),shape(20,7),CF]),
 		 spacer(        x1, next_row, [color(blue)]),
@@ -35,3 +36,14 @@ config( [
  CF = font(font(times,roman,18)),
  SF = font(font(times,roman,20)).
 
+% bt_device(labcellstat,   '98:D3:31:90:29:0E').
+% bt_device(cellstat,     '98:D3:31:90:29:0E').
+% bt_device(autosampler,  '98:D3:31:40:1D:D4').
+%           '98:D3:31:20:23:4F',
+%           '98:D3:31:70:2B:70',
+
+% These are the simulated devices in the Arduino Mega2560 box
+bt_device( cellstat,     '98:D3:31:90:2B:82').
+bt_device(  lagoon1,     '98:D3:31:70:2A:22').
+bt_device(  lagoon2,     '98:D3:31:40:31:BA').
+bt_device(  lagoon3,     '98:D3:31:20:2B:EB').

@@ -23,7 +23,9 @@ boolean debug;
  */
 
 void swrite(int val) {
-     if (debug) Serial.println(val);
+     if (debug) {
+     	Serial.print('servo('),Serial.print(val);Serial.println(').');
+     }
      myservo.write(val);
 }
 
@@ -302,7 +304,7 @@ void setup()
 {
 //	wdt_disable();
 	Serial.begin(9600);
-	debug = true;
+	debug = false;
 
 	//  Active Low (power to valve) default 1 == no power
 	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 0);
@@ -349,7 +351,7 @@ void setup()
 	auto_valve = true;  // Maintain Flow
 	auto_mixer = true;  // Cycle magnetic mixer to avoid stalled stir-bar
 //	wdt_enable(WDTO_8S);
-	Serial.println("RESET");
+	if (debug) Serial.println("reset.");
 }
 
 int cnt_light = 0;

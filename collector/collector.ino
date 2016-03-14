@@ -57,7 +57,7 @@ const int P4 = 11;
 
 const int DEFAULT_VALVECYCLE = 20000UL;
 const int DEFAULT_SAMPLES    = 24;
-const int DEFAULT_SAMPLETIME = 6;
+const int DEFAULT_SAMPLETIME = 3600;
 const int DEFAULT_ALIQUOT    = 500UL;
 
 #define EOT     "end_of_data."
@@ -231,6 +231,7 @@ int i;
 	openInterval = aliquot;
 	if (debug)
 		printHelp();
+	lastSampleTime = millis(); // Wait long interval for first sample
 	reset();
 }
 
@@ -359,6 +360,7 @@ void printTermChar(char *functor, char arg)
 void process(char c, int value)
 {
 unsigned long time_left;
+int temp;
 int i;
 	switch(c) {
 		case 'a':
@@ -412,7 +414,8 @@ int i;
 		case 't' :        // Set Value or Report Time to next Sample
 		     	if (value == 0) {
 			   time_left = sampleTimeMS - (millis()-lastSampleTime);
-			   printTermInt("time", (int)(time_left/1000));
+			   temp = (int) ( time_left/1000UL );
+			   printTermInt("remaining", temp);
 			}
 			else 
 			     sampleTime = value;

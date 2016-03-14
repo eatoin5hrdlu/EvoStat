@@ -59,6 +59,31 @@ repeat1(N) :- M is N-1, repeat1(M).
 
 :- dynamic d_bt_address/2.
 
+% This was for windows, but linux bt_scan/2 is also flaky
+
+% bt_address(Name, Addr) :- !, fail.  % Use this when no devices are around
+
+% bt_device(labcellstat,   '98:D3:31:90:29:0E').
+% bt_device(cellstat,     '98:D3:31:90:29:0E').
+% bt_device(autosampler,  '98:D3:31:40:1D:D4').
+%           '98:D3:31:20:23:4F',
+%           '98:D3:31:70:2B:70',
+
+bt_device( cellstat,     '98:D3:31:90:2B:82').
+bt_device(  lagoon1,     '98:D3:31:70:2A:22').
+bt_device(  lagoon2,     '98:D3:31:40:31:BA').
+bt_device(  lagoon3,     '98:D3:31:20:2B:EB').
+
+bt_address(Name, Addr) :- !, % saves time
+   nth0(N,[
+             lagoon1,
+	     lagoon2,
+	     lagoon3    ], Name),
+   nth0(N,[
+           '98:D3:31:70:2A:22',
+           '98:D3:31:40:31:BA',
+           '98:D3:31:20:2B:EB'],Addr).
+
 bt_address(Name, Address) :-
     d_bt_address(_Any,_Addr),
     !,
@@ -146,7 +171,7 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, temperature, 0.0),
 	send(Self, slot, od600, 0.0),
 	send(Self, slot, socket, @nil),
-	( bt_address(Label,Mac),
+	( bt_device(Label,Mac),
 	  send(Self, slot, mac, Mac),
 	  send(Self, connect)
 	; true
@@ -157,7 +182,7 @@ initialise(Self, Label:[name]) :->
 update(Self) :->
 	( get(Self, slot, socket, @nil)
 	-> send(Self,colour,colour(red))
-	;  send(Self,colour,colour(green))
+	;  send(Self,colour,colour(darkgreen))
 	).
 	
 show_conversation(Self) :->
@@ -204,14 +229,18 @@ connect(Self) :->
 	; bt_close(OldSocket),
 	  send(Self, slot, socket, @nil)
 	),
+	writeln(calling(bt_socket)),
 	( bt_socket(Addr, BTSocket) ->
+	  writeln(returned(bt_socket(BTSocket))),
 	  ( BTSocket > -1 ->
 	    send(Self, slot, socket, BTSocket),
-	    send(Self,colour,colour(green))
+	    send(Self,colour,colour(darkgreen))
 	    ; send(Self,colour,colour(red))
 	  )
-	  ; send(Self,colour,colour(red))
-	).
+	  ; writeln(failed(bt_socket)),
+	    send(Self,colour,colour(red))
+	),
+	writeln(leaving(connect)).
 
 insertIP(Cmd, IP, Result) :-
         atom_codes(Cmd, Cs),
@@ -292,14 +321,14 @@ initialise(Self, Label:[name]) :->
 
 update(Self) :->
         send_super(Self, update),
-	send_super(Self,converse,'t'),
+
+        send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
-	writeln(lagoonreply(Reply)),
-	parse_reply(Reply,target_temperature(TempInt),target_temperature(111)),
+	parse_reply(Reply,temperature(TempInt),temperature(111)),
 	Temp is float(TempInt)/10.0,
         send(Self,slot,temperature,Temp),
+	
         get(Self,slot,level,Level),
-        get(Self,slot,temperature,Temp),
         get(Self,slot,temperature_t,Target),
 	range_color(Target, Temp, Color),
 	send(Self, colour(Color)),
@@ -307,7 +336,7 @@ update(Self) :->
         get(Self,slot,fluorescence,Lux),
 	format(atom(Level2), '~4g', [Level]),
 	format(atom(Lux2), '~4g', [Lux]),
-	get(Self,slot,calibration,State),  % The Calibration State is the Message
+	get(Self,slot,calibration,State),  % Calibration State is the Message
 	send(Self,State),
         concat_atom(['Level ', Level2, 'mL\n',
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
@@ -406,7 +435,21 @@ initialise(Self, Label:[name]) :->
         send_super(Self, initialise(Label)).
 
 update(Self) :->
-	send_super(Self, update).
+	send_super(Self, update),
+	( get_super(Self, socket, @nil) -> true
+	; send_super(Self,converse,'t'),
+	  get_super(Self, reply, Reply),
+	  parse_reply(Reply, remaining(Time), remaining(99)),
+	  writeln(Time),
+	  Hours is floor(Time/3600),
+	  Minutes is floor(mod(Time,3600)/60),
+	  Seconds is Time mod 60,
+	  concat_atom(['\nAutoSampler\n',
+	  Hours, ':', Minutes, ':', Seconds, '  to next sample\n'],Label),
+	  send(Self, label, Label)
+	).
+	
+	
 
 :- pce_end_class.  % autosampler
 

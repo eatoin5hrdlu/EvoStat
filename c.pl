@@ -1,3 +1,4 @@
+d
 :- use_module(library(time)).
 :- use_module(library(pce)).
 :- use_module(library(process)).
@@ -5,11 +6,14 @@
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
-:- pce_autoload(finder, library(find_file)).
-:- pce_global(@finder, new(finder)).
+%:- pce_autoload(finder, library(find_file)).
+%:- pce_global(@finder, new(finder)).
 
 camera_reset(_) :- current_prolog_flag(windows,true), !.
-camera_reset(_) :- \+ exists_file('/dev/video0'),writeln(no_camera),!.
+camera_reset(_) :-
+    \+ access_file('/dev/video0',exist),
+    writeln(no_camera),
+    !.
 camera_reset(List) :-
     level_cmd_dir(_,Dir),
     Cmd = '/usr/bin/uvcdynctrl',
@@ -79,7 +83,7 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-%logfile(logfile).
+% logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -205,7 +209,9 @@ send_levels([Level|Levels], N) :-
 
 get_new_levels :-
     ( retract(levelStream(Previous)) ->
-	catch(read(Previous, Levels),Ex,(writeln(caught(Ex,Cmd)),fail)),
+	catch( read(Previous, Levels),
+	       Ex,
+	       (writeln(caught(Ex,Cmd)),sleep(3),fail)),
         check_error(Levels),
         ( Levels =..[levels|LVals] ->
 	   config(List),
@@ -215,7 +221,7 @@ get_new_levels :-
 	   newFlux(Levels,Previous)
         ),
 	close(Previous)
-    ; true
+     ; true
     ),
     level_cmd_dir([Cmd|Args],Cwd),
     process_create(Cmd,Args,[stdout(pipe(Out)),cwd(Cwd)]),
@@ -238,6 +244,7 @@ newFlux(FluxTerm, Stream) :-
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
           send_super(W, initialise(Label)),
+          writeln(evostat_object(W)),
 	  screen(WW,WH,DW,DH,Location),
 	  EWidth is WW*DW/100,
 	  EHeight is WH*DH/100,
@@ -246,12 +253,12 @@ initialise(W, Label:[name]) :->
 
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
+	  writeln(menu_bar(MB)),
 	  send(MB, append, new(File, popup(file))),
 	  send(MB, append, new(Help, popup(help))),
 	
 		send_list(File, append,
-				  [ menu_item(load,
-					      message(W, load, @finder?file)),
+				  [
 				    menu_item(ok,
 					      message(W, return, ok)),
 				    menu_item(quit,
@@ -270,7 +277,7 @@ initialise(W, Label:[name]) :->
 	 new(Msg1, message(W, update10)),
 	 free(@ut),
 	 send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
-	 send(@ut, start),
+%	 send(@ut, start),
          send_super(W, open, Location).
 
 cellstat(_W) :-> "User pressed the CellStat button"::
@@ -345,7 +352,7 @@ quit(W) :->
 
 load(W, File:[file]) :->
         "User pressed the Load button"::
-%	send(@ut, stop),     % Shut down the label update timer
+%	send(@ut, stop),     % Shut down the label update timerg
 	retractall(current_value(_,_,_,_)),
 	retractall(current_value(_,_)),
 	retractall(target_value(_,_)),
@@ -371,11 +378,13 @@ range_color(Target, Current, Color) :-
 
 update10(W) :->
     get_new_levels,
+    writeln('update10 after get_new_levels'),
+    send(@ut, stop),   % Shut down the update10 timer (for debug)
     get(W, graphicals, Chain),
     chain_list(Chain, CList),
-    write('update [ '),
+    writeln('update [ '),
     member(Object, CList),
-    component(_Name,Object),        % If one has been created
+    component(_,Object),            % If one has been created
     ( send(Object, update) -> write(Object) ; write(failed(Object)) ),
     write(' '),
     flush_output,
@@ -489,7 +498,9 @@ c(Name) :-
 main :-      pce_main_loop(main).
 
 main(_Argv) :-
-        use_module(library(pce)),
+        assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
+%        use_module(library(pce)),
+    
         ( logfile(_), current_prolog_flag(windows, true)
          -> retract(logfile(_))
          ; true
@@ -508,8 +519,11 @@ main(_Argv) :-
         (PID < 900 -> sleep(30) ; true),  % Delay if OS just started (low PID)
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),
-%        load_foreign_library(foreign(plblue)),
-        load_foreign_library(plblue),
+	( current_prolog_flag(windows, true)
+         -> load_foreign_library(foreign(plblue))
+	  ; load_foreign_library(plblue)
+        ),
+%        load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
 
 	config_name(Root),          %  Find out configuration name
 	consult(Root),              % Consult it
@@ -535,22 +549,28 @@ main(_Argv) :-
 	c(Root),
         !.
 
-os_emulator(E) :-    
-    current_prolog_flag(windows, true),
-    !,
-    ( logfile(_)
-     -> E = swi('bin/xpce-stub.exe') % All msgs to logfile
-     ;  E = swi('bin/swipl-win.exe') % Use window for msgs
-    ).
+os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
+    current_prolog_flag(windows, true),!.
+    
+os_emulator('/home/peter/bin/swipl') :- % Haldane at SplatSpace
+     gethostname(haldane),
+     !,
+     pce_autoload_all,
+     pce_autoload_all.
 
-os_emulator('/usr/bin/swipl').
+os_emulator('/usr/bin/swipl') :- % Linux
+     pce_autoload_all,
+     pce_autoload_all.
 
+% 'C:\\cygwin\\swipl\\bin\\swipl-win.exe'
+%  '/cygdrive/c/cygwin/swipl/bin/swipl-win.exe'
+%  '/usr/bin/swipl-win'
+%  swi('bin/xpce-stub.exe'
+%  swi('bin/swipl-win.exe'
 
 save_evostat :-
     os_emulator(Emulator),
-    retract(debug),
-    pce_autoload_all,
-    pce_autoload_all,
+    retractall(debug),
     Options = [stand_alone(true), goal(main)],
     qsave_program(evostat, [emulator(Emulator)|Options]).
 
