@@ -79,6 +79,7 @@ repeat1(N) :- M is N-1, repeat1(M).
 bt_device( cellstatd,     '98:D3:31:40:90:13').
 bt_device(  lagoond1,     '98:D3:32:30:42:6A').
 bt_device(  lagoond2,     '98:D3:31:30:95:60').
+bt_device(  lagoond3,     '98:D3:31:80:34:39').
 bt_device(autosampler,    '98:D3:31:30:95:4B').
 
 bt_address(Name, Addr) :- !, % saves time
