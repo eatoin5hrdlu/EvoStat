@@ -38,8 +38,17 @@ send(Self) :->
 	get(Editor?text_buffer?contents, value, Raw), % Edit pane
 	strip_atom(Raw, Cmd),
 	bluetalk(Socket, Cmd, Msg),
-	send(Editor?text_buffer, append, '\n'),
-	send(Editor?text_buffer, append, Msg),
+        (Msg == "" ->
+	  get_super(Self, label, Whoami),
+	  send(Editor?text_buffer, append, '\nreconnecting('),
+	  send(Editor?text_buffer, append, Whoami),
+	  send(Editor?text_buffer, append, ').'),
+	  send(@Whoami, connect),
+	  get(@Whoami, socket, NewSocket),
+	  send(Self, slot, socket, NewSocket)
+        ; send(Editor?text_buffer, append, '\n'),
+	  send(Editor?text_buffer, append, Msg)
+	),
 	send(Self, keyboard_focus, Editor).
 
 clear(Self) :->

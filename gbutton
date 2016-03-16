@@ -227,7 +227,12 @@ converse(Self, Cmd) :->
 	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
         get(Self, socket, Socket),
 	bluetalk(Socket, Cmd, Reply),
-	send(Self, slot, reply, Reply).
+	(Reply == "" ->
+	  send(Self, slot, reply, 'reconnecting.'),
+	  send(Self, connect),
+	  send(Self, converse, Cmd)
+        ; send(Self, slot, reply, Reply)
+	).
 
 connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::
