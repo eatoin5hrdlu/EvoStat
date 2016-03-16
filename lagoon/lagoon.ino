@@ -59,7 +59,7 @@ int reading[10];
 void checkTemperature()
 {
 float t = temp.celcius();
-	if (t < target_temperature)        digitalWrite(HEATER,1);
+	if (t < target_temperature)        analogWrite(HEATER,100);
 	if (t > target_temperature + 0.5)  digitalWrite(HEATER,0);
 }
 
@@ -117,6 +117,7 @@ int i;
 byte *bp = valve.getAngles();
 
 	Serial.println("cmd(a,[0,1],'set auto modes off/on').");
+	Serial.println("cmd(cl,'clear backlog (no output)').");
 	Serial.print("cmd(d,[0,1,2,3,4],[");
 	 for(i=0;i<5;i++) { Serial.print(*bp++); if (i != 4) Serial.print(","); }
         Serial.println("],'set angle:(0-180) for Nth valve position').");
@@ -140,11 +141,14 @@ void mixer(byte v)
 	if (v == 0)
 		analogWrite(MIXER,0);
 	else 
-	    for(int i=3; i<11; i++) {
-		analogWrite(MIXER, i*mixerspeed/10);
+	{
+	    for(int i=3; i<15; i++) {
+		analogWrite(MIXER, i*mixerspeed/13);
 		if (auto_valve) valve.checkValve();
 		delay(400);
  	    }
+	    analogWrite(MIXER, mixerspeed-(mixerspeed/10));
+	}
 }
 
 boolean lagoon_command(char c1, char c2, int value)
@@ -157,7 +161,7 @@ int tmp;
 	{
 		case '1': d = 1; break;
 		case '0': d = 0; break;
-		default : break;
+		default : d = 9; break;
 	}
 	switch(c1)
 	{
@@ -172,6 +176,7 @@ int tmp;
 				auto_mixer = false;
 			}
 			break;
+	   	case 'c': if (c2=='l') return true; // Clearing backlog
 		case 'd':
 		        valve.setAngle(c2,value);
 			break;
@@ -187,7 +192,10 @@ int tmp;
 			}
 			break;
 		case 'h':
-			digitalWrite(HEATER, d);
+			if (d) 
+				analogWrite(HEATER, 100);
+			else
+				digitalWrite(HEATER, 0);
 			break;
 		case 'i':
 			if (c2 != 0)
@@ -205,11 +213,16 @@ int tmp;
 				digitalWrite(LED, 0);
 			break;
 		case 'm':
-			Serial.print("mixer(");
-			Serial.print(d);
-			Serial.println(").");
-			Serial.println(d);
-			mixer(d);
+			if (d == 9) {
+				Serial.print("mixer(");
+				Serial.print(mixerspeed);
+				Serial.println(").");
+			} else {
+				Serial.print("mixer(");
+				Serial.print(d);
+				Serial.println(").");
+				mixer(d);
+			}
 			break;
 		case 'n':
 		        valve.enable(1);
@@ -227,6 +240,7 @@ int tmp;
 			switch(c2) {
 				case 'v': valve.report(reply);
 				     	  break;
+
 				case 't':
 					Serial.print("temperature(");
 					Serial.print(temp.celcius());

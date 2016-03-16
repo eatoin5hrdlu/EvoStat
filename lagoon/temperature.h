@@ -40,7 +40,7 @@ class TEMPERATURE
   TEMPERATURE(int pin) {
     aIn = pin;
     analogReference(INTERNAL);
-    scale = 110.0;
+    scale = 143.0;
     offset = 0.0;
     sCL = -1;
     sDA = -1;  
