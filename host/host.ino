@@ -329,7 +329,7 @@ int hight,lowt,tries;
 			break;
 		case 'o':     // Only one valve in cellstat
 		     if (c2 == '2')      digitalWrite(AIR,1);
-		     else if (c2 == '-') { soutln("what"); digitalWrite(AIR,0); }
+		     else if (c2 == '-') digitalWrite(AIR,0);
 		     else    		 valves.openValve('1');
 		     break;
 		case 'p':
