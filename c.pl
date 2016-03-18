@@ -277,7 +277,7 @@ initialise(W, Label:[name]) :->
 	 new(Msg1, message(W, update10)),
 	 free(@ut),
 	 send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
-%	 send(@ut, start),
+	 send(@ut, start),
          send_super(W, open, Location).
 
 cellstat(_W) :-> "User pressed the CellStat button"::
@@ -308,9 +308,25 @@ lagoon1(_W) :->
 lagoon2(_W) :->
        "User selected Lagoon 2"::
        component(lagoon2,L), writeln(calibrate(lagoon2)), send(L,calibrate).
+
 lagoon3(_W) :->
        "User selected Lagoon 3"::
-       component(lagoon3,L), writeln(calibrate(lagoon3)), send(L,calibrate).
+       component(lagoon3,L),
+        ( toggle_auto ->
+	     retract(toggle_auto), Cmd = 'o2'
+	 ;   assert(toggle_auto), Cmd = 'o-'
+	),
+        send(L,converse,Cmd).
+
+lagoon3d(_W) :->
+       "User selected Lagoon 3-Darwin"::
+       component(lagoon3d,L),
+        ( toggle_auto ->
+	     retract(toggle_auto), Cmd = 'o2'
+	 ;   assert(toggle_auto), Cmd = 'o-'
+	),
+        send(L,converse,Cmd).
+
 lagoon4(_W) :->
        "User selected Lagoon 4"::
        component(lagoon4,L), writeln(calibrate(lagoon4)), send(L,calibrate).
@@ -379,7 +395,7 @@ range_color(Target, Current, Color) :-
 update10(W) :->
     get_new_levels,
     writeln('update10 after get_new_levels'),
-    send(@ut, stop),   % Shut down the update10 timer (for debug)
+%    send(@ut, stop),   % Shut down the update10 timer (for debug)
     get(W, graphicals, Chain),
     chain_list(Chain, CList),
     writeln('update [ '),

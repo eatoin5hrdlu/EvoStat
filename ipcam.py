@@ -367,7 +367,7 @@ class ipCamera(object):
         (x1,y1,x2,y2) = self.params['lagoonRegion']
         (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
         if (image != None and newSnapshot != None ) :
-            cv2.rectangle(image,(y1,x1),(y2,x2),(0,255,0),2)
+            cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
             cv2.imwrite(newSnapshot,cv2.resize(image,self.params['imageSize']))
             newSnapshot = None

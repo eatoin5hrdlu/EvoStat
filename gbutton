@@ -12,6 +12,11 @@
 
 :- dynamic tog/1.
 
+timeatom(Hours,M,S,TimeAtom) :-
+ 	(M > 9 -> M = Minutes ; concat_atom(['0',M,':'],Minutes)),
+ 	(S > 9 -> S = Seconds ; concat_atom(['0',S,':'],Seconds)),
+	concat_atom([Hours,':',Minutes,':',Seconds],TimeAtom).
+	
 window_percent(WFraction,HFraction,W,H) :-
 	screen(DW,DH, WW, WH, _Loc),
 	W is integer(DW*WW*WFraction/10000),
@@ -57,17 +62,21 @@ repeat1(1) :- !.
 repeat1(_).
 repeat1(N) :- M is N-1, repeat1(M).
 
-:- dynamic d_bt_address/2.
+% Haven't gotton bt_scan/2 to work yet. Linux was okay, Windows never worked
+% But Linux can be flaky too, so bt_device(Name,Address) facts will
+% be in <hostname>.pl (or <evostat>.pl) with config/1.
 
-% This was for windows, but linux bt_scan/2 is also flaky
+% When no devices are around, uncomment the following for fast startup.
+% bt_address(Name, Addr) :- !, fail.
 
-% bt_address(Name, Addr) :- !, fail.  % Use this when no devices are around
+%bt_device(labcellstat,  '98:D3:31:90:29:0E').
 
-% bt_device(labcellstat,   '98:D3:31:90:29:0E').
-% bt_device(cellstat,     '98:D3:31:90:29:0E').
-% bt_device(autosampler,  '98:D3:31:40:1D:D4').
-%           '98:D3:31:20:23:4F',
-%           '98:D3:31:70:2B:70',
+bt_device(cellstat,     '98:D3:31:90:29:0E').
+bt_device(  lagoon3d,   '98:D3:31:80:34:39'). % was d3
+bt_device(autosampler,  '98:D3:31:40:1D:D4').
+
+bt_device(autosamplerY, '98:D3:31:20:23:4F').
+bt_device(autosamplerZ, '98:D3:31:70:2B:70').
 
 % Splatspace simulator
 %bt_device( cellstat,     '98:D3:31:90:2B:82').
@@ -76,35 +85,11 @@ repeat1(N) :- M is N-1, repeat1(M).
 %bt_device(  lagoon3,     '98:D3:31:20:2B:EB').
 
 % Museum simulator
-bt_device( cellstatd,     '98:D3:31:40:90:13').
-bt_device(  lagoond1,     '98:D3:32:30:42:6A').
-bt_device(  lagoond2,     '98:D3:31:30:95:60').
-bt_device(  lagoond3,     '98:D3:31:80:34:39').
-bt_device(autosampler,    '98:D3:31:30:95:4B').
-
-bt_address(Name, Addr) :- !, % saves time
-   nth0(N,[
-             lagoon1,
-	     lagoon2,
-	     lagoon3    ], Name),
-   nth0(N,[
-           '98:D3:31:70:2A:22',
-           '98:D3:31:40:31:BA',
-           '98:D3:31:20:2B:EB'],Addr).
-
-bt_address(Name, Address) :-
-    d_bt_address(_Any,_Addr),
-    !,
-    d_bt_address(Name,Address).
-		
-bt_address(Name, Address) :-
-    bt_scan(Macs,Names),
-    (select(Each, Names, Mac, Macs),
-     assert(d_bt_address(Each, Mac)),
-     fail
-    ;true
-    ),
-    d_bt_address(Name,Address).
+%bt_device( cellstatd,     '98:D3:31:40:90:13').
+%bt_device(  lagoond1,     '98:D3:32:30:42:6A').
+%bt_device(  lagoond2,     '98:D3:31:30:95:60').
+%bt_device(  lagoond3,     '98:D3:31:80:34:39').
+%bt_device(autosampler,    '98:D3:31:30:95:4B').
 
 :- writeln(ingbutton),
    ( current_prolog_flag(arch,'i386-win32')
@@ -453,12 +438,11 @@ update(Self) :->
 	; send_super(Self,converse,'t'),
 	  get_super(Self, reply, Reply),
 	  parse_reply(Reply, remaining(Time), remaining(99)),
-	  writeln(Time),
 	  Hours is floor(Time/3600),
 	  Minutes is floor(mod(Time,3600)/60),
 	  Seconds is Time mod 60,
-	  concat_atom(['\nAutoSampler\n',
-	  Hours, ':', Minutes, ':', Seconds, '  to next sample\n'],Label),
+	  timeatom(Hours,Minutes,Seconds,TimeAtom),
+	  concat_atom(['\nAutoSampler\n',TimeAtom,' to next sample\n'],Label),
 	  send(Self, label, Label)
 	).
 	

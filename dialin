@@ -21,12 +21,10 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	send(Self?frame, icon, bitmap('./evo.xpm')), % Our logo
         new(Diatxt, text_buffer),                    % Text object in
         new(Editor, editor(Diatxt)),                 % Emacs-like edit window
-
-        get(@display?size,width,DW),
-	get(@display?size,height,DH),
+	screen(DW,DH,WF,HF,_),
+	MyW is 30+(DW*WF/100)/2,
+	MyH is (DH*HF/100)/2,
         get(Editor,  area, Area),                     % Resize it
-	MyW is 30+DW/3,
-	MyH is DH/2,
 	send(Area, set(width:=MyW,height:=MyH)),
 	send_list(Self, append, [Editor, button(send), button(clear)]),
 	send_super(Self, open, point(600,200)).      % Show it to the User
