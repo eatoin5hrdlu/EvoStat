@@ -72,7 +72,7 @@ repeat1(N) :- M is N-1, repeat1(M).
 %bt_device(labcellstat,  '98:D3:31:90:29:0E').
 
 bt_device(cellstat,     '98:D3:31:90:29:0E').
-bt_device(  lagoon3d,   '98:D3:31:80:34:39'). % was d3
+bt_device(  lagoond3,   '98:D3:31:80:34:39'). % was d3
 bt_device(autosampler,  '98:D3:31:40:1D:D4').
 
 bt_device(autosamplerY, '98:D3:31:20:23:4F').
@@ -340,6 +340,8 @@ update(Self) :->
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label),
 	send(Self, label, Label).
+
+quiet(Self) :->  send_super(Self,converse,'m0').
 
 % Calibration begins after someone sends the 'calibrate' message
 % Lagoons can distiguish between input valves and output valves.

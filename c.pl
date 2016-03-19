@@ -9,34 +9,65 @@ d
 %:- pce_autoload(finder, library(find_file)).
 %:- pce_global(@finder, new(finder)).
 
-camera_reset(_) :- current_prolog_flag(windows,true), !.
-camera_reset(_) :-
-    \+ access_file('/dev/video0',exist),
+temp_file('mypic1.jpg').
+temp_file('mypic2.jpg').
+temp_file('dbg.txt').
+temp_file(File)       :- logfile(File).
+
+cleanup :-
+    temp_file(F),
+    exists_file(F),
+    delete_file(F),
+    fail.
+cleanup.
+
+logging :-
+    ( logfile(File)
+     -> tell(File),
+	telling(S),
+	set_stream(S,buffer(line)),
+	set_stream(user_error,buffer(line)),
+	set_stream(S,alias(user_error))
+     ;  true
+    ).
+
+camera_device(Device) :-
+    config(List),
+    memberchk(mac(Num),List),
+    concat_atom(['--device=/dev/video',Num],Device).
+
+% No camera reset on Windows (yet)
+camera_reset :- current_prolog_flag(windows,true), !.
+
+% No camera reset if no camera
+camera_reset :-
+    camera_device(Device),
+    \+ access_file(Device,exist),
     writeln(no_camera),
     !.
-camera_reset(List) :-
-    level_cmd_dir(_,Dir),
+
+camera_reset :-
+    evostat_directory(Dir),
+    process_create('/bin/rm',['-f','mypic1.jpg','mypic2.jpg'],[cwd(Dir)]),
     Cmd = '/usr/bin/uvcdynctrl',
-    config_name(Host),
-    concat_atom([Host,'.gpfl'], Settings),
-    memberchk(mac(Num),List),
-    concat_atom(['--device=/dev/video',Num],Device),
-    Args = ['-L', Settings, Device],
+    config_name(Config),    % Hostname or evostat argument
+    concat_atom([Config,'.gpfl'], Settings),
+    camera_device(Device),
+    concat_atom(['--device=',Device],Option),
+    Args = ['-L', Settings, Option],
     writeln(resettingCamera(Dir, Cmd, Args)),
     process_create(Cmd,Args,[cwd(Dir)]),
-    writeln(resetCamera(Cmd,Args)).
+    writeln(resetCamera).
 
-level_cmd_dir(['C:\\Python27\\python.exe','ipcam.py'],
-	       'C:\\cygwin\\home\\peter\\src\\EvoStat') :-
-    gethostname(elapse),
-    current_prolog_flag(windows,true), !.
+windows :- current_prolog_flag(windows,true).
 
-level_cmd_dir(['C:\\cygwin\\Python27\\python.exe','ipcam.py'],
-	       'C:\\cygwin\\home\\peterr\\src\\EvoStat') :-
-  current_prolog_flag(windows,true), !.
-
-level_cmd_dir(['/usr/bin/python','/home/peter/src/EvoStat/ipcam.py'],
-	      '/home/peter/src/EvoStat').
+evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat') :- gethostname(ncmls8066),!.
+evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat')  :- windows, !.
+evostat_directory('/home/peter/src/EvoStat').
+	
+python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
+python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
+python('/usr/bin/python').
 
 :- [gbutton].
 :- [dialin].
@@ -200,31 +231,46 @@ check_error(camera(IP))    :- writeln(error(camera(IP))),!,fail.
 check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
 check_error(_).               % Everything else is not an error
 
-send_levels([],_).
-send_levels([Level|Levels], N) :-
-     concat_atom(['lagoon',N],Lagoon),
-     send(@Lagoon, setLevel, Level),
-     NN is N-1,
-     send_levels(Levels,NN).
+%
+% Find the lagoon(object) for a given position, names can be
+% complex but must start with 'lagoon' and end with a single digit
+%
+lagoon_number(Object, N) :-
+    component(Lagoon, Object),
+    sub_atom(Lagoon,0,_,_,'lagoon'),
+    atom_codes(Lagoon, Codes),
+    Digit is N + 0'0,
+    append(_,[Digit],Codes).
+
+lagoons(Cmd) :-
+    component(lagoond3, Object),
+    sub_atom(Lagoon,0,_,_,'lagoon'),
+    send(Object,Cmd),
+    fail.
+lagoons(_).
+
+send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
+send_info(levels(Level),_) :-
+    lagoon_number(Object, 3),
+    send(Object, setLevel, Level).
+send_info(_,_).
 
 get_new_levels :-
+    lagoons(quiet),
+    python(Python),
+    CmdLine = ['/home/peter/src/EvoStat/ipcam.py'],
     ( retract(levelStream(Previous)) ->
-	catch( read(Previous, Levels),
+	catch( read(Previous, Info),
 	       Ex,
-	       (writeln(caught(Ex,Cmd)),sleep(3),fail)),
-        check_error(Levels),
-        ( Levels =..[levels|LVals] ->
-	   config(List),
-           member(numLagoons(NL),List),
-           send_levels(LVals, NL)
-        ;
-	   newFlux(Levels,Previous)
-        ),
+	       (writeln(caught(Ex,CmdLine)),sleep(3),fail)),
+        check_error(Info),
+	send_info(Info, Previous),
 	close(Previous)
      ; true
     ),
-    level_cmd_dir([Cmd|Args],Cwd),
-    process_create(Cmd,Args,[stdout(pipe(Out)),cwd(Cwd)]),
+    evostat_directory(Dir),
+    writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
+    process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)]),
     assert(levelStream(Out)),
     !.
 
@@ -254,18 +300,36 @@ initialise(W, Label:[name]) :->
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
 	  writeln(menu_bar(MB)),
-	  send(MB, append, new(File, popup(file))),
-	  send(MB, append, new(Help, popup(help))),
+
+	  new(Msg1, message(W, update10)),  % Create Timer Object
+	  free(@ut),
+	  send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
+
 	
-		send_list(File, append,
+	  send(MB, append, new(File, popup(file))),
+	  send_list(File, append,
 				  [
 				    menu_item(ok,
 					      message(W, return, ok)),
 				    menu_item(quit,
 					      message(W, quit))
 				  ]),
-		about_atom(About),
-		send_list(Help, append,
+	  send(MB, append, new(Action, popup(action))),
+	  send_list(Action, append,
+				  [ menu_item('Drain Lagoons',
+					      message(@prolog, 'writeln(drain(lagoons))')
+					     ),
+				    menu_item('Drain Cellstat',
+					      message(@prolog, 'writeln(drain(cellstat))')
+					     ),
+				    menu_item(stop,
+					      message(@ut, stop)),
+				    menu_item(start,
+					      message(@ut, start))
+				  ]),
+	  send(MB, append, new(Help, popup(help))),
+	  about_atom(About),
+	  send_list(Help, append,
 				  [ menu_item(about,
 					      message(@display, inform, About)),
 				    menu_item(debug,
@@ -274,9 +338,7 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
-	 new(Msg1, message(W, update10)),
-	 free(@ut),
-	 send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
+
 	 send(@ut, start),
          send_super(W, open, Location).
 
@@ -521,35 +583,31 @@ main(_Argv) :-
          -> retract(logfile(_))
          ; true
         ),
-        level_cmd_dir(_,HomeDir),
-        cd(HomeDir),              % savestate can be run from anywhere
-	(logfile(File)
-	 -> tell(File),
-	    telling(S),
-	    set_stream(S,buffer(line)),
-	    set_stream(user_error,buffer(line)),
-	    set_stream(S,alias(user_error))
-	 ; true
-        ),
-        current_prolog_flag(pid,PID),
-        (PID < 900 -> sleep(30) ; true),  % Delay if OS just started (low PID)
+        evostat_directory(HomeDir),  % With this, the savestate
+        cd(HomeDir),               % can be executed from anywhere
+        cleanup,                   % uses temp_file/1 to remove files
+	logging,                   % Send output to F if logfile(F) defined
+
+	% Delay a bit if the computer is just starting up (low PID)
+        current_prolog_flag(pid, PID),
+        (PID < 900 -> sleep(30) ; true),
+
         set_prolog_flag(save_history,false),
-	at_halt(pathe_report(verbose)),
+	at_halt(pathe_report(verbose)),  % Special exit predicate to call
 	( current_prolog_flag(windows, true)
          -> load_foreign_library(foreign(plblue))
 	  ; load_foreign_library(plblue)
         ),
 %        load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
 
-	config_name(Root),          %  Find out configuration name
-	consult(Root),              % Consult it
-	config(List),                         % Get the configuration data
+	config_name(Root),  %  Find configuration name (hostname or cmd arg)
+	consult(Root),      % Consult it
+	config(List),       % Get the configuration data
         member(screen(WF,HF,Loc),List),
         get(@display?size,width,Width),
         get(@display?size,height,Height),
 	assert(screen(Width,Height,WF,HF,Loc)),
-        camera_reset(List),
-
+        camera_reset,
 	member(layout(Components),List),
 	Layout =.. [Root,Components],
 	assert(Layout),

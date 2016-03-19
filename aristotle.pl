@@ -3,7 +3,7 @@ config( [
          imageSize(600,500),
          cellstatRegion(80,250,340,320),
          lagoonRegion(410,20,620,460),
-	 lagoonHeight(130),    % divisor for levelScale
+	 lagoonHeight(170),    % divisor for levelScale
 	 lagoonWidth(60),
 	 levelScale(140),   % Maximum percentage or mL
 	 levelOffset(10),   % Minimum percentage or mL
@@ -23,11 +23,11 @@ config( [
 	 layout([
 		 cellstat(cellstat,below,[od(0.4),temp(37.0),shape(34,10),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
-		 snapshot(  cam, next_row, [ image('mypic1.jpg'),shape(40,40)]),
+		 snapshot(  cam, next_row, [ image('mypic1.jpg'),shape(42,42)]),
 		 spacer(      x2, next_row, []),
 		 lagoon( lagoon1, next_row, [temp(35.0), LS, SF]),
 		 lagoon( lagoon2, right,    [temp(35.0), LS, SF]),
-		 lagoon( lagoon3d, right,    [temp(34.5) ,LS, SF]),
+		 lagoon( lagoond3, right,   [temp(34.5) ,LS, SF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
 		 sampler(autosampler, next_row, [shape(40,10),SF])
                 ])
