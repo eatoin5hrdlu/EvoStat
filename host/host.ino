@@ -1,7 +1,11 @@
 #include "param.h"        // Includes param.h (change constants there)
 #include <Wire.h>
-#include "Adafruit_MLX90614.h"
-Adafruit_MLX90614 mlx;
+
+//#include "Adafruit_MLX90614.h"
+//Adafruit_MLX90614 mlx;
+#include "MLX90614.h"
+MLX90614 mlx;
+
 //#define DEBUG 1
 #define EOT "end_of_data."
 /*
@@ -477,7 +481,8 @@ int i;
 
 	interval = millis();
 	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
-	mlx = Adafruit_MLX90614();
+//	mlx = Adafruit_MLX90614();
+	mlx = MLX90614();
 	mlx.begin();   // Initialize Mexexis Thermometer
 	
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
