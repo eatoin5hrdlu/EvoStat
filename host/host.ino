@@ -31,7 +31,7 @@ MLX90614 mlx;
  *  oN :    Open valve N
  *  cN :    Close valve N  (also, auto_valve mode turned ON)
  *  pN :    Prime (open valve N, auto_valve mode OFF)
- *  vN :    Add 10ms to open time for valve N
+ *  vNssss:    Set valve N open time to ssss ms
  *  dN :    Subtract 10ms to open time for valve N
  *
  *  {id}N : Increase/decrease open time of valve by internal increment
@@ -264,6 +264,7 @@ void mixer(byte v)
 
 boolean cellstat_command(char c1, char c2, int value)
 {
+int vn;
 byte d;
 float tf;
 int hight,lowt,tries;
@@ -292,9 +293,6 @@ int hight,lowt,tries;
 		case 'c':
 			valves.closeValve(c2);
 			auto_valve = true;
-			break;
-		case 'd':
-			valves.adjust(c2,-10);
 			break;
 		case 'h':
 		        switch(c2) {
@@ -372,7 +370,11 @@ int hight,lowt,tries;
 			}
 			break;
 		case 'v':
-			valves.adjust(c2,10);
+			vn = (int)(c2 - '0');
+			if (value == 0) 
+				sprintf(reply,"valve(%d,%d).",vn,valves.getTime(vn));
+			else
+				valves.setTime(vn,value);
 			break;
 		case 'w':
 		        sprintf(reply, "leak(%d).", analogRead(ANALOG_LEAK));
@@ -465,9 +467,9 @@ int i;
 
 	pinMode(NUTRIENT,  OUTPUT);
 	digitalWrite(NUTRIENT,   0);
-	valves.setup_valve(0,NUTRIENT,5000,INFLOW);
+	valves.setup_valve(0,NUTRIENT,3000,INFLOW);
 
-	pinMode(HOSTOUT,  OUTPUT);
+	pinMode(HOSTOUT,  OUTPUT);   // Not currently used (open time = 0ms)
 	digitalWrite(HOSTOUT,   0);
 	valves.setup_valve(1,HOSTOUT,0,OUTFLOW);
 

@@ -112,17 +112,9 @@ boolean checkValves(void) {
     valve_open[v] = 0;
   }
 
-  int *getTimes()               { return &valve_time[0];   }
-  int getTime(int vchar)        { return valve_time[(int)(vchar-'1')]; }
-  int setTime(char vchar, int t){ valve_time[(int)(vchar-'1')] = t; }
-
-  void adjust(char vchar, int value) {
-    int v = (int)(vchar - '1');
-    if (value > 0 && valve_time[v] < cycletime + value)
-      valve_time[v] += value;
-    else if (value < 0 && valve_time[v] >= abs(value))
-      valve_time[v] += value;
-  }
+  int *getTimes()            { return &valve_time[0];   }
+  int getTime(int vn)        { return valve_time[vn]; }
+  int setTime(int vn, int t) { valve_time[vn] = t; }
 
  private:
   int size;                         // Number of valves
