@@ -1,6 +1,10 @@
 #include "param.h"        // Includes param.h (change constants there)
 #include <Wire.h>
 
+
+#include "valves.h"        // Includes param.h (change constants there)
+VALVES valves = VALVES(2);
+
 //#include "Adafruit_MLX90614.h"
 //Adafruit_MLX90614 mlx;
 #include "MLX90614.h"
@@ -8,6 +12,23 @@ MLX90614 mlx;
 
 //#define DEBUG 1
 #define EOT "end_of_data."
+/* EEPROM SAVE AND RESTORE OF ID AND CALIBRATION CONSTANTS */
+
+
+#include "EEPROM.h"
+int RomAddress  = 0;
+
+byte id = 'z'; // Zeno = unassigned, by default
+int gcycletime;
+float target_temperature;
+int target_turbidity;
+int gtscale;
+int gtoffset;  // Offset and scale for Turbidity calculation
+
+int interval;   // Variable to keep track of the time
+
+int reading[10];
+
 /*
  * Host controller
  *
@@ -18,8 +39,37 @@ MLX90614 mlx;
  *     c) set auto/manual temperature control
 
  * 3) Check temperature and manage host and nutrient heaters
- *
- * Commands:
+ */
+
+boolean auto_temp;   // Automatically control Heater
+boolean auto_valve;  // Automatically control Valves
+boolean bluetooth;
+ 
+char reply[40];
+
+#ifdef WIFI
+#include "secrets.h"
+#include "wifi.h"
+WIFI w = WIFI();
+#endif
+
+void sout(const char *str) {
+#ifdef WIFI
+	w.mysend(str);
+#else
+	Serial.print(str);
+#endif
+}
+
+void soutln(const char *str) {
+#ifdef WIFI
+	w.mysend(str);
+#else
+	Serial.println(str);
+#endif
+}
+
+/* Commands:
  *  l0 :    Meniscus light off
  *  l1 :    Meniscus light on
  *  h0 :    Heater off
@@ -41,26 +91,46 @@ MLX90614 mlx;
  *  r  : Run mode (calibration off)
  */
 
-boolean auto_temp;   // Automatically control Heater
-boolean auto_valve;  // Automatically control Valves
-boolean bluetooth;
- 
-char reply[40];
-
-#include "secrets.h"
-#include "wifi.h"
-WIFI w = WIFI();
-
-void sout(const char *str) {
-     if (bluetooth) Serial.print(str);
-     else           w.mysend(str);
+int get_temperature()// Returns temperature in tenths of degrees C
+{
+float tf = (float)mlx.readObjectTempC() * 10.0;
+int tries = 0;
+	while ( ( abs(tf) > 1000.0 || abs(tf) < 100.0) && tries++ < 3) {
+		delay(100);
+		tf = (float)mlx.readObjectTempC() * 10.0;
+	}
+	return (int) tf;
 }
 
-void soutln(const char *str) {
-     if (bluetooth) Serial.println(str);
-     else           w.mysend(str);
-}
+void printHelp(void)
+{
+int i;
+int *times = valves.getTimes();
 
+	Serial.println("cmd(a,[0,1],'set auto modes off/on').");
+	Serial.println("cmd(cl,'clear backlog (no output)').");
+
+	Serial.print("cmd(v,[0,1,2,3,4],[");
+	 for(i=0;i<NUM_VALVES;i++) {
+	   Serial.print(*times++); if (i<(NUM_VALVES-1)) Serial.print(","); }
+        Serial.println("],'valve open times in msec').");
+
+	Serial.println("cmd(e,[0,1],'enable inputs vs. flow calibration').");
+	Serial.println("cmd(h,[0,1],'heater off/on auto_temp off').");
+	Serial.println("cmd(l,[0,1],'light off/on').");
+	Serial.println("cmd(m,[0,1],'mixer off/on').");
+	Serial.println("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)').");
+	Serial.println("cmd(p,[h],'printHelp -this list of commands').");
+	Serial.println("cmd(p,[0,1,2,3,4],'foce valve open').");
+	Serial.println("cmd(r,'Restore settings from EEPROM').");
+	Serial.println("cmd(s,'Save settings in EEPROM').");
+	Serial.print("cmd(t,[");Serial.print((int) (target_temperature*10.0));
+	Serial.println("],'Set/get target temperature in tenth degrees C').");
+	Serial.print("cmd(tt,[");Serial.print((int) (target_temperature*10.0));
+	Serial.println("],'Set/get target temperature in tenth degrees C').");
+	Serial.println("cmd(t,'Get temperature').");
+	Serial.println("cmd(z,'Zero EEPROM').");
+}
 
 // All Pathe Arduino control programs contain at least:
 //
@@ -70,6 +140,7 @@ void soutln(const char *str) {
 //   void loop()
 //
 
+#ifdef WIFI
 void wfRespondToRequest(void)
 {
   char c1 = NULL, c2 = NULL;
@@ -105,29 +176,7 @@ bool wfProcess_command(char c1, char c2, int value)
     return w.mysend(reply);
   }
 }
-
-#include "valves.h"        // Includes param.h (change constants there)
-// #include "temperature.h" 
-
-VALVES valves = VALVES(2);
-// TEMPERATURE temp = TEMPERATURE(0);  // Analog pin number
-//TEMPERATURE temp = TEMPERATURE(A5,A4);  // Digital pins SCL, SDA
-
-/* EEPROM SAVE AND RESTORE OF ID AND CALIBRATION CONSTANTS */
-
-#include "EEPROM.h"
-int RomAddress  = 0;
-
-byte id = 'z'; // Zeno = unassigned, by default
-int gcycletime;
-float target_temperature;
-int target_turbidity;
-int gtscale;
-int gtoffset;  // Offset and scale for Turbidity calculation
-
-int interval;   // Variable to keep track of the time
-
-int reading[10];
+#endif
 
 // Keep temperature within 0.5 degree C
 
@@ -266,9 +315,6 @@ boolean cellstat_command(char c1, char c2, int value)
 {
 int vn;
 byte d;
-float tf;
-int hight,lowt,tries;
-
 	switch(c2)
 	{
 		case '1': d = 1; break;
@@ -335,8 +381,12 @@ int hight,lowt,tries;
 		     else    		 valves.openValve('1');
 		     break;
 		case 'p':
-			auto_valve = false;
-			valves.openValve(c2);
+			if (c2 =='h')
+				printHelp();
+			else {
+				auto_valve = false;
+				valves.openValve((int)c2-'0');
+			}
 			break;
 		case 'r':
 			saveRestore(RESTORE);
@@ -353,20 +403,13 @@ int hight,lowt,tries;
 		case 't':
 		        switch(c2) {
 			  case 't':
-			   sprintf(reply,"target_temperature(%d).",(int) target_temperature);
+			   sprintf(reply,"target_temperature(%d).",
+                                          (int) (target_temperature*10.0));
 			   soutln(reply);
 			   break;
 			 default:
-		        tf = (float)mlx.readObjectTempC() * 10.0;
-			tries = 0;
-			while ( ( abs(tf) > 1000.0 || abs(tf) < 40.0) && tries++ < 3) {
-			      delay(100);
-			      tf = (float)mlx.readObjectTempC() * 10.0;
-			}
-			hight = (int) tf/10.0;
-			lowt =  abs(((int)tf) % 10); // negative number after decimal unparsable
-		        sprintf(reply,"temperature(%d.%d%d).",hight,lowt,tries);
-			soutln(reply);
+			   sprintf(reply,"temperature(%d).",get_temperature());
+		   	   soutln(reply);
 			}
 			break;
 		case 'v':
@@ -380,6 +423,12 @@ int hight,lowt,tries;
 		        sprintf(reply, "leak(%d).", analogRead(ANALOG_LEAK));
 			sout(reply);
 			break;
+		case 'z':
+			int i;
+			EEPROM.write(0,0); // setup() will overwrite on reset
+			strcpy(reply, "eeprom(0).");
+			break;
+		
 		default:
 			return false;
 	}
@@ -389,10 +438,14 @@ int hight,lowt,tries;
 
 void respondToRequest(void)
 {
-	if (bluetooth) btRespondToRequest();
-	else           wfRespondToRequest();
+#ifdef WIFI
+	wfRespondToRequest();
+#else
+	btRespondToRequest();
+#endif
 }
 
+#ifndef WIFI
 void btRespondToRequest(void)
 {
 	String is = "";
@@ -414,6 +467,7 @@ void btRespondToRequest(void)
 		}
 	}
 }
+#endif
 
 /*
  * average() throw out two extreme values and average the rest
