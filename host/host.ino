@@ -414,9 +414,10 @@ byte d;
 			break;
 		case 'v':
 			vn = (int)(c2 - '0');
-			if (value == 0) 
+			if (value == 0) {
 				sprintf(reply,"valve(%d,%d).",vn,valves.getTime(vn));
-			else
+		   		soutln(reply);
+			} else
 				valves.setTime(vn,value);
 			break;
 		case 'w':
