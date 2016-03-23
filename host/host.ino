@@ -7,7 +7,7 @@ VALVES valves = VALVES(2);
 
 //#include "Adafruit_MLX90614.h"
 //Adafruit_MLX90614 mlx;
-#include "MLX90614.h"
+#include <MLX90614.h>
 MLX90614 mlx;
 
 //#define DEBUG 1
@@ -341,19 +341,19 @@ byte d;
 			auto_valve = true;
 			break;
 		case 'h':
-		        switch(c2) {
-			 case 'e':
-			      break;
+			switch(c2)
+			{
 			 case 'i':
 			   sprintf(reply,"odHistory(%d,%d,%d,%d,%d,%d,%d).",
 			      ODhist[0],ODhist[1],ODhist[2],ODhist[6],ODhist[7],ODhist[8],ODhist[9]);
 			      soutln(reply);
 			      break;
+			 case 'v':
+			      valves.report(reply);
+			      soutln(reply);
+			      break;
 			 default :
-			 	 digitalWrite(HEATER, d);
-				 digitalWrite(LED, d);
-				 valves.report(reply);
-				 soutln(reply);
+			 	 printHelp();
 			}
 			break;
 		case 'i':
@@ -381,12 +381,8 @@ byte d;
 		     else    		 valves.openValve('1');
 		     break;
 		case 'p':
-			if (c2 =='h')
-				printHelp();
-			else {
-				auto_valve = false;
-				valves.openValve((int)c2-'0');
-			}
+			auto_valve = false;
+			valves.openValve((int)c2-'0');
 			break;
 		case 'r':
 			saveRestore(RESTORE);
