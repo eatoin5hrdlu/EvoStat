@@ -1,7 +1,13 @@
 config( [
 	 numLagoons(1),
          imageSize(600,500),
-         cellstatRegion(80,250,340,320),
+
+         cellstatRegion(40,250,340,320),
+	 cellstatHeight(300),  % divisor for cellstatScale
+	 cellstatWidth(40),
+	 cellstatScale(2000),  % Maximum mL
+	 cellstatOffset(100),  % Minimum mL
+
          lagoonRegion(410,20,620,460),
 	 lagoonHeight(170),    % divisor for levelScale
 	 lagoonWidth(60),
