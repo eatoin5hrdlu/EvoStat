@@ -1,6 +1,6 @@
 config( [
 	 numLagoons(1),
-         imageSize(600,500),
+         imageSize(630,500),
 
          cellstatRegion(40,250,340,320),
 	 cellstatHeight(300),  % divisor for cellstatScale
@@ -25,9 +25,9 @@ config( [
 	 contrast(40),
 	 contrastCmd('/camera_control.cgi?param=2&value='),
 	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),
-	 screen(42,48,point(720,1)),
+	 screen(46,48,point(720,1)),
 	 layout([
-		 cellstat(cellstat,below,[od(0.4),temp(37.0),shape(34,10),CF]),
+		 cellstat(cellstat,below,[od(0.4),temp(37.0),shape(36,12),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ image('mypic1.jpg'),shape(42,42)]),
 		 spacer(      x2, next_row, []),
@@ -38,7 +38,7 @@ config( [
 		 sampler(autosampler, next_row, [shape(40,10),SF])
                 ])
 	 ]) :-
- LS = shape(30,12),
+ LS = shape(31,12),
 % LF = font(font(times,roman,14)),
  CF = font(font(times,roman,18)),
  SF = font(font(times,roman,20)).

@@ -130,12 +130,13 @@ update(Self) :->
 	get(Self, imageFile, OldFile),
 	snapshot(Path, NewFile),
 	( NewFile = OldFile -> true
-	; new(I, image(NewFile)),
+	; get(Self, selection, OldImage),
+	  writeln(oldimage(OldImage)),
+	  new(I, image(NewFile)),
 	  send(Self, slot, imageFile, NewFile),
 	  send(Self,selection, I),
-	  writeln('free the image?'),
-	  free(I),
-	  writeln('freed the image')
+	  writeln(newImage(I)),
+	  free(OldImage)  % Never works!
 	).
 
 :- pce_end_class.
@@ -272,8 +273,10 @@ update(Self) :->
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
-	writeln(cellstatreply(Reply)),
-	parse_reply(Reply, temperature(Temp), temperature(11.3)),
+	(Reply='no_connection.' -> Label='Cellstat\nNo Bluetooth\nConnection'
+	;
+	parse_reply(Reply, temperature(Temp10), temperature(11.3)),
+	Temp is Temp10/10.0,
         send(Self,slot,temperature,Temp),
         get(Self,slot,temperature_t,Target),
 	range_color(Target, Temp, Tc),
@@ -287,7 +290,8 @@ update(Self) :->
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
         concat_atom(['\nCellStat\nTemperature: ', Target, ' / ',Temp,'\n',
- 		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label),
+ 		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
+	),
 	send(Self, label, Label).
 
 :- pce_end_class.  % cellstat
@@ -319,9 +323,10 @@ initialise(Self, Label:[name]) :->
 
 update(Self) :->
         send_super(Self, update),
-
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
+	(Reply = 'no_connection.' -> Label = 'No Bluetooth\nConnection'
+	;
 	parse_reply(Reply,temperature(TempInt),temperature(111)),
 	Temp is float(TempInt)/10.0,
         send(Self,slot,temperature,Temp),
@@ -338,7 +343,8 @@ update(Self) :->
 	send(Self,State),
         concat_atom(['Level ', Level2, 'mL\n',
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
-                     'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label),
+                     'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
+	),
 	send(Self, label, Label).
 
 quiet(Self) :->  send_super(Self,converse,'m0').

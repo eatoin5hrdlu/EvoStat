@@ -1,4 +1,3 @@
-d
 :- use_module(library(time)).
 :- use_module(library(pce)).
 :- use_module(library(process)).
@@ -8,7 +7,8 @@ d
 :- use_module(library(ctypes)).
 %:- pce_autoload(finder, library(find_file)).
 %:- pce_global(@finder, new(finder)).
-
+:- dynamic component/3.
+    
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
 temp_file('dbg.txt').
@@ -236,15 +236,13 @@ check_error(_).               % Everything else is not an error
 % complex but must start with 'lagoon' and end with a single digit
 %
 lagoon_number(Object, N) :-
-    component(Lagoon, Object),
-    sub_atom(Lagoon,0,_,_,'lagoon'),
+    component(Lagoon, lagoon, Object),
     atom_codes(Lagoon, Codes),
     Digit is N + 0'0,
     append(_,[Digit],Codes).
 
 lagoons(Cmd) :-
-    component(lagoond3, Object),
-    sub_atom(Lagoon,0,_,_,'lagoon'),
+    component(_, lagoon, Object),
     send(Object,Cmd),
     fail.
 lagoons(_).
@@ -299,6 +297,7 @@ initialise(W, Label:[name]) :->
 
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
+	  send(MB, label_font(huge)),
 	  writeln(menu_bar(MB)),
 
 	  new(Msg1, message(W, update10)),  % Create Timer Object
@@ -307,6 +306,7 @@ initialise(W, Label:[name]) :->
 
 	
 	  send(MB, append, new(File, popup(file))),
+          free(@action),
 	  send_list(File, append,
 				  [
 				    menu_item(ok,
@@ -314,18 +314,18 @@ initialise(W, Label:[name]) :->
 				    menu_item(quit,
 					      message(W, quit))
 				  ]),
-	  send(MB, append, new(Action, popup(action))),
-	  send_list(Action, append,
+	  send(MB, append, new(@action, popup(action))),
+	  send_list(@action, append,
 				  [ menu_item('Drain Lagoons',
-					      message(@prolog, 'writeln(drain(lagoons))')
+					      message(W, drain, lagoons)
 					     ),
 				    menu_item('Drain Cellstat',
-					      message(@prolog, 'writeln(drain(cellstat))')
+					      message(W, drain, cellstat)
 					     ),
 				    menu_item(stop,
-					      message(@ut, stop)),
+					      message(W, stopped)),
 				    menu_item(start,
-					      message(@ut, start))
+					      message(W, started))
 				  ]),
 	  send(MB, append, new(Help, popup(help))),
 	  about_atom(About),
@@ -336,11 +336,28 @@ initialise(W, Label:[name]) :->
 					      message(@prolog, manpce))
 				  ]),
          call(Label,Components),
-         findall(_,(component(_,Obj),free(Obj)),_), % Clear out previous
+         findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
 
 	 send(@ut, start),
          send_super(W, open, Location).
+
+drain(_W, What) :->  writeln(draining(What)).
+
+stopped(_W) :->
+       send(@ut, stop),
+       send(@action?members, for_all,
+	    if(@arg1?value==stop,message(@arg1, active, @off))),
+       send(@action?members, for_all,
+	    if(@arg1?value==start,message(@arg1, active, @on))).
+
+started(_W) :->
+       send(@ut, start),
+       send(@action?members, for_all,
+	    if(@arg1?value==start,message(@arg1, active, @off))),
+       send(@action?members, for_all,
+	    if(@arg1?value==stop, message(@arg1, active, @on))).
+
 
 cellstat(_W) :-> "User pressed the CellStat button"::
 %        ( air ->
@@ -351,7 +368,7 @@ cellstat(_W) :-> "User pressed the CellStat button"::
 	     retract(mix), Cmd = 'm0'
 	 ;   assert(mix), Cmd = 'm1'
 	),
-        component(cellstat,CellStat),
+        component(_,cellstat,CellStat),
         send(CellStat,converse,Cmd).
 
 l1(_W) :-> "User pressed the L1 button"::
@@ -360,7 +377,7 @@ l1(_W) :-> "User pressed the L1 button"::
 
 lagoon1(_W) :->
        "User selected Lagoon 1"::
-       component(lagoon1,L), writeln(calibrate(lagoon1)),
+       component(lagoon1,lagoon,L), writeln(calibrate(lagoon1)),
         ( toggle_auto ->
 	     retract(toggle_auto), Cmd = 'a0'
 	 ;   assert(toggle_auto), Cmd = 'a1'
@@ -369,11 +386,11 @@ lagoon1(_W) :->
 
 lagoon2(_W) :->
        "User selected Lagoon 2"::
-       component(lagoon2,L), writeln(calibrate(lagoon2)), send(L,calibrate).
+       component(lagoon2,lagoon,L), writeln(calibrate(lagoon2)), send(L,calibrate).
 
 lagoon3(_W) :->
        "User selected Lagoon 3"::
-       component(lagoon3,L),
+       component(lagoon3,lagoon,L),
         ( toggle_auto ->
 	     retract(toggle_auto), Cmd = 'o2'
 	 ;   assert(toggle_auto), Cmd = 'o-'
@@ -382,7 +399,7 @@ lagoon3(_W) :->
 
 lagoon3d(_W) :->
        "User selected Lagoon 3-Darwin"::
-       component(lagoon3d,L),
+       component(lagoon3d,lagoon,L),
         ( toggle_auto ->
 	     retract(toggle_auto), Cmd = 'o2'
 	 ;   assert(toggle_auto), Cmd = 'o-'
@@ -391,7 +408,7 @@ lagoon3d(_W) :->
 
 lagoon4(_W) :->
        "User selected Lagoon 4"::
-       component(lagoon4,L), writeln(calibrate(lagoon4)), send(L,calibrate).
+       component(lagoon4,lagoon,L), writeln(calibrate(lagoon4)), send(L,calibrate).
 
 tb(W)   :-> newvalue(tb,W).
 tc(W)   :-> newvalue(tc,W).
@@ -454,21 +471,28 @@ range_color(Target, Current, Color) :-
      ;                  Color = darkgreen
     ).
 
+
+% MUCH SIMPLER
+
 update10(W) :->
     get_new_levels,
     writeln('update10 after get_new_levels'),
-%    send(@ut, stop),   % Shut down the update10 timer (for debug)
-    get(W, graphicals, Chain),
-    chain_list(Chain, CList),
-    writeln('update [ '),
-    member(Object, CList),
-    component(_,Object),            % If one has been created
-    ( send(Object, update) -> write(Object) ; write(failed(Object)) ),
-    write(' '),
-    flush_output,
-    fail.
+    send(W?graphicals, for_all,
+	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
+    send(W?graphicals, for_all,
+	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))).
 
-update10(_W) :-> writeln(' ]').
+%    get(W, graphicals, Chain),
+%    chain_list(Chain, CList),
+%    writeln('update [ '),
+%    member(Object, CList),
+%    component(_,_,Object),            % If one has been created
+%    ( send(Object, update) -> write(Object) ; write(failed(Object)) ),
+%    write(' '),
+%    flush_output,
+%    fail.
+
+%update10(_W) :-> writeln(' ]').
 %    writeln(finishedupdate10(W)).
     
 :- pce_end_class.
@@ -527,8 +551,7 @@ create(Dialog, Component) :-
 	new(@Name, Class),
 	maplist(send(@Name), Data), % Process all before appending
 	send(Dialog, append(@Name, Position)),
-%	writeln(component(Name,@Name)),
-        assert(component(Name,@Name)).
+        assert(component(Name,Type,@Name)).
 
 about_atom(About) :-
         open('evostat.about', read, Handle),

@@ -261,7 +261,7 @@ class ipCamera(object):
         colors = {0:"blue", 1:"green", 2:"red" }
         cv2.putText(img,colors[color],(10,80),cv2.FONT_HERSHEY_PLAIN,4.0,(240,80,200),2)
 
-    def cellstatLevel(self,pause=10) :
+    def cellstatLevel(self, pause=10) :
         """Levels is a percentage of the cellstat height
            mL is our standard unit of liquid level, add scale <host>.pl"""
         global debug
@@ -272,19 +272,21 @@ class ipCamera(object):
         while (goodRead != 1) :
             goodRead = 0
             frame = self.cellstatImage() # Cropped image from center of cellstat
-            lvl = self.evocv.level(frame[:,:,2])
+#            greyimage = frame[:,:,0] + frame[:,:,1] + frame[:,:,2]
+            greyimage = frame[:,:,1] + frame[:,:,2]
+            greyimage = self.evocv.contrast(greyimage,iter=1,scale=1.5,offset=-10)
+            lvl = self.evocv.level(greyimage)
             if (lvl == None or lvl > 999) :
                 debug = debug + "level detection failed\n"
-                cv2.imshow("camera", subi)
-                if cv.WaitKey(400) == 27:
+                cv2.imshow("camera", greyimage)
+                if cv.WaitKey(2000) == 27:
                     exit(0)
             if (lvl > 0 and lvl < bb[3]) : # Level is in range
-                cellstatLevel = self.params['cellstatOffset'] + self.params['cellstatScale'] - ((self.params['cellstatScale'] * (lvl-bb[1]))/self.params['cellstatHeight'])
-                cv2.line(frame,(bb[0],bb[1]+lvl),(bb[0]+bb[2],bb[1]+lvl), (0,0,255),1)
+                cv2.line(greyimage, (0, lvl) , (bb[3]-bb[1],lvl), (255,255,255),2)
                 goodRead = goodRead + 1
-                if (frame != None) :
-                    cv2.imshow("camera", frame)
-                if cv.WaitKey(pause) == 27:
+                if (greyimage != None) :
+                    cv2.imshow("camera", greyimage)
+                if cv.WaitKey(3000) == 27:
                             exit(0)
                 else :
                     debug = debug + "frame was None after drawLagoons!?\n"  
@@ -292,8 +294,8 @@ class ipCamera(object):
                 debug = debug + str(lvl) + " out of range :" + str(bb) + "\n"
         if (goodRead > 0) :
             debug = debug + str(goodRead) + " good level reads\n"
-        debug = debug + "csLevel " + str(cellstatLevel) + "\n>>>>>>>>>>>>>>>>>>>>\n"
-        return cellstatLevel
+        debug = debug + "csLevel " + str(lvl) + "\n>>>>>>>>>>>>>>>>>>>>\n"
+        return 100 - ((100*lvl) / (bb[3]-bb[0]))
 
     def updateLagoons(self,pause=10) :
         """Blob detection to locate Lagoons. Must be called before updateLevels()."""
