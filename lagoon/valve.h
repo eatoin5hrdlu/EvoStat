@@ -46,7 +46,11 @@ class VALVE
   }
 
   void position(int v) {
-    swrite(valve_angle[v]);
+   digitalWrite(VALVEDISABLE,0);
+   delay(500);
+   swrite(valve_angle[v]);
+   delay(500);
+   digitalWrite(VALVEDISABLE,1);
   }
 
   void setup_valve(int v, int tm) {
