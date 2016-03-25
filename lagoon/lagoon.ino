@@ -6,6 +6,7 @@
  *     a) adjust timings
  *     b) control meniscus light
  *     c) set auto/manual temperature control
+ *     d) set auto/manual mixer control
  *     d) set auto/manual flow control
  * 3) Check temperature and manage lagoon heater
  */
@@ -30,6 +31,8 @@ void swrite(int val) {
 }
 
 #include "valve.h"        // Includes param.h (change constants there)
+int valveCycleTime = DEFAULT_CYCLETIME;
+
 VALVE    valve = VALVE(NUM_VALVES+1, VALVEPIN);      // 5-position valve on pin 9
 
 
@@ -83,6 +86,7 @@ char *saveRestore(int op)
 	moveData(op, sizeof(int),        (byte *) &mixerspeed);
 	moveData(op, (NUM_VALVES+1)*sizeof(int), valve.getTimes());
 	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getAngles());
+	moveData(op, sizeof(int),   (byte *)&valveCycleTime);
 	if (op == SAVE) return("save.");
 	else            return("restore.");
 }
@@ -96,16 +100,17 @@ char *saveRestore(int op)
  *   EXAMPLE  Set angle for 4th valve position at 178 degrees (rather than 180) "d4178"
  *  e0 :    Disable auto modes and input flow
  *  e1 :    Enable auto modes and input valve schedule
+ *  h  :    Print help
  *  h0 :    Heater off
  *  h1 :    Heater on
  *  l0 :    Meniscus light off
  *  l1 :    Meniscus light on
  *  m0 :    Mixing motor off
  *  m1 :    Mixing motor on
- *  ph :    Print Help (this list of commands)    
  *  pN :    Go to Valve position N, auto_valve mode off
  *  r  :    Restore settings from EEPROM
- *  tNNNN:  Set target temperature in tenths of degrees  371 = 37.1C
+ *  s  :    Save settings in EEPROM
+ *  tNNN:   Set target temperature in tenths of degrees  371 = 37.1C
  *  t  :    Get current temperature
  *
  *  n  : Normal (run mode) : calibration off, auto modes on
@@ -118,11 +123,14 @@ byte *bp = valve.getAngles();
 
 	Serial.println("cmd(a,[0,1],'set auto modes off/on').");
 	Serial.println("cmd(cl,'clear backlog (no output)').");
+	Serial.print("cmd(cy,[");Serial.print(valveCycleTime);
+	Serial.println("],'Valve cycle time').");
 	Serial.print("cmd(d,[0,1,2,3,4],[");
 	 for(i=0;i<5;i++) { Serial.print(*bp++); if (i != 4) Serial.print(","); }
         Serial.println("],'set angle:(0-180) for Nth valve position').");
 	Serial.println("cmd(e,[0,1],'enable inputs vs. flow calibration').");
-	Serial.println("cmd(h,[0,1],'heater off/on auto_temp off').");
+	Serial.println("cmd(h,'Print this help message').");
+	Serial.println("cmd(h,[0,1],'force heater off/on auto_temp off').");
 	Serial.println("cmd(l,[0,1],'light off/on').");
 	Serial.println("cmd(m,[0,1],'mixer off/on').");
 	Serial.println("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)').");
@@ -151,6 +159,11 @@ void mixer(byte v)
 	}
 }
 
+void printTermInt(char *f,int a)
+{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
+void printTermFloat(char *f,double a)
+{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
+	
 boolean lagoon_command(char c1, char c2, int value)
 {
 char reply[80];
@@ -166,19 +179,33 @@ int tmp;
 	switch(c1)
 	{
 		case 'a':
-			if (d == 1) {
-				auto_temp = true;
-				auto_valve = true;
-				auto_mixer = true;
-			} else {
-				auto_temp = false;
-				auto_valve = false;
-				auto_mixer = false;
+		     switch(d) {
+		     	case 0:
+			     auto_temp = false;
+			     auto_valve = false;
+			     auto_mixer = false;
+			     break;
+			case 1:
+			     auto_temp = true;
+			     auto_valve = true;
+			     auto_mixer = true;
+			     break;
+			default:
+			     printTermInt("auto_temp", auto_temp);
+			     printTermInt("auto_valve", auto_valve);
+			     printTermInt("auto_mixer", auto_mixer);
 			}
 			break;
-	   	case 'c': if (c2=='l') return true; // Clearing backlog
+	   	case 'c':
+		     if ( c2 == 'l' ) return true; // Clearing backlog
+		     else if ( c2 == 'y' ) {
+		     	  valveCycleTime = value;
+		     	  valve.setCycleTime(value);
+		     }
+		     break;
+		     
 		case 'd':
-		        valve.setAngle(c2,value);
+		        valve.setAngle((int)(c2 - '0'),value);
 			break;
 		case 'e':
 			if (d == 1) {
@@ -192,62 +219,54 @@ int tmp;
 			}
 			break;
 		case 'h':
-			if (d) 
-				analogWrite(HEATER, 100);
-			else
-				digitalWrite(HEATER, 0);
-			break;
-		case 'i':
-			if (c2 != 0)
-				id = c2;
-			else {
-				Serial.print("id(");
-				Serial.print(id);
-				Serial.println(").");
+		     switch(d) {
+		        case 0:
+			     digitalWrite(HEATER, 0);
+			     break;
+			case 1:
+			     digitalWrite(HEATER, 1);
+			     break;
+			default:
+			     printHelp();
 			}
+		case 'i':
+			if (c2 != 0)	id = c2;
+			else   	  	printTermInt("id",id);
 			break;
 		case 'l':
-	                if (d == 1)
-				digitalWrite(LED, 1);
-			else
-				digitalWrite(LED, 0);
+		     switch(d) {
+		        case 0:
+			     digitalWrite(LED, 0);
+			     break;
+			case 1:
+			     digitalWrite(LED, 1);
+			     break;
+			default:
+			     printTermInt("led",digitalRead(LED));
+			}
 			break;
 		case 'm':
-			if (d == 9) {
-				Serial.print("mixer(");
-				Serial.print(mixerspeed);
-				Serial.println(").");
-			} else {
-				Serial.print("mixer(");
-				Serial.print(d);
-				Serial.println(").");
-				mixer(d);
-			}
+			if (d == 9) printTermInt("mixer", mixerspeed);
+			else  	    mixer(d);
 			break;
 		case 'n':
 		        valve.enable(1);
 			auto_temp = true;  // Maintain Temperature Control
 			auto_valve = true;  // Maintain Flow
+			auto_mixer = true;  // Start mixer
 			break;
 		case 'p':
-		        if (c2 == 'h') printHelp();
-			else {
-			     auto_valve = false;
-			     valve.position(c2-'0');
-			}
+		        auto_valve = false;
+			valve.position(c2-'0');
 			break;
 		case 'r':  
 			switch(c2) {
 				case 'v': valve.report(reply);
 				     	  break;
-
-				case 't':
-					Serial.print("temperature(");
-					Serial.print(temp.celcius());
-					Serial.println(").");
-					break;
-				default: strcpy(reply,saveRestore(RESTORE));
-					 break;
+				case 't': printTermFloat("temperature", temp.celcius());
+				     	  break;
+				default:  strcpy(reply,saveRestore(RESTORE));
+					  break;
 			}
 			break;
 		case 's':
@@ -269,14 +288,15 @@ int tmp;
 			}
 			break;
 		case 'v':
+		     if (c2 >= '0' && c2 < '5')
 			valve.setup_valve(c2-'0', value);
-			break;
+	             else
+		     	valve.report(reply);
+		     break;
 		case 'z':
-			int i;
-			for(i=0; i < 5*sizeof(int); i++) EEPROM.write(i,0);
-			strcpy(reply, "eeprom(0).");
-			break;
-
+		     EEPROM.write(0,0);
+		     strcpy(reply, "eeprom(0).");
+		     break;
 		default:
 			return false;
 	}
@@ -339,58 +359,53 @@ void setup()
 
 	eeSize = sizeof(float) + (NUM_VALVES+2)*sizeof(int) + (NUM_VALVES+2)*sizeof(byte);
 
-//	if (true)
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = '2';	// Default Lagoon ID 
 		target_temperature = 37.0;
 		mixerspeed = MIXERSPEED;
-		valve.setAngle('0',0);
-		valve.setAngle('1',50);
+		valve.setAngle(0,0);
+		valve.setAngle(1,50);
 		valve.setup_valve(1, 6000);
-		valve.setAngle('2',90);
+		valve.setAngle(2,90);
 		valve.setup_valve(2, 3000);
-		valve.setAngle('3',120);
+		valve.setAngle(3,120);
 		valve.setup_valve(3, 3000);
-		valve.setAngle('4',160);
+		valve.setAngle(4,160);
 		valve.setup_valve(4, 1000);
+		valveCycleTime = DEFAULT_CYCLETIME;
 		saveRestore(SAVE);
 	}
 	else
 	{
 		saveRestore(RESTORE); // Valve timing copied to valve object
 	}
+	valve.setCycleTime(valveCycleTime);
 	once = true;
 	auto_temp = true;   // Maintain Temperature Control
 	auto_valve = true;  // Maintain Flow
 	auto_mixer = true;  // Cycle magnetic mixer to avoid stalled stir-bar
-//	wdt_enable(WDTO_8S);
 	if (debug) Serial.println("reset.");
 }
 
-int cnt_light = 0;
 int cnt_mixer = 0;
 void loop()
 {
 int t;
 	respondToRequest();     // Check for command
-//	wdt_reset();            // the program is alive...for now. 
-	delay(100);
-	if (auto_temp)		// Check and update heater(s)
-		checkTemperature();
-	if (auto_valve) {
-		valve.checkValve();
-	}
+	if (auto_valve) valve.checkValve();
+	delay(50);
+	if (auto_temp)	checkTemperature();
 
-       // Check valve timing regularly during "longish" mixer spin down/up
+       // Check valve timing regularly during pause before mixer spin up
 
        if (auto_mixer && (cnt_mixer++ % 5000 == 0)) {
 	   mixer(0);
-	   for (t=0;t<5;t++) {
+	   for (t=0;t<40;t++) {
 	   	if (auto_valve) valve.checkValve();
-		delay(400);
-//		wdt_reset();  // the program is alive...for now. 
+		delay(50);
 	   }
 	   mixer(1);
 	}
+	else if (auto_valve) valve.checkValve();
 }

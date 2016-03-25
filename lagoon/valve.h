@@ -51,10 +51,8 @@ class VALVE
 
   void setup_valve(int v, int tm) {
     valve_open[v] = 0;
-    if (v == size-1)
-      valve_time[v] = tm;
-    else
-      valve_time[v] = tm/2;
+    if (v == size-1) valve_time[v] = tm;  /* last position - full time */
+    else             valve_time[v] = tm/2;/* intermediates - half time */
   }
 
   int getSize(void)           { return size;  }
@@ -112,12 +110,13 @@ boolean checkValve(void) {
   return true;
 }
 
-  byte *getTimes()              { return (byte *)&valve_time[0];       }
-  int getTime(int vchar)        { return valve_time[(int)(vchar-'0')]; }
-  int setTime(char vchar, int t){ valve_time[(int)(vchar-'0')] = t; }
+  byte *getTimes()          { return (byte *)&valve_time[0];       }
+  int getTime(int v)        { return valve_time[v]; }
+  int setTime(int v, int t){ valve_time[v] = t; }
 
-  byte *getAngles()              { return &valve_angle[0];   }
-  int setAngle(char vchar, int a){ valve_angle[(int)(vchar-'0')] = a; }
+  byte *getAngles()          { return &valve_angle[0];   }
+  int setAngle(int v, int a) { valve_angle[v] = a;       }
+  void setCycleTime(int t)   { cycletime = t * 1000L;    }
 
  private:
   int size;                         // Number of positions
