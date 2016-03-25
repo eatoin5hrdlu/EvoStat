@@ -302,7 +302,7 @@ initialise(W, Label:[name]) :->
 
 	  new(Msg1, message(W, update10)),  % Create Timer Object
 	  free(@ut),
-	  send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
+	  send(W, attribute, attribute(timer, new(@ut, timer(30.0, Msg1)))),
 
 	
 	  send(MB, append, new(File, popup(file))),
@@ -339,7 +339,7 @@ initialise(W, Label:[name]) :->
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
 
-	 send(@ut, start),
+         send(W,started),
          send_super(W, open, Location).
 
 drain(_W, What) :->  writeln(draining(What)).
