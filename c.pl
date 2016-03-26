@@ -21,6 +21,10 @@ cleanup :-
     fail.
 cleanup.
 
+% All messages to logfile (otherwise, message window) Linux only
+:- dynamic logfile/1.
+% logfile(logfile).
+
 logging :-
     ( logfile(File)
      -> tell(File),
@@ -111,10 +115,6 @@ tabs(1).
 :- dynamic debug/0.
 debug.                % Will be retracted by save_evostat (building binary)
 
-
-% All messages to logfile (otherwise, message window) Linux only
-:- dynamic logfile/1.
-% logfile(logfile).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -410,25 +410,6 @@ lagoon4(_W) :->
        "User selected Lagoon 4"::
        component(lagoon4,lagoon,L), writeln(calibrate(lagoon4)), send(L,calibrate).
 
-tb(W)   :-> newvalue(tb,W).
-tc(W)   :-> newvalue(tc,W).
-
-t1(W)   :-> newvalue(t1,W).
-t2(W)   :-> newvalue(t2,W).
-t3(W)   :-> newvalue(t3,W).
-t4(W)   :-> newvalue(t4,W).
-
-lux1(W) :-> newvalue(lux1,W).
-lux2(W) :-> newvalue(lux2,W).
-lux3(W) :-> newvalue(lux3,W).
-lux4(W) :-> newvalue(lux4,W).
-
-flow1(W) :-> newvalue(flow1,W).
-flow2(W) :-> newvalue(flow2,W).
-flow3(W) :-> newvalue(flow3,W).
-flow4(W) :-> newvalue(flow4,W).
-
-
 newvalue(Name,Parent) :-
         get(getValue('New Target Value'), prompt, String),
 	catch(atom_number(String,Value),error(type_error(_,_),_),fail),
@@ -512,34 +493,6 @@ lower :-
     retract(current_value(t2,_,_,T)),
     NewT is T - 2,
     assert(current_value(t2,l2,temperature,NewT)).
-
-
-:- pce_begin_class(getValue, dialog, "Change a Value").
-
-initialise(W, Label:[name]) :->
-        "Initialise the window and fill it"::
-        send_super(W, initialise(Label)),
-        send(W, append(text_item(name))),
-        send(W, append(button(ok))),
-        send(W, append(button(cancel))),
-        send(W, default_button(ok)).
-        
-ok(W) :->
-        "User pressed the OK button"::
-        get(W, member(name), NameItem),
-        get(NameItem, selection, Typed),
-        send(W, return, Typed).
-
-cancel(W) :->
-        "User pressed the Cancel button"::
-        send(W, return(@nil)).
-
-prompt(W, Value:name) :<-
-        "Open it, destroy it and return the result"::
-        get(W, confirm, Value),
-        free(W).
-
-:- pce_end_class.
 
 % Initializers are extra arguments to the constructor
 % Data is a list of messages to continue initializing the object
