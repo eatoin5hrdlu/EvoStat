@@ -79,6 +79,9 @@ class ipCamera(object):
             print "requires('", sys.argv[0] + "', or(config_file('<hostname>.settings'),config_file('<evostatname>.settings')),'Create one by modifying template.pl, renaming it to <hostname>.pl and running evostat')."
             exit(0)
 
+        (x1,y1,x2,y2) = self.params['cellstatRegion']
+        self.params['cellstatWidth'] = y2-y1
+        self.params['cellstatHeight'] = x2-x1
         self.camType = self.params['camera']
         self.defaultIP = self.params['defaultIP']
         self.usbcam = None
@@ -97,9 +100,9 @@ class ipCamera(object):
             self.url = "http://" + self.ip + self.params['picCmd'] + self.params['userpwd']
             debug = debug + "Using URL: " + self.url
             self.req = urllib2.Request(self.url)
-        self.evocv  = evocv.EvoCv(1,  # Detect green(1) blobs > Width/2 < Height
-                                  self.params['lagoonWidth']/3, 
-                                  self.params['lagoonHeight'])
+        self.evocv  = evocv.EvoCv(2,  # Detect red(2) blobs > Width/2 < Height
+                                  self.params['cellstatWidth']-4, 
+                                  self.params['cellstatHeight'])
 
     def nullImage(self, img, who) :
         if (img == None) :
@@ -272,9 +275,8 @@ class ipCamera(object):
         while (goodRead != 1) :
             goodRead = 0
             frame = self.cellstatImage() # Cropped image from center of cellstat
-#            greyimage = frame[:,:,0] + frame[:,:,1] + frame[:,:,2]
-            greyimage = frame[:,:,1] + frame[:,:,2]
-            greyimage = self.evocv.contrast(greyimage,iter=1,scale=1.5,offset=-10)
+            greyimage = cv2.add(frame[:,:,1], frame[:,:,2])
+            greyimage = self.evocv.contrast(greyimage,iter=1,scale=1.1,offset=-110)
             lvl = self.evocv.level(greyimage)
             if (lvl == None or lvl > 999) :
                 debug = debug + "level detection failed\n"

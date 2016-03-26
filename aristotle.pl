@@ -2,9 +2,7 @@ config( [
 	 numLagoons(1),
          imageSize(630,500),
 
-         cellstatRegion(20,250,300,320),
-	 cellstatHeight(280),  % divisor for cellstatScale
-	 cellstatWidth(70),
+         cellstatRegion(10,300,300,340),
 	 cellstatScale(1500),  % Maximum mL
 	 cellstatOffset(100),  % Minimum mL
 

@@ -38,7 +38,7 @@ logging :-
 camera_device(Device) :-
     config(List),
     memberchk(mac(Num),List),
-    concat_atom(['--device=/dev/video',Num],Device).
+    concat_atom(['/dev/video',Num],Device).
 
 % No camera reset on Windows (yet)
 camera_reset :- current_prolog_flag(windows,true), !.
@@ -461,7 +461,8 @@ update10(W) :->
     send(W?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
     send(W?graphicals, for_all,
-	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))).
+	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
+    writeln('update10 COMPLETED').
 
 %    get(W, graphicals, Chain),
 %    chain_list(Chain, CList),
@@ -582,7 +583,7 @@ main(_Argv) :-
         member(screen(WF,HF,Loc),List),
         get(@display?size,width,Width),
         get(@display?size,height,Height),
-	assert(screen(Width,Height,WF,HF,Loc)),
+        assert(screen(Width,Height,WF,HF,Loc)),
         camera_reset,
 	member(layout(Components),List),
 	Layout =.. [Root,Components],
