@@ -246,8 +246,9 @@ int tmp;
 			}
 			break;
 		case 'm':
-			if (d == 9) printTermInt("mixer", mixerspeed);
-			else  	    mixer(d);
+		        if      (c2 == 's') mixerspeed = value;
+			else if (d == 9)    printTermInt("mixer", mixerspeed);
+			else  	            mixer(d);
 			break;
 		case 'n':
 		        valve.enable(1);
