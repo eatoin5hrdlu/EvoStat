@@ -26,6 +26,7 @@ int gtscale;
 int gtoffset;  // Offset and scale for Turbidity calculation
 
 int interval;   // Variable to keep track of the time
+int mixerspeed;
 
 int reading[10];
 
@@ -118,7 +119,9 @@ int *times = valves.getTimes();
 	Serial.println("cmd(e,[0,1],'enable inputs vs. flow calibration').");
 	Serial.println("cmd(h,[0,1],'heater off/on auto_temp off').");
 	Serial.println("cmd(l,[0,1],'light off/on').");
-	Serial.println("cmd(m,[0,1],'mixer off/on').");
+	Serial.println("cmd(m,'get mixer speed').");
+	Serial.print("cmd(ms,[");Serial.print(mixerspeed);Serial.println("],'set mixer speed').");
+	Serial.println("cmd(m,[0,1],'turn mixer off/on').");
 	Serial.println("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)').");
 	Serial.println("cmd(p,[h],'printHelp -this list of commands').");
 	Serial.println("cmd(p,[0,1,2,3,4],'foce valve open').");
@@ -230,6 +233,7 @@ void saveRestore(int op)
 	moveData(op, sizeof(int), (byte *) &gtscale);
 	moveData(op, sizeof(int), (byte *) &gtoffset);
 	moveData(op, sizeof(int), (byte *) &gcycletime);
+	moveData(op, sizeof(int), (byte *) &mixerspeed);
 }
 
 int turbread[10];
@@ -305,7 +309,7 @@ void mixer(byte v)
 		analogWrite(MIXER,0);
 	else 
 	    for(int i=3; i<11; i++) {
-		analogWrite(MIXER, i*MIXERSPEED/10);
+		analogWrite(MIXER, i*mixerspeed/10);
 		if (auto_valve) valves.checkValves();
 		delay(600);
  	    }
@@ -319,7 +323,7 @@ byte d;
 	{
 		case '1': d = 1; break;
 		case '0': d = 0; break;
-		default : break;
+		default : d = 9; break;
 	}
 	switch(c1)
 	{
@@ -368,10 +372,12 @@ byte d;
 			digitalWrite(JARLIGHT, d);
 			break;
 		case 'm':
-		        sprintf(reply,"mixer(%d).",d);
-			soutln(reply);
-			mixer(d);
-			break;
+		     if (c2 == 's') mixerspeed = value;
+		     else if (d == 9) {
+		     	  sprintf(reply,"mixer(%d).",mixerspeed);
+			  soutln(reply);
+		     } else mixer(d);
+		     break;
 		case 'n':
 			forceTurbidity(value);
 			break;
@@ -546,6 +552,7 @@ int i;
 		target_turbidity = 400;
 		gtscale = 9100;
 		gtoffset = 0.0;
+		mixerspeed = MIXERSPEED;
 		saveRestore(SAVE);
 	}
 	else
