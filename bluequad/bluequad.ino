@@ -4,6 +4,9 @@
 #define SAVE    0
 #define RESTORE 1
 
+#include "MLX90614.h"
+MLX90614 mlx;
+
 void saveRestore(int inout) { return; }
 
 int valveTime[5] = { 3000, 4000, 5000, 6000, 7000 };
@@ -60,6 +63,8 @@ void setup()
 	Serial2.begin(9600);
 	Serial3.begin(9600);
 	pinMode(13,OUTPUT);
+	mlx = MLX90614();
+	mlx.begin();   // Initialize Mexexis Thermometer
 }
 
 void flash(int n)
@@ -101,6 +106,14 @@ void print_string(char *str) {
 	}
 }
 void print_int(int i) {
+	switch(who) {
+	 case 0  : Serial.print(i); break;
+	 case 1  : Serial1.print(i); break;
+	 case 2  : Serial2.print(i); break;
+	 case 3  : Serial3.print(i); break;
+	}
+}
+void print_float(float i) {
 	switch(who) {
 	 case 0  : Serial.print(i); break;
 	 case 1  : Serial1.print(i); break;
@@ -172,6 +185,13 @@ void printTermChar(char *functor, char arg)
   print_int(arg); println_string(").");
 }
 
+void printTermFloat(char *functor, float arg)
+{ print_string(functor); print_string("(");
+  print_float(arg);
+  println_string(").");
+}
+
+
 void process(char c, char c2, int value)
 {
 unsigned long time_left;
@@ -227,7 +247,9 @@ int i;
 			saveRestore(SAVE);
 			break;
 		case 't' :
-		       printTermInt("temperature",367);
+		       printTermFloat("temperature",
+                          (float) mlx.readObjectTempC());
+			break;
 		default :
 			printTermChar("ignored",c);
 	}
@@ -239,3 +261,6 @@ void loop()
 	delay(300);
 	respondToRequest();
 }
+
+
+	
