@@ -126,17 +126,16 @@ image(Self, File:[name])      :->
 imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
 
 update(Self) :->
+	writeln(snapshot(update)),
 	get(Self, imageDirectory, Path),
 	get(Self, imageFile, OldFile),
 	snapshot(Path, NewFile),
 	( NewFile = OldFile -> true
 	; new(I, image(NewFile)),
 	  send(Self, slot, imageFile, NewFile),
-	  send(Self,selection, I),
-	  writeln('free the image?'),
-	  free(I),
-	  writeln('freed the image')
-	).
+	  send(Self,selection, I)
+	),
+	writeln(snapshot(done)).
 
 :- pce_end_class.
 
@@ -173,10 +172,12 @@ initialise(Self, Label:[name]) :->
 	send(Self, recogniser, click_gesture(right,'',single,Code2)).
 
 update(Self) :->
+        writeln(update(ebutton)),
 	( get(Self, slot, socket, @nil)
 	-> send(Self,colour,colour(red))
 	;  send(Self,colour,colour(darkgreen))
-	).
+	),
+        writeln(update(ebutton)).
 	
 show_conversation(Self) :->
         Self = @Name,
@@ -269,11 +270,14 @@ mac(Self, MAC:[name]) :->
 :- pce_begin_class(cellstat, ebutton).
 
 update(Self) :->
+        writeln(cellstat(update)),
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
-	writeln(cellstatreply(Reply)),
-	parse_reply(Reply, temperature(Temp), temperature(11.3)),
+	(Reply='no_connection.' -> Label='Cellstat\nNo Bluetooth\nConnection'
+	;
+	parse_reply(Reply, temperature(Temp10), temperature(11.3)),
+	Temp is Temp10/10.0,
         send(Self,slot,temperature,Temp),
         get(Self,slot,temperature_t,Target),
 	range_color(Target, Temp, Tc),
@@ -287,8 +291,10 @@ update(Self) :->
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
         concat_atom(['\nCellStat\nTemperature: ', Target, ' / ',Temp,'\n',
- 		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label),
-	send(Self, label, Label).
+ 		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
+	),
+	send(Self, label, Label),
+        writeln(cellstat(done)).
 
 :- pce_end_class.  % cellstat
 
@@ -318,10 +324,12 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, fluorescence, 0.0).
 
 update(Self) :->
+        writeln(lagoon(update)),
         send_super(Self, update),
-
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
+	(Reply = 'no_connection.' -> Label = 'No Bluetooth\nConnection'
+	;
 	parse_reply(Reply,temperature(TempInt),temperature(111)),
 	Temp is float(TempInt)/10.0,
         send(Self,slot,temperature,Temp),
@@ -338,10 +346,14 @@ update(Self) :->
 	send(Self,State),
         concat_atom(['Level ', Level2, 'mL\n',
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
-                     'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label),
-	send(Self, label, Label).
+                     'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
+	),
+	send(Self, label, Label),
+	send_super(Self, converse, 'm1'),
+        writeln(lagoon(done)).
 
 quiet(Self) :->  send_super(Self,converse,'m0').
+mixon(Self) :->  send_super(Self,converse,'m1').
 
 % Calibration begins after someone sends the 'calibrate' message
 % Lagoons can distiguish between input valves and output valves.
@@ -435,6 +447,7 @@ initialise(Self, Label:[name]) :->
         send_super(Self, initialise(Label)).
 
 update(Self) :->
+	writeln(sampler(update)),  
 	send_super(Self, update),
 	( get_super(Self, socket, @nil) -> true
 	; send_super(Self,converse,'t'),
@@ -446,7 +459,8 @@ update(Self) :->
 	  timeatom(Hours,Minutes,Seconds,TimeAtom),
 	  concat_atom(['\nAutoSampler\n',TimeAtom,' to next sample\n'],Label),
 	  send(Self, label, Label)
-	).
+	),
+	writeln(sampler(done)).  
 	
 	
 

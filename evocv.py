@@ -147,8 +147,10 @@ class EvoCv(object):
            TODO: Automate variation of these parameters to get a good reading"""
 	emp = self.emphasis(img)
 #        con = self.contrast(emp,iter=1)
-        con = self.contrast(emp,iter=1,scale=1.4, offset=-50)
-	gray = self.erodeDilate(con, 1, 1, 1)
+        con = self.contrast(emp,iter=1,scale=1.2, offset=-50)
+#        con = self.contrast(emp,iter=1,scale=1.2, offset=-100)
+#                              Iterations, Erosios, Dilations
+	gray = self.erodeDilate(con, 1, 1, 2)
 	gray2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
         contours, _ = cv2.findContours(gray2, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 	if (pause != 0) :

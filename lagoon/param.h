@@ -16,5 +16,5 @@
 
 #define MIXERSPEED 80         // PWM value for top mixer speed
 
-#define DEFAULT_CYCLETIME 30  // Can be changed/stored in EEPROM
+#define DEFAULT_CYCLETIME 30L // Can be changed/stored in EEPROM
 
