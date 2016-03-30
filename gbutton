@@ -7,14 +7,15 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
+
 :- use_module(library(time)).
 :- use_module(library(process)).
 
 :- dynamic tog/1.
 
 timeatom(Hours,M,S,TimeAtom) :-
- 	(M > 9 -> M = Minutes ; concat_atom(['0',M,':'],Minutes)),
- 	(S > 9 -> S = Seconds ; concat_atom(['0',S,':'],Seconds)),
+ 	(M > 9 -> M = Minutes ; concat_atom(['0',M],Minutes)),
+ 	(S > 9 -> S = Seconds ; concat_atom(['0',S],Seconds)),
 	concat_atom([Hours,':',Minutes,':',Seconds],TimeAtom).
 	
 window_percent(WFraction,HFraction,W,H) :-
@@ -22,11 +23,18 @@ window_percent(WFraction,HFraction,W,H) :-
 	W is integer(DW*WW*WFraction/10000),
 	H is integer(DH*WH*HFraction/11000).
 
+compatible(T1,T2) :-
+	nonvar(T1),nonvar(T2),
+        functor(T1,Name,Arity),functor(T2,Name,Arity).
+
 parse_reply(Reply, Term, Default) :-
-	catch( atom_to_term(Reply,Term,_TMBindings),
+	catch( atom_to_term(Reply,TmpTerm,_TMBindings),
 	       Exception,
-	       ( writeln(caught(Exception,atom_to_term(Reply))), Term = exception(Exception))),
-	(var(Term) -> Term = Default ; true).
+	       ( writeln(caught(Exception,atom_to_term(Reply))), TmpTerm = exception(Exception))),
+	( compatible(TmpTerm,Default)
+	 -> Term = TmpTerm
+	;   Term = Default
+	).
 
 getIPfromMAC(_,_) :- fail.
 
@@ -71,24 +79,24 @@ repeat1(N) :- M is N-1, repeat1(M).
 
 %bt_device(labcellstat,  '98:D3:31:90:29:0E').
 
-bt_device(cellstat,     '98:D3:31:90:29:0E').
-bt_device(  lagoond3,   '98:D3:31:80:34:39'). % was d3
-bt_device(autosampler,  '98:D3:31:40:1D:D4').
+%bt_device(cellstat,     '98:D3:31:90:29:0E').
+%bt_device(  lagoond3,   '98:D3:31:80:34:39'). % was d3
+%bt_device(autosampler,  '98:D3:31:40:1D:D4').
 
-bt_device(autosamplerY, '98:D3:31:20:23:4F').
-bt_device(autosamplerZ, '98:D3:31:70:2B:70').
+%bt_device(autosamplerY, '98:D3:31:20:23:4F').
+%bt_device(autosamplerZ, '98:D3:31:70:2B:70').
 
-% Splatspace simulator
-%bt_device( cellstat,     '98:D3:31:90:2B:82').
-%bt_device(  lagoon1,     '98:D3:31:70:2A:22').
-%bt_device(  lagoon2,     '98:D3:31:40:31:BA').
-%bt_device(  lagoon3,     '98:D3:31:20:2B:EB').
+% BETA BOX simulator 
+bt_device( cellstat,     '98:D3:31:90:2B:82').
+bt_device(  lagoon1,     '98:D3:31:70:2A:22').
+bt_device(  lagoon2,     '98:D3:31:40:31:BA').
+bt_device(  autosampler, '98:D3:31:20:2B:EB').
 
 % Museum simulator
 %bt_device( cellstatd,     '98:D3:31:40:90:13').
 %bt_device(  lagoond1,     '98:D3:32:30:42:6A').
 %bt_device(  lagoond2,     '98:D3:31:30:95:60').
-%bt_device(  lagoond3,     '98:D3:31:80:34:39').
+%swbt_device(  lagoond3,     '98:D3:31:80:34:39').
 %bt_device(autosampler,    '98:D3:31:30:95:4B').
 
 :- writeln(ingbutton),
@@ -452,7 +460,9 @@ update(Self) :->
 	( get_super(Self, socket, @nil) -> true
 	; send_super(Self,converse,'t'),
 	  get_super(Self, reply, Reply),
-	  parse_reply(Reply, remaining(Time), remaining(99)),
+	  DefaultTime is 99*60, % 99 Minutes
+	  parse_reply(Reply, Remaining, remaining(DefaultTime)),
+	  Remaining = remaining(Time),
 	  Hours is floor(Time/3600),
 	  Minutes is floor(mod(Time,3600)/60),
 	  Seconds is Time mod 60,

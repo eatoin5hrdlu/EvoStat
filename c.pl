@@ -21,6 +21,20 @@ cleanup :-
     fail.
 cleanup.
 
+stop_updates :-
+       send(@ut, stop),
+       send(@action?members, for_all,
+	    if(@arg1?value==stop,message(@arg1, active, @off))),
+       send(@action?members, for_all,
+	    if(@arg1?value==start,message(@arg1, active, @on))).
+
+start_updates :-
+       send(@ut, start),
+       send(@action?members, for_all,
+	    if(@arg1?value==start,message(@arg1, active, @off))),
+       send(@action?members, for_all,
+	    if(@arg1?value==stop, message(@arg1, active, @on))).
+
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
 % logfile(logfile).
@@ -65,9 +79,10 @@ camera_reset :-
 
 windows :- current_prolog_flag(windows,true).
 
-evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat') :- gethostname(ncmls8066),!.
-evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat')  :- windows, !.
-evostat_directory('/home/peter/src/EvoStat').
+evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :-
+  gethostname('ncmls8066.ncmls.org'),!.
+evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat\\')  :- windows, !.
+evostat_directory('/home/peter/src/EvoStat/').
 	
 python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
 python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
@@ -256,7 +271,9 @@ send_info(_,_).
 get_new_levels :-
     lagoons(quiet),
     python(Python),
-    CmdLine = ['/home/peter/src/EvoStat/ipcam.py'],
+    evostat_directory(Dir),
+    concat_atom([Dir,'ipcam.py'],IPCAM),
+    CmdLine = [IPCAM],
     ( retract(levelStream(Previous)) ->
 	catch( read(Previous, Info),
 	       Ex,
@@ -302,7 +319,7 @@ initialise(W, Label:[name]) :->
 
 	  new(Msg1, message(W, update10)),  % Create Timer Object
 	  free(@ut),
-	  send(W, attribute, attribute(timer, new(@ut, timer(30.0, Msg1)))),
+	  send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
 
 	
 	  send(MB, append, new(File, popup(file))),
@@ -456,13 +473,15 @@ range_color(Target, Current, Color) :-
 % MUCH SIMPLER
 
 update10(W) :->
+    stop_updates,
     get_new_levels,
     writeln('update10 after get_new_levels'),
     send(W?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
     send(W?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-    writeln('update10 COMPLETED').
+    writeln('update10 COMPLETED'),
+    start_updates.
 
 %    get(W, graphicals, Chain),
 %    chain_list(Chain, CList),
