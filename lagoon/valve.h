@@ -68,11 +68,11 @@ class VALVE
      char *cp = reply;
      sprintf(cp,"valvetimes([");
      cp += 12;
-     for(int i=0; i<size; i++) {
+     for(int i=1; i<size; i++) {
 	 sprintf(cp, "%5d,",valve_time[i]);
 	 cp += 6;
      }
-     sprintf(cp-1,"]).");
+     sprintf(cp-1,"])."); /* Overwrites the last comma */
    }
 
    void next_valve(void)
@@ -113,8 +113,11 @@ boolean checkValve(void) {
   }
   return true;
 }
+/* getTimesbp() returns the start of the whole array for EEPROM storage */
+  byte *getTimesbp()        { return (byte *)&valve_time[0]; }
+/* getTimes() returns pointer to the first valve position time */
+  int  *getTimes()          { return         &valve_time[1]; }
 
-  byte *getTimes()          { return (byte *)&valve_time[0];       }
   int getTime(int v)        { return valve_time[v]; }
   int setTime(int v, int t){ valve_time[v] = t; }
 

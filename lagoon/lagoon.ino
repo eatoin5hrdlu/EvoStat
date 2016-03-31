@@ -61,8 +61,8 @@ int reading[10];
 
 void checkTemperature()
 {
-float t = temp.celcius();
-	if (t < target_temperature)        analogWrite(HEATER,100);
+float t = temp.celcius()/10.0;
+	if (t < target_temperature)        digitalWrite(HEATER,1);
 	if (t > target_temperature + 0.5)  digitalWrite(HEATER,0);
 }
 
@@ -84,7 +84,7 @@ char *saveRestore(int op)
 	moveData(op, 1, &id);
 	moveData(op, sizeof(float),      (byte *) &target_temperature);
 	moveData(op, sizeof(int),        (byte *) &mixerspeed);
-	moveData(op, (NUM_VALVES+1)*sizeof(int), valve.getTimes());
+	moveData(op, (NUM_VALVES+1)*sizeof(int), valve.getTimesbp());
 	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getAngles());
 	moveData(op, sizeof(int),   (byte *)&valveCycleTime);
 	if (op == SAVE) return("save.");
@@ -120,6 +120,7 @@ void printHelp(void)
 {
 int i;
 byte *bp = valve.getAngles();
+int  *ip = valve.getTimes();
 
 	Serial.println("cmd(a,[0,1],'set auto modes off/on').");
 	Serial.println("cmd(cl,'clear backlog (no output)').");
@@ -127,7 +128,7 @@ byte *bp = valve.getAngles();
 	Serial.println("],'Valve cycle time').");
 	Serial.print("cmd(d,[0,1,2,3,4],[");
 	 for(i=0;i<5;i++) { Serial.print(*bp++); if (i != 4) Serial.print(","); }
-        Serial.println("],'set angle:(0-180) for Nth valve position').");
+        Serial.println("],'servo angle:(0-180) for Nth valve position').");
 	Serial.println("cmd(e,[0,1],'enable inputs vs. flow calibration').");
 	Serial.println("cmd(h,'Print this help message').");
 	Serial.println("cmd(h,[0,1],'force heater off/on auto_temp off').");
@@ -137,10 +138,24 @@ byte *bp = valve.getAngles();
 	Serial.println("cmd(p,[1],[0,1,2,3,4],'set valve to position N, auto_valve off').");
 	Serial.println("cmd(r,'Restore settings from EEPROM').");
 	Serial.println("cmd(s,'Save settings in EEPROM').");
+
 	Serial.print("cmd(t,[");
-	Serial.print((int) (target_temperature*10.0));
-	Serial.println("],'Set target temperature in tenth degrees C').");
-	Serial.println("cmd(t,'Get temperature').");
+	  Serial.print((int) temp.celcius());
+	  Serial.println("],'Get temperature in tenth degrees C').");
+
+	Serial.print("cmd(ts,[");
+	  Serial.print((int) (target_temperature*10.0));
+	  Serial.println("],'Set target temperature in tenth degrees C').");
+
+	Serial.print("cmd(tt,[");
+	  Serial.print((int) (target_temperature*10.0));
+	  Serial.println("],'Get target temperature').");
+
+	Serial.print("cmd(v,[1,2,3,4],[");
+	 for(i=1;i<5;i++) {
+		Serial.print(*ip++); if (i != 4) Serial.print(",");
+	}
+        Serial.println("],'open time (ms) for Nth valve position').");
 	Serial.println("cmd(z,'Zero EEPROM').");
 }
 
@@ -164,6 +179,7 @@ void printTermInt(char *f,int a)
 void printTermFloat(char *f,double a)
 { Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
 	
+#define valveRange(c)  ((c) > '0' && (c) < '5')
 boolean lagoon_command(char c1, char c2, int value)
 {
 char reply[80];
@@ -199,8 +215,11 @@ int tmp;
 	   	case 'c':
 		     if ( c2 == 'l' ) return true; // Clearing backlog
 		     else if ( c2 == 'y' ) {
+			if (value != 0) {
 		     	  valveCycleTime = value;
 		     	  valve.setCycleTime(value);
+			} else
+			     printTermInt("cycleTime", valveCycleTime);
 		     }
 		     break;
 		     
@@ -257,8 +276,10 @@ int tmp;
 			auto_mixer = true;  // Start mixer
 			break;
 		case 'p':
-		        auto_valve = false;
-			valve.position(c2-'0');
+			if (valveRange(c2)) {
+				auto_valve = false;
+				valve.position(c2-'0');
+			}
 			break;
 		case 'r':  
 			switch(c2) {
@@ -282,14 +303,14 @@ int tmp;
 				    Serial.print("target_");
 			     }
 			     else
-				tmp = (int) (temp.celcius()*10.0);
+				tmp = (int)temp.celcius();
 			     Serial.print("temperature(");
 			     Serial.print(tmp);
 			     Serial.println(").");
 			}
 			break;
 		case 'v':
-		     if (c2 >= '0' && c2 < '5')
+		     if (valveRange(c2))
 			valve.setup_valve(c2-'0', value);
 	             else
 		     	valve.report(reply);
@@ -395,7 +416,7 @@ void loop()
 int t;
 	respondToRequest();     // Check for command
 	if (auto_valve) valve.checkValve();
-	delay(50);
+	delay(500);
 	if (auto_temp)	checkTemperature();
 
        // Check valve timing regularly during pause before mixer spin up

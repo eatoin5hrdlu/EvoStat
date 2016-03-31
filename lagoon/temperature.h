@@ -7,17 +7,16 @@
 //#include "MLX.h"
 
 #ifndef INTERNAL  // Mega2650 has two references 1.1 and 2.56 (no default 'INTERNAL')
-#define INTERNAL INTERNAL2V56
+#define INTERNAL INTERNAL1V1
 #endif
 // Conversions between Analog In(A), Celcius (C), Farenheit (F)
 
-#define FULL_SCALE_FLOAT 1024.0  // Analog In 0-1023
 #define F_OFFSET 32.0
 #define F_SCALE_MULT 9.0
 #define F_SCALE_DIV 5.0
 #define C_TO_F(c) (F_OFFSET+(F_SCALE_MULT*c)/F_SCALE_DIV)
 #define F_TO_C(f) (F_SCALE_DIV*((f-F_OFFSET)/F_SCALE_MULT))
-#define A_TO_C(a) ((a*scale + offset)/FULL_SCALE_FLOAT)
+#define A_TO_C(a) ((float) (a*multiply/divide))
 #define A_TO_F(a) C_TO_F(A_TO_C(a))
 
 // Constructors:
@@ -26,22 +25,18 @@
 // Methods:
 // float c  = celcius()
 // float f  = farenheit()
-// float getScale()
-// float getOffset()
-// void setScale(float scale)
-// void setOffset(float offset)
 //
 
 class TEMPERATURE
 {
  public:
-#define FLOAT_SAMPLES 10.0
+#define SAMPLES 10
 
   TEMPERATURE(int pin) {
     aIn = pin;
-    analogReference(INTERNAL);
-    scale = 143.0;
-    offset = 0.0;
+    analogReference(INTERNAL);  /* 1.1 V == 1023 */
+    multiply = 1100;
+    divide = 1023;
     sCL = -1;
     sDA = -1;  
   }
@@ -51,26 +46,21 @@ class TEMPERATURE
   float farenheit(void)     { return C_TO_F(celcius()); }
   float celcius(void)
   {
-    sum = 0.0;
-    for(int i=0; i < (int)FLOAT_SAMPLES; i++) {
-	  sum += (float) analogRead(ANALOG_TEMPERATURE);
+    sum = 0;
+    for(int i=0; i < SAMPLES; i++) {
+	  sum += analogRead(ANALOG_TEMPERATURE);
 	  delay(2);
 	}
-	return A_TO_C(sum/FLOAT_SAMPLES);
+	return A_TO_C(sum/SAMPLES);
   }
-
-  float getScale(void)      { return scale;  }
-  float getOffset(void)     { return offset; }
-  void setScale(float sca)  { scale = sca;   }
-  void setOffset(float off) { offset = off;  }
 
   private:
    int aIn;            // Analog Input pin
    int sCL;            // Melexis clock
    int sDA;            // Melexis data
-   float scale;
-   float offset;
-   float sum;          // average accumulator
+   unsigned long int multiply;
+   unsigned long int divide;
+   unsigned long int sum;          // average accumulator
   };
 #endif
 
