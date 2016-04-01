@@ -2,7 +2,7 @@ config( [
 	 numLagoons(1),
          imageSize(630,500),
 
-         cellstatRegion(10,300,300,340),
+         cellstatRegion(10,240,300,290),
 	 cellstatScale(1500),  % Maximum mL
 	 cellstatOffset(100),  % Minimum mL
 
@@ -19,7 +19,9 @@ config( [
 	 defaultIP('172.16.3.136'),  % belongs in snapshot
 	 userpwd('&user=scrapsec&pwd=lakewould'),
 	 brightness(11), % 0-240 for indoor camera
-	 brightnessCmd('/camera_control.cgi?param=1&value='),
+         brightnessCmd('/camera_control.cgi?param=1&value='),
+         cellstatContrast(3,1.7,-62),	    
+         lagoonContrast(3,2,-80),
 	 contrast(40),
 	 contrastCmd('/camera_control.cgi?param=2&value='),
 	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),
@@ -42,3 +44,6 @@ config( [
  SF = font(font(times,roman,20)).
 
 
+bt_device(cellstat,     '98:D3:31:90:29:0E').
+bt_device(  lagoond3,   '98:D3:31:80:34:39'). % was d3
+bt_device(autosampler,  '98:D3:31:40:1D:D4').
