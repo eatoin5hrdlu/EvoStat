@@ -8,6 +8,9 @@
 %:- pce_autoload(finder, library(find_file)).
 %:- pce_global(@finder, new(finder)).
 :- dynamic component/3.
+
+:- dynamic bt_device/2.
+:- multifile bt_device/2.
     
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
@@ -37,7 +40,7 @@ start_updates :-
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-% logfile(logfile).
+logfile(logfile).
 
 logging :-
     ( logfile(File)
@@ -91,8 +94,17 @@ python('/usr/bin/python').
 :- [gbutton].
 :- [dialin].
 
-:- dynamic target_value/2, current_value/4, current_value/2, screen/5.
-:- dynamic component/2, levelStream/1, air/0, mix/0, toggle_auto/0.
+:- dynamic target_value/2,
+           current_value/4,
+	   current_value/2,
+	   screen/5.
+
+:- dynamic component/2,
+           cellstatLevelStream/1,
+	   levelStream/1,
+	   air/0,
+	   mix/0,
+	   toggle_auto/0.
 
 %
 % System Configuration
@@ -263,13 +275,39 @@ lagoons(Cmd) :-
 lagoons(_).
 
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
+send_info(cellstatlevel(Level),_) :-
+    component(_,cellstat,Cellstat),
+    send(Cellstat, setLevel, Level).
+
 send_info(levels(Level),_) :-
     lagoon_number(Object, 3),
     send(Object, setLevel, Level).
 send_info(_,_).
 
-get_new_levels :-
-    lagoons(quiet),
+get_cellstat_level :-
+    python(Python),
+    evostat_directory(Dir),
+    concat_atom([Dir,'cscam.py'],CSCAM),
+    CmdLine = [CSCAM],
+    ( retract(cellstatLevelStream(Previous)) ->
+	catch( read(Previous, Info),
+	       Ex,
+	       (writeln(caught(Ex,CmdLine)),sleep(3),fail)),
+        check_error(Info),
+	send_info(Info, Previous),
+	close(Previous)
+     ; true
+    ),
+    evostat_directory(Dir),
+%   writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
+    process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)]),
+    assert(cellstatLevelStream(Out)),
+    !.
+
+get_cellstat_level :- 
+    writeln(failed(cellstatLevelUpdate)).
+
+get_lagoon_levels :-
     python(Python),
     evostat_directory(Dir),
     concat_atom([Dir,'ipcam.py'],IPCAM),
@@ -284,13 +322,13 @@ get_new_levels :-
      ; true
     ),
     evostat_directory(Dir),
-    writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
+%   writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
     process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)]),
     assert(levelStream(Out)),
     !.
 
-get_new_levels :- 
-    writeln(failed(levelupdate)).
+get_lagoon_levels :- 
+    writeln(failed(lagoonLevelUpdate)).
 
 
 newFlux(end_of_file,_) :- !.
@@ -317,9 +355,9 @@ initialise(W, Label:[name]) :->
 	  send(MB, label_font(huge)),
 	  writeln(menu_bar(MB)),
 
-	  new(Msg1, message(W, update10)),  % Create Timer Object
+	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
 	  free(@ut),
-	  send(W, attribute, attribute(timer, new(@ut, timer(20.0, Msg1)))),
+	  send(W, attribute, attribute(timer, new(@ut, timer(60.0, Msg1)))),
 
 	
 	  send(MB, append, new(File, popup(file))),
@@ -376,17 +414,14 @@ started(_W) :->
 	    if(@arg1?value==stop, message(@arg1, active, @on))).
 
 
-cellstat(_W) :-> "User pressed the CellStat button"::
-%        ( air ->
-%	     retract(air), Cmd = 'o-'
-%	 ;   assert(air), Cmd = 'o2'
-%	),
-        ( mix ->
-	     retract(mix), Cmd = 'm0'
-	 ;   assert(mix), Cmd = 'm1'
-	),
+cellstat(Self) :-> "User pressed the CellStat button"::
+	send(Self,stopped),
+        send(Self?graphicals, for_all,  % Lagoon mixers OFF
+	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
         component(_,cellstat,CellStat),
-        send(CellStat,converse,Cmd).
+        send(CellStat,converse,'m0'),  % Cellstat mixer OFF
+        send(CellStat,converse,'o-'),  % Cellstat air   OFF
+        send(Self,manualUpdate).
 
 l1(_W) :-> "User pressed the L1 button"::
   current_prolog_flag(argv,[_,X|_]),
@@ -469,33 +504,33 @@ range_color(Target, Current, Color) :-
      ;                  Color = darkgreen
     ).
 
-
-% MUCH SIMPLER
-
-update10(W) :->
+% Updating can take a long time, so we must stop auto-update
+% and restart it after we are finish the update.
+autoUpdate(Self) :->  
     stop_updates,
-    get_new_levels,
-    writeln('update10 after get_new_levels'),
-    send(W?graphicals, for_all,
-	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
-    send(W?graphicals, for_all,
-	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-    writeln('update10 COMPLETED'),
+    send(Self,manualUpdate),
     start_updates.
 
-%    get(W, graphicals, Chain),
-%    chain_list(Chain, CList),
-%    writeln('update [ '),
-%    member(Object, CList),
-%    component(_,_,Object),            % If one has been created
-%    ( send(Object, update) -> write(Object) ; write(failed(Object)) ),
-%    write(' '),
-%    flush_output,
-%    fail.
+manualUpdate(Self) :->
+    send(Self?graphicals, for_all,  % Lagoon mixers OFF
+	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
+    component(_,cellstat,CellStat),
+    send(CellStat,converse,'m0'),  % Cellstat mixer OFF
+    send(CellStat,converse,'o-'),  % Cellstat air   OFF
+    get_lagoon_levels,
+    writeln('Update (after lagoon levels) Auto-update OFF'),
+    sleep(10),
+    get_cellstat_level,
+    send(Self?graphicals, for_all,
+	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
+    send(Self?graphicals, for_all,
+	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
+    writeln('Update COMPLETED: Turning on Air and Mixers'),
+    send(Self?graphicals, for_all,  % Lagoon mixers OFF
+	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
+    send(CellStat,converse,'m1'),  % Cellstat mixer ON
+    send(CellStat,converse,'o2').  % Cellstat air   ON
 
-%update10(_W) :-> writeln(' ]').
-%    writeln(finishedupdate10(W)).
-    
 :- pce_end_class.
 
 righton :-

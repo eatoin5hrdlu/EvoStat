@@ -87,10 +87,10 @@ repeat1(N) :- M is N-1, repeat1(M).
 %bt_device(autosamplerZ, '98:D3:31:70:2B:70').
 
 % BETA BOX simulator 
-bt_device( cellstat,     '98:D3:31:90:2B:82').
-bt_device(  lagoon1,     '98:D3:31:70:2A:22').
-bt_device(  lagoon2,     '98:D3:31:40:31:BA').
-bt_device(  autosampler, '98:D3:31:20:2B:EB').
+%bt_device( cellstat,     '98:D3:31:90:2B:82').
+%bt_device(  lagoon1,     '98:D3:31:70:2A:22').
+%bt_device(  lagoon2,     '98:D3:31:40:31:BA').
+%bt_device(  autosampler, '98:D3:31:20:2B:EB').
 
 % Museum simulator
 %bt_device( cellstatd,     '98:D3:31:40:90:13').
@@ -125,7 +125,7 @@ initialise(Self, Label:[name]) :->
 
 shape(Self, W:[int], H:[int]) :->
 	window_percent(W,H,MyWidth,MyHeight),
-	writeln(size(Self,MyWidth,MyHeight)),
+%	writeln(size(Self,MyWidth,MyHeight)),
 	send(Self, size, size(MyWidth,MyHeight)).
 
 image(Self, File:[name])      :->
@@ -134,7 +134,6 @@ image(Self, File:[name])      :->
 imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
 
 update(Self) :->
-	writeln(snapshot(update)),
 	get(Self, imageDirectory, Path),
 	get(Self, imageFile, OldFile),
 	snapshot(Path, NewFile),
@@ -142,8 +141,7 @@ update(Self) :->
 	; new(I, image(NewFile)),
 	  send(Self, slot, imageFile, NewFile),
 	  send(Self,selection, I)
-	),
-	writeln(snapshot(done)).
+	).
 
 :- pce_end_class.
 
@@ -180,12 +178,10 @@ initialise(Self, Label:[name]) :->
 	send(Self, recogniser, click_gesture(right,'',single,Code2)).
 
 update(Self) :->
-        writeln(update(ebutton)),
 	( get(Self, slot, socket, @nil)
 	-> send(Self,colour,colour(red))
 	;  send(Self,colour,colour(darkgreen))
-	),
-        writeln(update(ebutton)).
+	).
 	
 show_conversation(Self) :->
         Self = @Name,
@@ -206,7 +202,7 @@ compute(_) :-> true.
 % Shape is defined as a percentage of the screen
 shape(Self, W:[int], H:[int]) :->
 	window_percent(W,H,MyWidth,MyHeight),
-	writeln(shape(Self,MyWidth,MyHeight)),
+%	writeln(shape(Self,MyWidth,MyHeight)),
 	send(Self, size, size(MyWidth,MyHeight)).
 
 od(Self, OD600:[real]) :->
@@ -236,18 +232,16 @@ connect(Self) :->
 	; bt_close(OldSocket),
 	  send(Self, slot, socket, @nil)
 	),
-	writeln(calling(bt_socket)),
 	( bt_socket(Addr, BTSocket) ->
-	  writeln(returned(bt_socket(BTSocket))),
+	  write(socket(BTSocket)),write(' '),
 	  ( BTSocket > -1 ->
 	    send(Self, slot, socket, BTSocket),
 	    send(Self,colour,colour(darkgreen))
 	    ; send(Self,colour,colour(red))
 	  )
-	  ; writeln(failed(bt_socket)),
+	  ; write(failed(bt_socket)),
 	    send(Self,colour,colour(red))
-	),
-	writeln(leaving(connect)).
+	).
 
 insertIP(Cmd, IP, Result) :-
         atom_codes(Cmd, Cs),
@@ -277,8 +271,9 @@ mac(Self, MAC:[name]) :->
 
 :- pce_begin_class(cellstat, ebutton).
 
+variable(level, int, get, "Percent Full").
+
 update(Self) :->
-        writeln(cellstat(update)),
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
@@ -302,7 +297,11 @@ update(Self) :->
  		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
 	),
 	send(Self, label, Label),
-        writeln(cellstat(done)).
+	get(Self, slot, level, Level),
+        writeln(cellstat(level(Level))).
+
+setLevel(Self,Level) :->
+       send(Self, slot, level, Level).
 
 :- pce_end_class.  % cellstat
 
@@ -332,7 +331,6 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, fluorescence, 0.0).
 
 update(Self) :->
-        writeln(lagoon(update)),
         send_super(Self, update),
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
@@ -357,8 +355,7 @@ update(Self) :->
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
 	),
 	send(Self, label, Label),
-	send_super(Self, converse, 'm1'),
-        writeln(lagoon(done)).
+	send_super(Self, converse, 'm1').
 
 quiet(Self) :->  send_super(Self,converse,'m0').
 mixon(Self) :->  send_super(Self,converse,'m1').
@@ -455,7 +452,6 @@ initialise(Self, Label:[name]) :->
         send_super(Self, initialise(Label)).
 
 update(Self) :->
-	writeln(sampler(update)),  
 	send_super(Self, update),
 	( get_super(Self, socket, @nil) -> true
 	; send_super(Self,converse,'t'),
@@ -469,8 +465,7 @@ update(Self) :->
 	  timeatom(Hours,Minutes,Seconds,TimeAtom),
 	  concat_atom(['\nAutoSampler\n',TimeAtom,' to next sample\n'],Label),
 	  send(Self, label, Label)
-	),
-	writeln(sampler(done)).  
+	).
 	
 	
 

@@ -1,6 +1,44 @@
 #!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
 #!C:/Python27/python -u
+
+from Tkinter import *
+
+gc_iter = None
+gc_scale = None
+gc_offset = None
+ipcam = None
+
+def showContrast() :
+    global ipcam
+    ipcam.checkContrast()
+    
+def makeTkSliders() :
+    global gc_iter
+    global gc_scale
+    global gc_offset
+    master = Tk()
+    master.minsize(250,150)
+    master.title("Contrast Setting")
+    iter_label = Label(master,text="Number of Iterations")
+    iter_label.pack()
+    gc_iter = Scale(master, from_=1, to=4, orient=HORIZONTAL)
+    gc_iter.pack()
+    
+    scale_label = Label(master,text="Scaling Multiplier")
+    scale_label.pack()
+    gc_scale = Scale(master, from_=0, to=200, orient=HORIZONTAL)
+    gc_scale.pack()
+    
+    offset_label = Label(master,text="Negative Offset after Scale")
+    offset_label.pack()
+    gc_offset = Scale(master, from_=-100, to=0, orient=HORIZONTAL)
+    gc_offset.pack()
+    
+    Button(master, text='Show', command=showContrast).pack()
+    Button(master, text='Quit', command=exit).pack()
+    master.mainloop()
+
 import sys, os, time, socket, subprocess, re, traceback
 
 from os  import popen
@@ -264,6 +302,46 @@ class ipCamera(object):
         colors = {0:"blue", 1:"green", 2:"red" }
         cv2.putText(img,colors[color],(10,80),cv2.FONT_HERSHEY_PLAIN,4.0,(240,80,200),2)
 
+    def checkContrast(self) :
+        """Check contrast algorithm using three values from TkInter console"""
+        global gc_scale
+        global gc_iter
+        global gc_offset
+        bb = ipcam.params['cellstatRegion']
+        frame = self.cellstatImage() # Cropped image from center of cellstat
+        cv2.imshow("camera", frame)
+        if cv.WaitKey(2000) == 27:
+            exit(0)
+        greyimage = frame[:,:,2]
+        s = float(gc_scale.get())/100.0
+        o = gc_offset.get()
+        i = gc_iter.get()
+        cv2.imshow("camera", greyimage)
+        if cv.WaitKey(2000) == 27:
+            exit(0)
+        greyimage = self.evocv.contrast(greyimage,iter=i,scale=s,offset=o)
+        cv2.imshow("camera", greyimage)
+        if cv.WaitKey(2000) == 27:
+            exit(0)
+        lvl = self.evocv.level(greyimage)
+        if (lvl == None or lvl > 999) :
+            print "level detection failed\n"
+            cv2.imshow("camera", greyimage)
+            if cv.WaitKey(2000) == 27:
+                exit(0)
+        if (lvl > 0 and lvl < bb[3]) : # Level is in range
+            cv2.line(frame, (0, lvl) , (bb[3]-bb[1],lvl), (255,130,130),2)
+            if (frame != None) :
+                cv2.imshow("camera", frame)
+                if cv.WaitKey(3000) == 27:
+                    exit(0)
+            else :
+                print "Full color frame was None!?\n"  
+        else :
+            print str(lvl) + " out of range :" + str(bb) + "\n"
+        print "Level: " + str(lvl)
+        print "Percentage: " + str( ((bb[3]-lvl)*100)/bb[3] )
+
     def cellstatLevel(self, pause=10) :
         """Levels is a percentage of the cellstat height
            mL is our standard unit of liquid level, add scale <host>.pl"""
@@ -275,8 +353,16 @@ class ipCamera(object):
         while (goodRead != 1) :
             goodRead = 0
             frame = self.cellstatImage() # Cropped image from center of cellstat
-            greyimage = cv2.add(frame[:,:,1], frame[:,:,2])
-            greyimage = self.evocv.contrast(greyimage,iter=1,scale=1.1,offset=-110)
+#            greyimage = cv2.add(frame[:,:,1], frame[:,:,2])
+            greyimage = frame[:,:,2]
+            cv2.imshow("camera", greyimage)
+            if cv.WaitKey(2000) == 27:
+                exit(0)
+            (it, sc, off) = ipcam.params['cellstatContrast']
+            greyimage = self.evocv.contrast(greyimage,iter=it,scale=sc,offset=off)
+            cv2.imshow("camera", greyimage)
+            if cv.WaitKey(2000) == 27:
+                exit(0)
             lvl = self.evocv.level(greyimage)
             if (lvl == None or lvl > 999) :
                 debug = debug + "level detection failed\n"
@@ -284,12 +370,12 @@ class ipCamera(object):
                 if cv.WaitKey(2000) == 27:
                     exit(0)
             if (lvl > 0 and lvl < bb[3]) : # Level is in range
-                cv2.line(greyimage, (0, lvl) , (bb[3]-bb[1],lvl), (255,255,255),2)
+                cv2.line(frame, (0, lvl) , (bb[3]-bb[1],lvl), (255,130,130),2)
                 goodRead = goodRead + 1
                 if (greyimage != None) :
-                    cv2.imshow("camera", greyimage)
+                    cv2.imshow("camera", frame)
                 if cv.WaitKey(3000) == 27:
-                            exit(0)
+                    exit(0)
                 else :
                     debug = debug + "frame was None after drawLagoons!?\n"  
             else :
@@ -460,7 +546,9 @@ class ipCamera(object):
                 on_exit(debug,params['numLagoons'])
             return Levels
 
-        
+    def release(self):
+        if (self.usbcam != None) :
+            self.usbcam.release()
 
 # End of ipCamera Class
 
@@ -577,8 +665,13 @@ if __name__ == "__main__" :
     if ('fluor' in sys.argv) :
         getFluor(ipcam)
         exit(0)
+    if ('contrast' in sys.argv) :
+        makeTkSliders()
+        exit(0)
     (x1,y1,x2,y2) = ipcam.params['lagoonRegion']
     (cx1,cy1,cx2,cy2) = ipcam.params['cellstatRegion']
     cv.SetMouseCallback('camera', on_mouse, 0)
     print "cellstatlevel(", str(ipcam.cellstatLevel(pause=10))+")."
+    ipcam.release()
 
+    
