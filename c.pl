@@ -1,5 +1,11 @@
+%:- use_foreign_library(dlltest). 
+%:- rlc_color(window, 150,150,200).
 :- use_module(library(time)).
 :- use_module(library(pce)).
+:- free(@'_dialog_bg'),
+   XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
+   new(@'_dialog_bg', colour(@default,XR,XG,XB)).
+
 :- use_module(library(process)).
 :- use_module(library(charsio)).
 :- use_module(library(helpidx)).
@@ -40,7 +46,7 @@ start_updates :-
 
 % All messages to logfile (otherwise, message window) Linux only
 :- dynamic logfile/1.
-logfile(logfile).
+% logfile(logfile).
 
 logging :-
     ( logfile(File)
@@ -53,8 +59,7 @@ logging :-
     ).
 
 camera_device(Device) :-
-    config(List),
-    memberchk(mac(Num),List),
+    param(mac(Num)),
     concat_atom(['/dev/video',Num],Device).
 
 % No camera reset on Windows (yet)
@@ -135,6 +140,7 @@ python('/usr/bin/python').
 :- use_module(library(lists), [ flatten/2 ] ).
 
 :- dynamic config/1.       % Loaded configuration
+:- dynamic file_modtime/2. % Modification time of loaded file
 :- dynamic supress/1.      % Terms to exclude from dictionary (see grammar below)
 :- dynamic tabs/1.
 tabs(1).
@@ -142,6 +148,8 @@ tabs(1).
 :- dynamic debug/0.
 debug.                % Will be retracted by save_evostat (building binary)
 
+
+param(P) :- config(List), memberchk(P,List).
 
 check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
@@ -353,11 +361,12 @@ initialise(W, Label:[name]) :->
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
 	  send(MB, label_font(huge)),
-	  writeln(menu_bar(MB)),
 
+	  % Do an update once every two minutes
 	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
 	  free(@ut),
-	  send(W, attribute, attribute(timer, new(@ut, timer(60.0, Msg1)))),
+	  param(updateCycle(Seconds)),
+	  send(W, attribute, attribute(timer, new(@ut, timer(Seconds, Msg1)))),
 
 	
 	  send(MB, append, new(File, popup(file))),
@@ -400,18 +409,22 @@ initialise(W, Label:[name]) :->
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->
+       writeln(stopping),
        send(@ut, stop),
        send(@action?members, for_all,
 	    if(@arg1?value==stop,message(@arg1, active, @off))),
        send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @on))).
+	    if(@arg1?value==start,message(@arg1, active, @on))),
+       writeln(stopped).
 
 started(_W) :->
+       writeln(starting),
        send(@ut, start),
        send(@action?members, for_all,
 	    if(@arg1?value==start,message(@arg1, active, @off))),
        send(@action?members, for_all,
-	    if(@arg1?value==stop, message(@arg1, active, @on))).
+	    if(@arg1?value==stop, message(@arg1, active, @on))),
+       writeln(started).
 
 
 cellstat(Self) :-> "User pressed the CellStat button"::
@@ -504,10 +517,15 @@ range_color(Target, Current, Color) :-
      ;                  Color = darkgreen
     ).
 
-% Updating can take a long time, so we must stop auto-update
-% and restart it after we are finish the update.
-autoUpdate(Self) :->  
+% Updating can take a long time, so we must:
+% 1) Stop auto-update
+% 2) Reload the  <hostname>.pl user parameter file if it changed
+% 3) Perform the update on all components
+% 4) Restart the auto update timer - but not a new timer value from the Settings file :-(
+%
+autoUpdate(Self) :->
     stop_updates,
+    update_config(_),	
     send(Self,manualUpdate),
     start_updates.
 
@@ -518,14 +536,14 @@ manualUpdate(Self) :->
     send(CellStat,converse,'m0'),  % Cellstat mixer OFF
     send(CellStat,converse,'o-'),  % Cellstat air   OFF
     get_lagoon_levels,
-    writeln('Update (after lagoon levels) Auto-update OFF'),
-    sleep(10),
+%    writeln('Update (after lagoon levels) Auto-update OFF'),
+    sleep(8),
     get_cellstat_level,
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-    writeln('Update COMPLETED: Turning on Air and Mixers'),
+%    writeln('Update COMPLETED: Turning on Air and Mixers'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
     send(CellStat,converse,'m1'),  % Cellstat mixer ON
@@ -601,7 +619,23 @@ c(Name) :-
 %
 % Configuration <name> is either a command-line argument or <hostname>
 % The corresponding Prolog file ( <name>.pl ) must exist.
-% Load configuration and generate Python .settings (dictionary) file. 
+% Load configuration and generate Python .settings (dictionary) file.
+
+update_config(Config) :-
+    config_name(Config),  %  Find configuration name (hostname or cmd arg)
+    load_newest(Config).
+
+load_newest(File) :-
+    file_modtime(File, Time),                  % Mod time when File was loaded
+    source_file_property(File,modified(Time)), % Matches!
+    !.
+
+load_newest(File) :-
+    consult(File),
+    writeln(consulted(File)),
+    source_file_property(File,modified(Time)),
+    retractall(file_modtime(File,_)),
+    assert(file_modtime(File, Time)).
 
 
 main :-      pce_main_loop(main).
@@ -630,22 +664,20 @@ main(_Argv) :-
 	  ; load_foreign_library(plblue)
         ),
 %        load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
-
-	config_name(Root),  %  Find configuration name (hostname or cmd arg)
-	consult(Root),      % Consult it
-	config(List),       % Get the configuration data
-        member(screen(WF,HF,Loc),List),
+	update_config(Root),
+	param(screen(WF,HF,Loc)),    % From configuration data
         get(@display?size,width,Width),
         get(@display?size,height,Height),
         assert(screen(Width,Height,WF,HF,Loc)),
         camera_reset,
-	member(layout(Components),List),
+	param(layout(Components)),
 	Layout =.. [Root,Components],
 	assert(Layout),
 %	writeln(Layout),
 
 	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
-	assert(supress(screen(_,_,_))),       %     '' 
+	assert(supress(screen(_,_,_))),       %     ''
+	config(List),
 	pl2PythonDict(List, PyString),        % Convert to Python Dictionary
 	concat_atom([Root,'.settings'],File), % Write it out
 	tell(File),

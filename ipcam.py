@@ -365,14 +365,21 @@ class ipCamera(object):
                     if cv.WaitKey(400) == 27:
                         exit(0)
                 if (lvl > 0 and lvl < bb[3]) : # Level is in range
-#                    Levels[k] = 100  - ((100.0 * (lvl-bb[1]))/self.params['lagoonHeight'])
-                    Levels[k] = self.params['levelOffset'] + self.params['levelScale'] - ((self.params['levelScale'] * (lvl-bb[1]))/self.params['lagoonHeight'])
-                    cv2.line(frame,(bb[0],bb[1]+lvl),(bb[0]+bb[2],bb[1]+lvl), (0,0,255),1)
+                    H = self.params['lagoonHeight']
+                    Levels[k] = 100*(H - lvl)/H
+                    cv2.line(frame,(bb[0],bb[1]+lvl),(bb[0]+bb[2],bb[1]+lvl), (100,100,255),2)
+                    cv2.putText(frame,"  "+str(Levels[k])+"%",(bb[0]+bb[2], bb[1]+lvl),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100,100,255),1)
+                    cv2.line(frame,(bb[0],bb[1]),(bb[0]+bb[2],bb[1]), (255,0,255),3)
+                    cv2.putText(frame,"100%",(bb[0]+bb[2], bb[1]),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,255),1)
+
+
                     goodRead = goodRead + 1
                     self.drawLagoons(frame)
                     if (frame != None) :
                         cv2.imshow("camera", frame)
-                        if cv.WaitKey(pause) == 27:
+                        if cv.WaitKey(self.params['debugpause']) == 27:
                             exit(0)
                     else :
                           debug = debug + "frame was None after drawLagoons!?\n"  

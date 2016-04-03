@@ -350,6 +350,7 @@ class ipCamera(object):
         global lagoon
         goodRead = 0
         bb = ipcam.params['cellstatRegion']
+        percentage = 0
         while (goodRead != 1) :
             goodRead = 0
             frame = self.cellstatImage() # Cropped image from center of cellstat
@@ -370,11 +371,14 @@ class ipCamera(object):
                 if cv.WaitKey(2000) == 27:
                     exit(0)
             if (lvl > 0 and lvl < bb[3]) : # Level is in range
-                cv2.line(frame, (0, lvl) , (bb[3]-bb[1],lvl), (255,130,130),2)
+                H = bb[2]-bb[0]
+                percentage = 100*(H - lvl)/H
+                cv2.putText(frame,str(percentage)+"%", (0,lvl-4), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,0,255),2)
+                cv2.line(frame,(0,lvl),(bb[2],lvl), (255,0,255),3)
                 goodRead = goodRead + 1
                 if (greyimage != None) :
                     cv2.imshow("camera", frame)
-                if cv.WaitKey(3000) == 27:
+                if cv.WaitKey(ipcam.params['debugpause']) == 27:
                     exit(0)
                 else :
                     debug = debug + "frame was None after drawLagoons!?\n"  
@@ -383,7 +387,7 @@ class ipCamera(object):
         if (goodRead > 0) :
             debug = debug + str(goodRead) + " good level reads\n"
         debug = debug + "csLevel " + str(lvl) + "\n>>>>>>>>>>>>>>>>>>>>\n"
-        return 100 - ((100*lvl) / (bb[3]-bb[0]))
+        return percentage
 
     def updateLagoons(self,pause=10) :
         """Blob detection to locate Lagoons. Must be called before updateLevels()."""

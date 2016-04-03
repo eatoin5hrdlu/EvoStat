@@ -1,4 +1,6 @@
 config( [
+	 updateCycle(60),  % In seconds
+	 debugpause(100),
 	 numLagoons(1),
          imageSize(630,500),
 
@@ -9,8 +11,9 @@ config( [
          lagoonRegion(410,20,620,460),
 	 lagoonHeight(170),    % divisor for levelScale
 	 lagoonWidth(60),
-	 levelScale(140),   % Maximum percentage or mL
-	 levelOffset(10),   % Minimum percentage or mL
+	 lagoonScale(140),   % Maximum percentage or mL
+	 lagoonOffset(10),   % Minimum percentage or mL
+
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
 	 camera(outdoor),
@@ -20,8 +23,8 @@ config( [
 	 userpwd('&user=scrapsec&pwd=lakewould'),
 	 brightness(11), % 0-240 for indoor camera
          brightnessCmd('/camera_control.cgi?param=1&value='),
-         cellstatContrast(3,1.7,-62),	    
-         lagoonContrast(3,2,-80),
+         cellstatContrast(3, 1.35, -71), % Iterations, Multiply, Subtract
+         lagoonContrast(  3, 1.62, -69),
 	 contrast(40),
 	 contrastCmd('/camera_control.cgi?param=2&value='),
 	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),

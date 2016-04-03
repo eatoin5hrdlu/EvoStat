@@ -26,6 +26,10 @@ window_percent(WFraction,HFraction,W,H) :-
 compatible(T1,T2) :-
 	nonvar(T1),nonvar(T2),
         functor(T1,Name,Arity),functor(T2,Name,Arity).
+compatible(T1,T2) :-
+	nonvar(T2),functor(T2,Name,Arity),
+	writeln(parse_error(expected(Name/Arity),T1)),
+	fail.
 
 parse_reply(Reply, Term, Default) :-
 	catch( atom_to_term(Reply,TmpTerm,_TMBindings),
@@ -99,8 +103,7 @@ repeat1(N) :- M is N-1, repeat1(M).
 %swbt_device(  lagoond3,     '98:D3:31:80:34:39').
 %bt_device(autosampler,    '98:D3:31:30:95:4B').
 
-:- writeln(ingbutton),
-   ( current_prolog_flag(arch,'i386-win32')
+:- ( current_prolog_flag(arch,'i386-win32')
      -> load_foreign_library(foreign(plblue))
      ;  load_foreign_library(plblue)
    ),
@@ -271,8 +274,14 @@ mac(Self, MAC:[name]) :->
 
 :- pce_begin_class(cellstat, ebutton).
 
-variable(level, int, get, "Percent Full").
+variable(level, real, get, "Percent Full").
 
+initialise(Self, Label:[name]) :->
+	"Initialise the cellstat"::
+        send_super(Self, initialise(Label)),
+	send_super(Self,slot,colour,colour(blue)),
+	send(Self, slot, level, 0).
+	
 update(Self) :->
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
@@ -281,24 +290,24 @@ update(Self) :->
 	;
 	parse_reply(Reply, temperature(Temp10), temperature(11.3)),
 	Temp is Temp10/10.0,
-        send(Self,slot,temperature,Temp),
-        get(Self,slot,temperature_t,Target),
+        send(Self,slot, temperature, Temp),
+        get(Self, slot, temperature_t, Target),
 	range_color(Target, Temp, Tc),
-        get(Self,slot,od600_t,ODTarget),
+        get(Self, slot, od600_t, ODTarget),
 	send_super(Self,converse,'b'),
-        get(Self,slot,reply,TurbReply),
+        get(Self, slot, reply, TurbReply),
         atom_to_term(TurbReply,TbTerm,_TBBindings),
 	TbTerm = turbidity(TurbVal),
-	send(Self,slot,od600,TurbVal),
+	send(Self, slot, od600, TurbVal),
 	range_color(ODTarget, TurbVal, ODc),
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
-        concat_atom(['\nCellStat\nTemperature: ', Target, ' / ',Temp,'\n',
+	get(Self, slot, level, Level),
+        concat_atom(['\nCellStat  ',Level,'%\nTemperature: ', Target, ' / ',Temp,'\n',
  		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
 	),
 	send(Self, label, Label),
-	get(Self, slot, level, Level),
-        writeln(cellstat(level(Level))).
+        write(cellstat(level(Level))),write('  ').
 
 setLevel(Self,Level) :->
        send(Self, slot, level, Level).
@@ -309,8 +318,9 @@ setLevel(Self,Level) :->
 
 variable(fluorescence,real, get, "Fluorescence").
 variable(fluorescence_t, real, get, "Target Fluorescence").
-variable(level,real, get, "Level").
-variable(level_t, real, get, "Target Level").
+variable(level,     real, get, "Level").
+variable(level_t,   real, get, "Target Level").
+variable(level_max, real, get, "Max Allowed Level").
 variable(calibrate_level, real, get, "Calibration Level").
 
 variable(calibration, name, get, "Calibration State Machine").
@@ -319,15 +329,16 @@ variable(start_time, real, get, "Time since last Calibration state change").
 variable(rate_input, real, get, "Calculated Input Flow Rate").
 variable(rate_output, real, get, "Calculated Output Flow Rate").
 variable(calibration, name, get, "Calibration State Machine").
-
+variable(overflow,   int,   get, "Indication of Overflow").
 
 initialise(Self, Label:[name]) :->
 	"Initialise the lagoon"::
         send_super(Self, initialise(Label)),
 	send(Self, slot, calibration, normal),
-	send(Self, slot, level, 10.0),
-	send(Self, slot, level_t, 0.3),
+	send(Self, slot, level, 0.0),
+	send(Self, slot, level_t, 36.0),
 	send(Self, slot, fluorescence_t, 0.2),
+	send(Self, slot, overflow, 0),
 	send(Self, slot, fluorescence, 0.0).
 
 update(Self) :->
@@ -339,27 +350,52 @@ update(Self) :->
 	parse_reply(Reply,temperature(TempInt),temperature(111)),
 	Temp is float(TempInt)/10.0,
         send(Self,slot,temperature,Temp),
-	
-        get(Self,slot,level,Level),
         get(Self,slot,temperature_t,Target),
 	range_color(Target, Temp, Color),
 	send(Self, colour(Color)),
-        get(Self,slot,fluorescence_t,LuxTarget),
-        get(Self,slot,fluorescence,Lux),
+        get(Self, slot, level, Level),
+        get(Self, slot, fluorescence_t,LuxTarget),
+        get(Self, slot, fluorescence,Lux),
 	format(atom(Level2), '~4g', [Level]),
 	format(atom(Lux2), '~4g', [Lux]),
 	get(Self,slot,calibration,State),  % Calibration State is the Message
 	send(Self,State),
-        concat_atom(['Level ', Level2, 'mL\n',
+        concat_atom(['Level ', Level2, '%\n',
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
 	),
 	send(Self, label, Label),
-	send_super(Self, converse, 'm1').
+	write(lagoon(level(Level))),write('     ').
 
-quiet(Self) :->  send_super(Self,converse,'m0').
-mixon(Self) :->  send_super(Self,converse,'m1').
+control_level(Self) :->                         % Level within range
+	get(Self,slot,level,Level),
+	get(Self,slot,level_t,TargetLevel),
+	get(Self,slot,level_max,MaxLevel),
+	Level < MaxLevel,
+	Level > TargetLevel-1,
+	!.
 
+control_level(Self) :->                        % Overfilling !
+	get(Self,slot,level,Level),
+	get(Self,slot,level_max,MaxLevel),
+	Level > MaxLevel,
+	!,
+	( get(Self,slot,overflow,1) -> true   % Already draining,
+	;  send_super(Self,converse,'a0'),    %   or start now 
+	   send(Self, slot, overflow, 1)
+	).
+
+control_level(Self) :->
+	get(Self,slot,level,Level),
+	get(Self,slot,level_t,TargetLevel),
+	Level < TargetLevel + 1,                % Level close to Normal
+	( get(Self, slot, overflow, 1)          % If draining, go back to auto-on
+	 -> send_super(Self, converse, 'a1'),
+	    send(Self, slot, overflow, 0)
+        ; true
+	).
+
+	
 % Calibration begins after someone sends the 'calibrate' message
 % Lagoons can distiguish between input valves and output valves.
 % command: do (disable output valves)
