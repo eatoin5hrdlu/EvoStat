@@ -28,7 +28,7 @@ compatible(T1,T2) :-
         functor(T1,Name,Arity),functor(T2,Name,Arity).
 compatible(T1,T2) :-
 	nonvar(T2),functor(T2,Name,Arity),
-	writeln(parse_error(expected(Name/Arity),T1)),
+	writeln(parse_error(expected(Name/Arity),got(T1))),
 	fail.
 
 parse_reply(Reply, Term, Default) :-
@@ -303,7 +303,9 @@ update(Self) :->
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
 	get(Self, slot, level, Level),
-        concat_atom(['\nCellStat  ',Level,'%\nTemperature: ', Target, ' / ',Temp,'\n',
+	format(atom(TempFmt), '~4g', [Temp]),
+	format(atom(TargFmt), '~4g', [Target]),
+        concat_atom(['\nCellStat  ',Level,'%\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
  		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
 	),
 	send(Self, label, Label),
