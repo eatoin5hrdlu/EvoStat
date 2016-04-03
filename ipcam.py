@@ -457,6 +457,7 @@ class ipCamera(object):
             cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
             cv2.imwrite(newSnapshot,cv2.resize(image,self.params['imageSize']))
+            print "Snapshot scaled and saved", newSnapshot
             newSnapshot = None
 
     def drawLagoons(self, image, pause=10) :

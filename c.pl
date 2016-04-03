@@ -2,7 +2,8 @@
 %:- rlc_color(window, 150,150,200).
 :- use_module(library(time)).
 :- use_module(library(pce)).
-:- free(@'_dialog_bg'),
+
+:- free(@'_dialog_bg'),  % This should make the background light-blue steel
    XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
    new(@'_dialog_bg', colour(@default,XR,XG,XB)).
 
@@ -60,7 +61,11 @@ logging :-
 
 camera_device(Device) :-
     param(mac(Num)),
+    integer(Num),
+    !,
     concat_atom(['/dev/video',Num],Device).
+
+camera_device(_) :- writeln('No Camera Device'),fail.
 
 % No camera reset on Windows (yet)
 camera_reset :- current_prolog_flag(windows,true), !.
@@ -76,7 +81,7 @@ camera_reset :-
     evostat_directory(Dir),
     process_create('/bin/rm',['-f','mypic1.jpg','mypic2.jpg'],[cwd(Dir)]),
     Cmd = '/usr/bin/uvcdynctrl',
-    config_name(Config),    % Hostname or evostat argument
+    config_name(Config,_),    % Hostname or evostat argument
     concat_atom([Config,'.gpfl'], Settings),
     camera_device(Device),
     concat_atom(['--device=',Device],Option),
@@ -151,29 +156,29 @@ debug.                % Will be retracted by save_evostat (building binary)
 
 param(P) :- config(List), memberchk(P,List).
 
-check_file(Root) :-   % consult(foo) will work for files named foo or foo.pl
+check_file(Root,File) :-   % consult(foo) will work for files named foo or foo.pl
 	( exists_file(Root)
         -> true
         ; concat_atom([Root,'.pl'],File),
 	  exists_file(File)
         ).
 
-% config_name(-Root)
+% config_name(-Root,-File)
 
-config_name(Root) :-
+config_name(Root,File) :-
 	current_prolog_flag(argv,[_Exe|Args]),  % Command-line argument
 	member(Root,Args),
-	check_file(Root),
+	check_file(Root,File),
 	!.
 
-config_name(Root) :-
+config_name(Root,File) :-
 	gethostname(Name),    % <HOSTNAME>.pl configuration file
 	atom_chars(Name,Cs),
 	( append( RCs,['.'|_],Cs ) % Could be full domain name ('x.y.com')
         -> atom_chars(Root,RCs)
         ;  Root = Name
         ),
-	check_file(Root).
+	check_file(Root,File).
 
 % Convert Prolog term to Python dictionary
 
@@ -537,7 +542,7 @@ manualUpdate(Self) :->
     send(CellStat,converse,'o-'),  % Cellstat air   OFF
     get_lagoon_levels,
 %    writeln('Update (after lagoon levels) Auto-update OFF'),
-    sleep(8),
+    sleep(6),
     get_cellstat_level,
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
@@ -622,21 +627,22 @@ c(Name) :-
 % Load configuration and generate Python .settings (dictionary) file.
 
 update_config(Config) :-
-    config_name(Config),  %  Find configuration name (hostname or cmd arg)
-    load_newest(Config).
+    config_name(Config,File),  %  Find configuration name (hostname or cmd arg)
+    writeln(needtoload(File)),
+    load_newest(Config,File).
 
-load_newest(File) :-
+load_newest(_,File) :-
     file_modtime(File, Time),                  % Mod time when File was loaded
     source_file_property(File,modified(Time)), % Matches!
     !.
 
-load_newest(File) :-
-    consult(File),
-    writeln(consulted(File)),
+load_newest(Config,File) :-
+    writeln(consulting(File)),
+    consult(Config),
+    writeln(consulted(Config)),
     source_file_property(File,modified(Time)),
     retractall(file_modtime(File,_)),
     assert(file_modtime(File, Time)).
-
 
 main :-      pce_main_loop(main).
 
