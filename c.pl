@@ -313,7 +313,9 @@ get_cellstat_level :-
     ),
     evostat_directory(Dir),
 %   writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
-    process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)]),
+    open("cscam.log",write,Stderr,[]),
+    process_create(Python,CmdLine,
+            [stdout(pipe(Out)),stderr(pipe(Stderr)),cwd(Dir)]),
     assert(cellstatLevelStream(Out)),
     !.
 
@@ -336,7 +338,8 @@ get_lagoon_levels :-
     ),
     evostat_directory(Dir),
 %   writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
-    process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)]),
+    open("ipcam.log",write,Stderr,[]),
+    process_create(Python,CmdLine,[stdout(pipe(Out)),stderr(pipe(Stderr)),cwd(Dir)]),
     assert(levelStream(Out)),
     !.
 
