@@ -1,4 +1,10 @@
 config( [
+	 updateCycle(20),
+	 debugpause(100),
+         cellstatContrast(2,1.4,-80),
+	 cellstatScale(1500),
+	 cellstatOffset(100),
+         lagoonContrast(2,1.35,-70),
 	 numLagoons(1),
          cellstatRegion(90,250,300,290),
          lagoonRegion(370,40,530,450),
@@ -19,6 +25,7 @@ config( [
 	 contrastCmd('/camera_control.cgi?param=2&value='),
 	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),
 	 screen(60,90,point(200,1)),
+         imageSize(580,440),
 	 layout([
 		 cellstat(cellstat,below,[od(0.4),temp(37.0),shape(20,7),CF]),
 		 spacer(        x1, next_row, [color(blue)]),

@@ -1,6 +1,7 @@
 #!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
 #!C:/Python27/python -u
+from __future__ import print_function
 
 from Tkinter import *
 
@@ -55,7 +56,7 @@ def levelTerm(Levels, What) :
 
 def on_exit(msg,nLagoons) :
     print("levels(80, 60, 40, 20).")
-    print "message('" + msg + "')."
+    print("message('" + msg + "').")
     exit(0)
 
 rbox =  { 'x1':100,'y1':100,'x2':110,'y2':110 }
@@ -114,23 +115,23 @@ class ipCamera(object):
             self.params = eval(open(self.configFile, 'r').read())
 
         if (self.params == None) :
-            print "requires('", sys.argv[0] + "', or(config_file('<hostname>.settings'),config_file('<evostatname>.settings')),'Create one by modifying template.pl, renaming it to <hostname>.pl and running evostat')."
+            print("requires('", sys.argv[0] + "', or(config_file('<hostname>.settings'),config_file('<evostatname>.settings')),'Create one by modifying template.pl, renaming it to <hostname>.pl and running evostat').",file=sys.stderr)
             exit(0)
 
         self.camType = self.params['camera']
         self.defaultIP = self.params['defaultIP']
         self.usbcam = None
         if isinstance(self.params['mac'],int) :
-#            print "MAC indicates that we are using a USB camera"
+#            print("MAC indicates that we are using a USB camera",file=sys.stderr)
             self.usbcam = cv2.VideoCapture(self.params['mac']) # self.params['mac'])
             time.sleep(0.1)
             x = self.usbcam.read()
-#            print "VideoCapture returned " + str(self.usbcam) + " test read returned =" + str(x)
+#            print("VideoCapture returned " + str(self.usbcam) + " test read returned =" + str(x),file=sys.stderr)
             self.ip = None
         else :
             self.ip = self.ValidIP(self.params['mac'])
             if (self.ip == None) :
-                print self.params['mac'], " is not a valid IP/MAC for a Camera"
+                print(self.params['mac'], " is not a valid IP/MAC for a Camera",file=sys.stderr)
                 exit(0)
             self.url = "http://" + self.ip + self.params['picCmd'] + self.params['userpwd']
             debug = debug + "Using URL: " + self.url
@@ -141,7 +142,7 @@ class ipCamera(object):
 
     def nullImage(self, img, who) :
         if (img == None) :
-            print who + " called with null image (None)"
+            print(who + " called with null image (None)", file=sys.stderr)
             traceback.print_stack()
             return True
         return False
@@ -214,7 +215,7 @@ class ipCamera(object):
             ipstr = ret.split()[0]
             debug = debug + "Camera is at IP address: " + ipstr
             if not ipstr == self.defaultIP:
-                print "please change defaultIP("+self.defaultIP+") in ipcam.py to ", ipstr
+                print("please change defaultIP("+self.defaultIP+") in ipcam.py to ", ipstr, file=sys.stderr)
             return ipstr
         return None
  
@@ -225,30 +226,30 @@ class ipCamera(object):
 #                x = self.usbcam.read()
 #                time.sleep(0.1)
                 (rval, img1) = self.usbcam.read()
-#                print "usb.read() returned " + str(rval)
+#                print("usb.read() returned " + str(rval),file=sys.stderr)
                 if (rval) :
                     pass
                 else :
-                    print "Usb camera read failed"
+                    print("Usb camera read failed",file=sys.stderr)
                     return None
             except e:
-                print " Failed to grab image from USB camera" + str(e)
+                print(" Failed to grab image from USB camera" + str(e),file=sys.stderr)
         else :
             try :
                 img1 = urllib2.urlopen(self.req).read()
                 if (img1 == None) :
-                    print "camera('",self.ip,"')."
+                    print("camera('",self.ip,"').",file=sys.stderr)
                     exit(0)
                 img1 = bytearray(img1)
                 if (img1 == None) :
-                    print "bytearray(fail)."
+                    print("bytearray(fail).",file=sys.stderr)
                     exit(0)
                 img1 = np.asarray(img1, dtype=np.uint8)
                 if (img1 == None) :
-                    print "numpy_conversion(fail)."
+                    print("numpy_conversion(fail).",file=sys.stderr)
                     exit(0)
             except urllib2.URLError, msg :
-                print "camera('", msg, "-", self.ip,"')."
+                print("camera('", msg, "-", self.ip,"').",file=sys.stderr)
                 exit(0)
 
         if (img1 == None) :
@@ -265,7 +266,7 @@ class ipCamera(object):
         (x1,y1,x2,y2) = ipcam.params['lagoonRegion']
         image = self.grab()
         if (image == None) :
-            print "camera(fail)."
+            print("camera(fail).",file=sys.stderr)
             exit(0)
         self.exportImage(image)
         return image[x1:x2,y1:y2,:] # cropped for lagoons
@@ -277,7 +278,7 @@ class ipCamera(object):
         try:
             urllib2.urlopen(urllib2.Request(cmd))
         except urllib2.URLError, msg :
-            print "camera('", msg, "-", self.ip,"')."
+            print("camera('", msg, "-", self.ip,"').",file=sys.stderr)
 
     def showThisColor(color) :
         frame = ipcam.grab()
@@ -294,7 +295,7 @@ class ipCamera(object):
                     if cv.WaitKey(10) == 27:
                         return
                 else :
-                    print "picked slice was None"
+                    print("picked slice was None",file=sys.stderr)
 
     def labelImage(self, img, color) :
         colors = {0:"blue", 1:"green", 2:"red" }
@@ -323,7 +324,7 @@ class ipCamera(object):
             exit(0)
         lvl = self.evocv.level(greyimage)
         if (lvl == None or lvl > 999) :
-            print "level detection failed\n"
+            print("level detection failed\n", file=sys.stderr)
             cv2.imshow("camera", greyimage)
             if cv.WaitKey(2000) == 27:
                 exit(0)
@@ -334,11 +335,11 @@ class ipCamera(object):
                 if cv.WaitKey(3000) == 27:
                     exit(0)
             else :
-                print "Full color frame was None!?\n"  
+                print("Full color frame was None!?\n", file=sys.stderr)
         else :
-            print str(lvl) + " out of range :" + str(bb) + "\n"
-        print "Level: " + str(lvl)
-        print "Percentage: " + str( ((bb[3]-lvl)*100)/bb[3] )
+            print(str(lvl) + " out of range :" + str(bb) + "\n",file=sys.stderr)
+        print("Level: " + str(lvl))
+        print("Percentage: " + str( ((bb[3]-lvl)*100)/bb[3] ))
 
     def updateLevels(self,pause=10) :
         """Levels are a percentage of the lagoon height (specified at the top of this file)
@@ -411,7 +412,7 @@ class ipCamera(object):
                     debug = debug + 'lagoon'+str(i+1) + "   " + str(sbbs[i]) + "\n"
                 write_lagoons(lagoon)
             else :
-                print debug + "Needed " + str(needed) + " bbs, but got " + str(numblobs)
+                print(debug + "Needed " + str(needed) + " bbs, but got " + str(numblobs), file=sys.stderr)
                 for bb in sbbs:
                     cv2.rectangle(frame,(bb[0],bb[1]),(bb[0]+bb[2],bb[1]+bb[3]),(0,0,255),2)
                 if (frame != None) :
@@ -419,7 +420,7 @@ class ipCamera(object):
                     if cv.WaitKey(pause) == 27:
                         exit(0)
                 else :
-                    print "frame was None after drawing bbs"
+                    print("frame was None after drawing bbs",file=sys.stderr)
                     
     def blobs2lagoons(self,bbs) :
         """The bottom edges of identified blobs should line up.
@@ -457,6 +458,7 @@ class ipCamera(object):
             cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
             cv2.imwrite(newSnapshot,cv2.resize(image,self.params['imageSize']))
+            print("Snapshot scaled and saved", newSnapshot, file=sys.stderr)
             newSnapshot = None
 
     def drawLagoons(self, image, pause=10) :
@@ -495,7 +497,7 @@ class ipCamera(object):
                     tries = tries + 1
                     time.sleep(100)
             if (temp == None) :
-                print "Giving up on camera connection"
+                print("Giving up on camera connection",file=sys.stderr)
                 return None
                 
             halfothers = cv2.addWeighted(temp[:,:,(color+1)%3], 0.5, temp[:,:,(color+2)%3], 0.5, 0 )
@@ -504,7 +506,7 @@ class ipCamera(object):
             total = (x2-x1)*(y2-y1)
             lit = cv2.countNonZero(cv2.subtract(picked[y1:y2,x1:x2], 128))
             sat = cv2.countNonZero(cv2.subtract(picked[y1:y2,x1:x2], 250))
-            print str(sat) + " saturated " + str(lit) + " detected out of " + str(total) + " at cycle " + str(cycle)
+            print(str(sat) + " saturated " + str(lit) + " detected out of " + str(total) + " at cycle " + str(cycle),file=sys.stderr)
             cv2.rectangle(picked,(x1,y1),(x2,y2),255)
             if not frame == None :
                 self.labelImage(picked,cler)
@@ -579,7 +581,7 @@ def setupCamera() :
     if cv2.__dict__['moveWindow'] != None :
         cv2.moveWindow("camera", 100, 0)
     else :
-        print "cv2 does not contain moveWindow. Update your OpenCV installation."
+        print("cv2 does not contain moveWindow. Update your OpenCV installation.", file=sys.stderr)
     cam = ipCamera()
     cam.brightness(cam.params['brightness'])
     cam.contrast(cam.params['contrast'])
@@ -596,7 +598,7 @@ def load(name, file, default_dict) :
 	try:
 		gdb[name] = eval(open(file).read())
 	except:
-		print file + " not found: Using default coordinates"
+		print(file + " not found: Using default coordinates", file=sys.stderr)
 		gdb[name] = default_dict
 
 
@@ -606,7 +608,7 @@ def dark(image) :
     if ( totallight < threshold ) :
         return True
     if ('baseline' in sys.argv):
-        print "msg('Must be dark to create baseline (camera heat image)')."
+        print("msg('Must be dark to create baseline (camera heat image)').",file=sys.stderr)
         exit(0)
     return False
 
@@ -619,13 +621,13 @@ def getFluor(ipcam) :
     result = None
     cntr = 0
     if (not os.path.exists('lagoons')) :
-        print "msg('Luminosity mode: program must be run at least once with the lights on to locate lagoons')."
+        print("msg('Luminosity mode: program must be run at least once with the lights on to locate lagoons').", file=sys.stderr)
         exit(0)
     lagoon = eval(open('lagoons','r').read())
     if (os.path.exists(basefile)) :
         baseline = cv2.split(cv2.imread(basefile))[1]
     elif ( not 'baseline' in sys.argv) :
-        print "msg('Run: ipcam.py baseline  with no bioluminescence present to create dark(heat) image file')."
+        print("msg('Run: ipcam.py baseline  with no bioluminescence present to create dark(heat) image file').", file=sys.stderr)
     frames = ipcam.params['frames']
     orig = ipcam.lagoonImage()
     fluor = orig[:,:,1]               # FIRST GREEN IMAGE
@@ -641,7 +643,7 @@ def getFluor(ipcam) :
             exit(0)
         cntr = cntr + 1
     if ('baseline' in sys.argv):
-        print "Creating baseline file"
+        print("Creating baseline file", file=sys.stderr)
         cv2.imwrite(basefile, fluor)
     else :
         cv2.imshow("camera",fluor)
@@ -655,7 +657,7 @@ def getFluor(ipcam) :
         for k in lagoon.keys():
             bb = lagoon[k]   # Bounding box relative to cropped 'lagoonImage'
             subi = fluor[bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]]
-            print k + "(" + str(np.average( tuple(ord(i) for i in subi.tostring()))) + ").\n"
+            print(k + "(" + str(np.average( tuple(ord(i) for i in subi.tostring()))) + ").\n", file=sys.stderr)
 
 newSnapshot = None
 
@@ -695,7 +697,7 @@ if __name__ == "__main__" :
             if cv.WaitKey(400) == 27 :
                 exit(0)
         else:
-            print "Image grab returned None in __main__"
+            print("Image grab returned None in __main__", file=sys.stderr)
             exit(0)
     debug = debug + "done waiting for brightness to settle"
     bbfp.close()
@@ -734,8 +736,8 @@ if __name__ == "__main__" :
             debug = debug + str(howmany) + " : " + str(previous)
 
     if (tries == 0) :
-        print "failing in main"
+        print("failing in main", file=sys.stderr)
         on_exit(debug,3)
     else :
-        print levelTerm(Levels,'levels')
+        print(levelTerm(Levels,'levels'))
         ipcam.release()
