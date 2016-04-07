@@ -63,7 +63,7 @@ logging :-
     ).
 
 camera_device(Device) :-
-    param(mac(Num)),
+    param(camera(Num)),
     integer(Num),
     !,
     concat_atom(['/dev/video',Num],Device).
