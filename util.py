@@ -38,3 +38,10 @@ def settings() :
          "config_file('<evostatname>.settings')),'Create by modifying template.pl').")
     exit(0)
 
+def nullImage(img, who) :
+    if (img == None) :
+        plog(who + " called with null image (None)")
+        traceback.print_stack()
+        return True
+    return False
+
