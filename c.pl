@@ -18,6 +18,11 @@
 
 :- dynamic bt_device/2.
 :- multifile bt_device/2.
+:- dynamic logfile/1.
+:- multifile logfile/1.
+:- dynamic simulator/0.
+:- multifile simulator/0.
+% logfile(logfile).
     
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
@@ -46,8 +51,6 @@ start_updates :-
 	    if(@arg1?value==stop, message(@arg1, active, @on))).
 
 % All messages to logfile (otherwise, message window) Linux only
-:- dynamic logfile/1.
-% logfile(logfile).
 
 logging :-
     ( logfile(File)
@@ -110,8 +113,7 @@ python('/usr/bin/python').
 	   screen/5.
 
 :- dynamic component/2,
-           cellstatLevelStream/1,
-	   levelStream/1,
+           levelStream/2,
 	   air/0,
 	   mix/0,
 	   toggle_auto/0.
@@ -147,8 +149,6 @@ python('/usr/bin/python').
 :- dynamic config/1.       % Loaded configuration
 :- dynamic file_modtime/2. % Modification time of loaded file
 :- dynamic supress/1.      % Terms to exclude from dictionary (see grammar below)
-:- dynamic tabs/1.
-tabs(1).
 
 :- dynamic debug/0.
 debug.                % Will be retracted by save_evostat (building binary)
@@ -181,6 +181,18 @@ config_name(Root,File) :-
 	check_file(Root,File).
 
 % Convert Prolog term to Python dictionary
+:- dynamic tabs/1.
+tabs(1).
+
+writePythonParams(EvoStat) :-    
+    config(List),
+    pl2PythonDict(List, PyString),        % Convert to Python Dictionary
+    concat_atom([EvoStat,'.settings'],File), % Write it out
+    tell(File),
+    write(PyString),
+    told,
+    current_prolog_flag(argv,Args),
+    ( memberchk(gen,Args) -> halt ; true ).
 
 pl2PythonDict(Data, PyAtom) :-       % Generate a Python dictionary string
 	pl2py(Data, PythonDict, []),
@@ -281,53 +293,31 @@ lagoon_number(Object, N) :-
     Digit is N + 0'0,
     append(_,[Digit],Codes).
 
+% Alternative to for_all ?grapicals
 lagoons(Cmd) :-
     component(_, lagoon, Object),
     send(Object,Cmd),
     fail.
 lagoons(_).
 
+send_info(Msg,_) :- simulator, writeln(Msg),fail.
+    
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
-send_info(cellstatlevel(Level),_) :-
+send_info(level(Level),_) :-  % Single value is Cellstat level/1
     component(_,cellstat,Cellstat),
     send(Cellstat, setLevel, Level).
 
-send_info(levels(Level),_) :-
+send_info(levels(Level),_) :- % levels/N (plural,can still be only one lagoon)
     lagoon_number(Object, 3),
     send(Object, setLevel, Level).
 send_info(_,_).
 
-get_cellstat_level :-
-    python(Python),
-    evostat_directory(Dir),
-    concat_atom([Dir,'cscam.py'],CSCAM),
-    CmdLine = [CSCAM],
-    ( retract(cellstatLevelStream(Previous)) ->
-	catch( read(Previous, Info),
-	       Ex,
-	       (writeln(caught(Ex,CmdLine)),sleep(3),fail)),
-        check_error(Info),
-	send_info(Info, Previous),
-	close(Previous)
-     ; true
-    ),
-    evostat_directory(Dir),
-%   writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
-    open("cscam.log",write,Stderr,[]),
-    process_create(Python,CmdLine,
-            [stdout(pipe(Out)),stderr(pipe(Stderr)),cwd(Dir)]),
-    assert(cellstatLevelStream(Out)),
-    !.
-
-get_cellstat_level :- 
-    writeln(failed(cellstatLevelUpdate)).
-
-get_lagoon_levels :-
+get_level(Type) :-
     python(Python),
     evostat_directory(Dir),
     concat_atom([Dir,'ipcam.py'],IPCAM),
-    CmdLine = [IPCAM],
-    ( retract(levelStream(Previous)) ->
+    CmdLine = [IPCAM,Type],
+    ( retract(levelStream(Type,Previous)) ->
 	catch( read(Previous, Info),
 	       Ex,
 	       (writeln(caught(Ex,CmdLine)),sleep(3),fail)),
@@ -337,15 +327,13 @@ get_lagoon_levels :-
      ; true
     ),
     evostat_directory(Dir),
-%   writeln(process_create(Python,CmdLine,[stdout(pipe(Out)),cwd(Dir)])),
-    open("ipcam.log",write,Stderr,[]),
-    process_create(Python,CmdLine,[stdout(pipe(Out)),stderr(pipe(Stderr)),cwd(Dir)]),
-    assert(levelStream(Out)),
+    process_create(Python,CmdLine,
+		   [stdout(pipe(Out)),stderr(null),cwd(Dir)]),
+    assert(levelStream(Type,Out)),
     !.
 
-get_lagoon_levels :- 
-    writeln(failed(lagoonLevelUpdate)).
-
+get_level(Type) :- 
+    writeln(failed(levelUpdate(Type))).
 
 newFlux(end_of_file,_) :- !.
 newFlux(FluxTerm, Stream) :-
@@ -436,13 +424,14 @@ started(_W) :->
 
 
 cellstat(Self) :-> "User pressed the CellStat button"::
-	send(Self,stopped),
-        send(Self?graphicals, for_all,  % Lagoon mixers OFF
+    send(Self,stopped),
+    simulator -> true ;
+    send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
-        component(_,cellstat,CellStat),
-        send(CellStat,converse,'m0'),  % Cellstat mixer OFF
-        send(CellStat,converse,'o-'),  % Cellstat air   OFF
-        send(Self,manualUpdate).
+    component(_,cellstat,CellStat),
+    send(CellStat,converse,'m0'),  % Cellstat mixer OFF
+    send(CellStat,converse,'o-'),  % Cellstat air   OFF
+    send(Self,manualUpdate).
 
 l1(_W) :-> "User pressed the L1 button"::
   current_prolog_flag(argv,[_,X|_]),
@@ -529,7 +518,7 @@ range_color(Target, Current, Color) :-
 % 1) Stop auto-update
 % 2) Reload the  <hostname>.pl user parameter file if it changed
 % 3) Perform the update on all components
-% 4) Restart the auto update timer - but not a new timer value from the Settings file :-(
+% 4) Restart the auto update timer (new timer value from settings NYI)
 %
 autoUpdate(Self) :->
     stop_updates,
@@ -538,42 +527,38 @@ autoUpdate(Self) :->
     start_updates.
 
 manualUpdate(Self) :->
+    send(Self,quiet),
+    send(Self,readLevels),
+    send(Self,mixon).
+
+quiet(Self) :->
+    simulator -> true ;
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
-    component(_,cellstat,CellStat),
-    send(CellStat,converse,'m0'),  % Cellstat mixer OFF
-    send(CellStat,converse,'o-'),  % Cellstat air   OFF
-    get_lagoon_levels,
-%    writeln('Update (after lagoon levels) Auto-update OFF'),
-    sleep(6),
-    get_cellstat_level,
+    component(_,cellstat,Cellstat),
+    send(Cellstat,converse,'m0').
+
+mixon(Self) :->
+    simulator -> true ;
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-%    writeln('Update COMPLETED: Turning on Air and Mixers'),
+    writeln('Update COMPLETED: Turning on Air and Mixers'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
+    component(_,cellstat,CellStat),
     send(CellStat,converse,'m1'),  % Cellstat mixer ON
     send(CellStat,converse,'o2').  % Cellstat air   ON
-
-:- pce_end_class.
-
-righton :-
-    retract(current_value(t2,_,_,_)),
-    assert(current_value(t2,l2,temperature,36)).
-
-raise :-
-    current_value(t2,_,_,T),
-    retract(current_value(t2,_,_,T)),
-    NewT is T + 2,
-    assert(current_value(t2,l2,temperature,NewT)).
-
-lower :-
-    current_value(t2,_,_,T),
-    retract(current_value(t2,_,_,T)),
-    NewT is T - 2,
-    assert(current_value(t2,l2,temperature,NewT)).
+    
+    
+readLevels(_) :->
+    get_level(lagoons),
+    sleep(6),
+    get_level(cellstat).
+    
+    
+:- pce_end_class.  % End of evostat
 
 % Initializers are extra arguments to the constructor
 % Data is a list of messages to continue initializing the object
@@ -607,18 +592,6 @@ bluetalk(   S, Cmd,     Reply    ) :- bt_converse(S ,Cmd, Reply).
 bluetalk(   _,   _, 'send_failed.'    ).
 
 
-c :- main([]).
-
-c(Name) :-
-    free(@gui),
-    new(@gui, evostat(Name)),
-    send(@gui?frame, icon, bitmap('./evo.xpm')),
-    get(@gui, prompt, Reply),
-    (Reply = quit ->
-         send(@gui, destroy)
-     ;   true
-    ).
-
 % Making a Prolog executable (saved-state)
 % :- [c],save_evostat.
 % main(Argv) :-  start application here, using passed arguments from Argv
@@ -629,9 +602,10 @@ c(Name) :-
 % The corresponding Prolog file ( <name>.pl ) must exist.
 % Load configuration and generate Python .settings (dictionary) file.
 
+% Load runtime predicates (config, debug options ) from <hostname>.pl
+% Periodical checks to reload if the file changes
 update_config(Config) :-
     config_name(Config,File),  %  Find configuration name (hostname or cmd arg)
-    writeln(needtoload(File)),
     load_newest(Config,File).
 
 load_newest(_,File) :-
@@ -647,7 +621,21 @@ load_newest(Config,File) :-
     retractall(file_modtime(File,_)),
     assert(file_modtime(File, Time)).
 
-main :-      pce_main_loop(main).
+
+c :- main([]).
+
+c(Name) :-
+    free(@gui),
+    new(@gui, evostat(Name)),
+    send(@gui?frame, icon, bitmap('./evo.xpm')),
+    get(@gui, prompt, Reply),
+    (Reply = quit ->
+         send(@gui, destroy)
+     ;   true
+    ).
+
+
+main :- pce_main_loop(main).
 
 main(_Argv) :-
         assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
@@ -686,14 +674,10 @@ main(_Argv) :-
 
 	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
 	assert(supress(screen(_,_,_))),       %     ''
-	config(List),
-	pl2PythonDict(List, PyString),        % Convert to Python Dictionary
-	concat_atom([Root,'.settings'],File), % Write it out
-	tell(File),
-	write(PyString),
-	told,
+        writePythonParams(Root),
 	c(Root),
         !.
+
 
 os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
     current_prolog_flag(windows, true),!.
@@ -719,8 +703,3 @@ save_evostat :-
     retractall(debug),
     Options = [stand_alone(true), goal(main)],
     qsave_program(evostat, [emulator(Emulator)|Options]).
-
-
-
-
-
