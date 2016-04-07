@@ -300,6 +300,7 @@ lagoons(Cmd) :-
     fail.
 lagoons(_).
 
+send_info(end_of_file,_) :- writeln('Is debugging on? Possibly calling level detection on Cellstat while it is still working on Lagoons'),fail.
 send_info(Msg,_) :- simulator, writeln(Msg),fail.
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).

@@ -67,6 +67,7 @@ class ipCamera(object):
             (rval,img) = self.usbcam.read()
             if (not rval):
                 plog("VideoCapture test returned "+str(rval))
+                exit(0)
             self.ip = None
         else :
             plog("No IP camera support at present")
