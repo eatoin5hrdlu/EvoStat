@@ -284,8 +284,9 @@ check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
 check_error(_).               % Everything else is not an error
 
 %
-% Find the lagoon(object) for a given position, names can be
-% complex but must start with 'lagoon' and end with a single digit
+% Find the Nth lagoon(object), names can be complex
+% but must end with a single digit (usually 1-4)
+% E.g. lagoonDarwin2, lagoon_huxley_1, cuvierVirustat4
 %
 lagoon_number(Object, N) :-
     component(Lagoon, lagoon, Object),
@@ -301,16 +302,20 @@ lagoons(Cmd) :-
 lagoons(_).
 
 send_info(end_of_file,_) :- writeln('Is debugging on? Possibly calling level detection on Cellstat while it is still working on Lagoons'),fail.
-send_info(Msg,_) :- simulator, writeln(Msg),fail.
+send_info(Msg,_) :- writeln(send_info(Msg)),fail.
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 send_info(level(Level),_) :-  % Single value is Cellstat level/1
     component(_,cellstat,Cellstat),
     send(Cellstat, setLevel, Level).
 
-send_info(levels(Level),_) :- % levels/N (plural,can still be only one lagoon)
-    lagoon_number(Object, 3),
-    send(Object, setLevel, Level).
+send_info(Term,_) :-  % levels/N: arity corresponds to number of lagoons
+    functor(Term,levels,_),
+    arg(N, Term, Level),
+    lagoon_number(Object, N),
+    send(Object, setLevel, Level),
+    fail.
+
 send_info(_,_).
 
 get_level(Type) :-
@@ -426,13 +431,7 @@ started(_W) :->
 
 cellstat(Self) :-> "User pressed the CellStat button"::
     send(Self,stopped),
-    simulator -> true ;
-    send(Self?graphicals, for_all,  % Lagoon mixers OFF
-	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
-    component(_,cellstat,CellStat),
-    send(CellStat,converse,'m0'),  % Cellstat mixer OFF
-    send(CellStat,converse,'o-'),  % Cellstat air   OFF
-    send(Self,manualUpdate).
+    simulator -> true ; send(Self,manualUpdate).
 
 l1(_W) :-> "User pressed the L1 button"::
   current_prolog_flag(argv,[_,X|_]),
@@ -523,7 +522,7 @@ range_color(Target, Current, Color) :-
 %
 autoUpdate(Self) :->
     stop_updates,
-    update_config(_),	
+    update_config(_),
     send(Self,manualUpdate),
     start_updates.
 
@@ -537,7 +536,8 @@ quiet(Self) :->
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
     component(_,cellstat,Cellstat),
-    send(Cellstat,converse,'m0').
+    send(Cellstat,converse,'m0'),
+    send(Cellstat,converse,'o-').
 
 mixon(Self) :->
     simulator -> true ;
@@ -545,17 +545,16 @@ mixon(Self) :->
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-    writeln('Update COMPLETED: Turning on Air and Mixers'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
     component(_,cellstat,CellStat),
-    send(CellStat,converse,'m1'),  % Cellstat mixer ON
-    send(CellStat,converse,'o2').  % Cellstat air   ON
-    
+    send(CellStat,converse,'m1'),
+    send(CellStat,converse,'o2'),
+    writeln('Updated:Air and Mixers On').
     
 readLevels(_) :->
     get_level(lagoons),
-    sleep(6),
+    sleep(10),
     get_level(cellstat).
     
     

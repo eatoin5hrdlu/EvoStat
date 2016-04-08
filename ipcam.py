@@ -1,5 +1,5 @@
-#!C:/cygwin/Python27/python -u
 #!/usr/bin/python -u
+#!C:/cygwin/Python27/python -u
 #!C:/Python27/python -u
 # Regions lead with y  (y1,x1,y2,x2) where (y1,x1) is (uppermost,leftmost)
 # OpenCV blob,contour algorithms return (X,Y,Width,Height) not(x,y,x2,y2)
@@ -107,8 +107,10 @@ class ipCamera(object):
         cv2.putText(img,colors[color],(10,80),cv2.FONT_HERSHEY_PLAIN,4.0,(240,80,200),2)
 
     def showLevel(self,img,bb,lvl) :
+        height = bb[2]-bb[0]
+        pc = 100-100*lvl/height
         cv2.line(img,(bb[1],bb[0]+lvl),(bb[1]+20,bb[0]+lvl), (100,100,255),2)
-        cv2.putText(img,"  "+str(lvl)+"%",(bb[1],bb[0]+lvl),
+        cv2.putText(img,"  "+str(pc)+"%",(bb[1],bb[0]+lvl),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100,100,255),1)
         cv2.line(img,(bb[1],bb[0]),(bb[1]+20,bb[0]), (0,255,0),2)
         cv2.putText(img,"100%",(bb[1],bb[0]),
@@ -118,26 +120,23 @@ class ipCamera(object):
         """Level is percentage of vessel height. To use mL as unit
         we should add scaling param to <hostname>.pl"""
         plog(">>>>>>>>>>updateLevels>>>>>>>>>>\n")
-        if ( (bbrects[0][0] == brect[0]) and (bbrects[0][1] == brect[1]) and (len(bbrects)==1) ):
-            (gy,gx,_,_) = (0,0,0,0)
-            single = True
-        else :
-            (gy,gx,_,_) = brect
-            single = None
+        plog(str(brect))
+        plog(str(bbrects))
+        (gy,gx,_,_) = brect
         goodRead = 0
         Levels = []
         while (goodRead != len(bbrects)) :
             goodRead = 0
             frame = self.evocv.grab()
             for r in bbrects:
-                if (single) :
-                    headroom = 0
-                else :
-                    headroom = height-r[3]
+                plog("height="+str(height))
+                headroom = height-r[3]
+                plog("headroom="+str(headroom))
                 # Rectangles have xywh need x1,y1,x2,y2
                 plog("start with: " + str(r))
                 # Add headroom(vessel height) to reflect fill level
-                bb = (gy+r[1]-headroom, gx+r[0], gy+r[1]+r[3], gx+r[0]+r[2])
+                c1 = max(1,gy+r[1]-headroom)
+                bb = (c1, gx+r[0], gy+r[1]+r[3], gx+r[0]+r[2])
                 plog("convert to: " + str(bb))
                 subh = self.evocv.croppedImage(bb)[:,:,color]
                 plog("grabbed cropped image"+str(subh.shape))
@@ -165,15 +164,15 @@ class ipCamera(object):
                 plog(str(goodRead) + " good level reads")
         return Levels
 
-    def updateLagoons(self, brect, needed) :
-        """Blob detection to locate vessels. Must be called before updateLevels()."""
+    def updateLagoons(self, brect, needed, color=1) :
+        """Blob detection to locate vessels. Call before updateLevels()."""
         plog("updateLagoons")
         sbbs = []
         blobs = []
         while (len(sbbs) < needed) :
             frame = self.evocv.croppedImage(brect)
             plog("Frame shape:" + str(frame.shape))
-            bbs = self.evocv.blobs(frame,contrast=self.params['lagoonContrast'])
+            bbs = self.evocv.blobs(frame,color,contrast=self.params['lagoonContrast'])
             plog("BLOBS: " + str(bbs))
             sbbs = self.evocv.blobs2outlines(bbs)
             plog("OUTLINES: " + str(sbbs))
@@ -428,13 +427,22 @@ if __name__ == "__main__" :
         brect = ipcam.params['lagoonRegion']
         num =  ipcam.params['numLagoons']
         contrast = ipcam.params['lagoonContrast']
-        print(termIntList('levels',ipcam.updateLevels(height,brect,ipcam.updateLagoons(brect,num),contrast)))
+        print(termIntList('levels',
+                ipcam.updateLevels(height, brect,
+                    ipcam.updateLagoons(brect,num),contrast)))
     if ('cellstat' in sys.argv) :        # Just the CellStat level
         height = ipcam.params['cellstatHeight']
         brect = ipcam.params['cellstatRegion']
         num = 1
+        red = 2
         contrast = ipcam.params['cellstatContrast']
-        print(termIntList('level',ipcam.updateLevels(height,brect,ipcam.updateLagoons(brect,num),contrast)))
+        plog("Minsize for cellstat = " + str((brect[3]-brect[1])/2))
+        ipcam.evocv.set_minsize((brect[3]-brect[1])/2)
+        plog("Maxsize for cellstat = "+str(height))
+        ipcam.evocv.set_maxsize(height)
+        print(termIntList('level',
+                ipcam.updateLevels(height,brect,
+                                   ipcam.updateLagoons(brect,num,red),contrast,red)))
     ipcam.release()
 
 

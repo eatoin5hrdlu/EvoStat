@@ -12,6 +12,31 @@
 :- use_module(library(process)).
 
 :- dynamic tog/1.
+:- dynamic ard/5.
+
+% This fact implies:
+% 
+% Send 'b' to a cellstat to get turbidity(T)
+% Store T in turbidity term
+% and
+
+interrogation(cellstat,[t:temperature,b:turbidity]).
+interrogation(lagoon, [t:temperature]).
+
+interrogate(Type) :-
+    component(_, Type, Object),
+    trace,
+    interrogation(Type, Questions),
+    member(Cmd:Functor, Questions),
+    send(Object,converse,Cmd),
+    get(Object,slot,reply,Reply),
+    catch( atom_to_term(Reply,Term,_Bind),
+	   Exception,
+	   writeln(expected(Functor/1,Reply,Exception))),
+    Term =.. [Functor,Answer],
+    send(Object,slot, Functor, Answer),
+    fail.
+interrogate(_).
 
 timeatom(Hours,M,S,TimeAtom) :-
  	(M > 9 -> M = Minutes ; concat_atom(['0',M],Minutes)),
@@ -198,7 +223,8 @@ mix_colors(   C,   C,      C) :- !.
 mix_colors(   _,blue, purple) :- !.
 mix_colors(blue,   _, purple) :- !.
 mix_colors(green,  _, orange) :- !.
-mix_colors( _, green, orange).
+mix_colors( _, green, orange) :- !.
+mix_colors( _, red,   red).
 
 compute(_) :-> true.
 
@@ -275,12 +301,33 @@ mac(Self, MAC:[name]) :->
 :- pce_begin_class(cellstat, ebutton).
 
 variable(level, real, get, "Percent Full").
+variable(leak,   int, get, "Leak Detector").
 
 initialise(Self, Label:[name]) :->
 	"Initialise the cellstat"::
         send_super(Self, initialise(Label)),
 	send_super(Self,slot,colour,colour(blue)),
 	send(Self, slot, level, 0).
+
+check_leak(leak(N)) :-	!, check_leak_value(N).
+check_leak(P)       :-  writeln(expected(leak/1,P)).
+
+
+check_leak_value(N) :-  N > 800,
+			!,
+			writeln('No leak').
+
+check_leak_value(N) :- N < 400,
+		       !,
+		       writeln(leak(definitely)),
+		       send(@gui?graphicals, for_all,
+			    if(message(@arg1,instance_of,spacer),
+			       message(@arg1,color,red))).
+
+check_leak_value(N) :- writeln(leak(maybe,N)),
+		       send(@gui?graphicals, for_all,
+			    if( message(@arg1,instance_of,spacer),
+				message(@arg1,color,orange))).
 	
 update(Self) :->
 	send_super(Self, update),
@@ -294,6 +341,10 @@ update(Self) :->
         get(Self, slot, temperature_t, Target),
 	range_color(Target, Temp, Tc),
         get(Self, slot, od600_t, ODTarget),
+	send_super(Self,converse,'w'),
+        get(Self, slot, reply, LeakReply),
+	parse_reply(LeakReply,Leak,leak(666)),
+	check_leak(Leak),
 	send_super(Self,converse,'b'),
         get(Self, slot, reply, TurbReply),
         atom_to_term(TurbReply,TbTerm,_TBBindings),

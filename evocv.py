@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os, sys, time, traceback
+from util import *
 import numpy as np
 import cv2
 import cv2.cv as cv
@@ -26,7 +27,7 @@ class EvoCv(object):
         self.usbcam = usbcam
         self.params = params
 	self.color = color   # default color of interest is Green
-        self.maxWidth = 60   # All lagoon areas will be reduced to a strip this wide
+        self.maxWidth = 60   # All blobs are reduced to a strip this wide
 	self.minDim = minsize
 	self.maxDim = maxsize
         self.kernal = np.ones((5,5),np.uint8)
@@ -48,6 +49,9 @@ class EvoCv(object):
     def set_maxsize(self, maxsize) :
 	self.maxDim = maxsize
 
+    def set_color(self, color) :
+	self.color = color
+
     def rotateImage(self, img, angle=90):
         """+-90 degree rotations are fast and do not crop"""
         if (angle == 90) :
@@ -61,23 +65,23 @@ class EvoCv(object):
 
     def contrast(self, image, iter=1, scale=2.0, offset=-80) :
         if (image == None) :
-            print("contrast called with null Image",file=sys.stderr)
+            plog("contrast called with null Image")
         for i in range(iter) :
-            print("Try contrast "+str((iter,scale,offset)), file=sys.stderr)
+            plog("Try contrast "+str((iter,scale,offset)))
             if (image == None) :
-                print("contrast loop: Image is None",file=sys.stderr)
+                plog("contrast loop: Image is None")
             else :
                 self.showUser(image)
                 image = cv2.add(cv2.multiply(image,scale),offset)
                 if (image == None) :
-                    print( "image(None) after add/mulitply in contrast!",file=sys.stderr)
+                    plog( "image(None) after add/mulitply in contrast!")
         self.showUser(image,label= ("cdone",image.shape[0]/2,image.shape[1]/2) )
         (ret,img) = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
         if (ret == False) :
-            print( "Thresholding failed?",file=sys.stderr)
+            plog( "Thresholding failed?")
             return None
         if (img == None) :
-            print( "img is None after binary threshold in contrast",file=sys.stderr)
+            plog( "img is None after binary threshold in contrast")
         self.showUser(img)
         # ret value is threshold (127.0) not True - False
         return img
@@ -86,7 +90,7 @@ class EvoCv(object):
         """Return monochrome image with selected color scaled
            minus sum of the fractions of the other colors.
            Where color is Blue (0), Green (1-default), or Red (2)"""
-        print("Color="+str(color),file=sys.stderr)
+        plog("Color="+str(color))
         return cv2.subtract(cv2.multiply(img[:,:,color],scale),
                             cv2.multiply(cv2.add( img[:,:,(color+1)%3],
                                                   img[:,:,(color+2)%3]),fraction))
@@ -104,38 +108,38 @@ class EvoCv(object):
            Returns:   -1 when there is a problem with the data
                     1000 when there is no line within proper range"""
         if (img == None) :
-            print("Level detector called with invalid image",file=sys.stderr)
+            plog("Level detector called with invalid image")
             return -1
         (h,w) = img.shape
         if (h == 0 or w == 0) :
-            print( "Level called with degenerate image SHAPE" + str(img.shape),file=sys.stderr)
+            plog( "Level called with degenerate image SHAPE" + str(img.shape))
             return -1
         img = self.contrast(img)
         if (img==None) :
-            print( "Contrast returned None  (shape =" + str(img.shape), file=sys.stderr)
+            plog("Contrast returned None  (shape =" + str(img.shape))
             return -1
         edges = cv2.Canny(img, 90, 100)
         if (edges == None) :
-            print( "Bad Canny output so not calling HoughLinesP in level()", file=sys.stderr)
+            plog("Bad Canny output so not calling HoughLinesP in level()")
             return -1
         # distance resolution, angle resolution, 
         alllines = cv2.HoughLinesP(edges, 2, np.pi/2.0, 1, 8, 4)
         if (alllines == None) :
-            print( "No horizontal lines found in image", file=sys.stderr)
+            plog("No horizontal lines found in image")
             return -1
         topline = 1000 + len(alllines)
-        print( "ALLINES " + str(alllines), file=sys.stderr)
+        plog( "ALLINES " + str(alllines))
         for lines in alllines:
-            print( "LINES " + str(lines), file = sys.stderr)
+            plog( "LINES " + str(lines))
             for l in lines : # Find the highest (minY) line (not on the edge)
-                print( "LINE " + str(l), file=sys.stderr)
+                plog( "LINE " + str(l))
                 if (l[1] == l[3]) : # Horizontal?
                     if ( l[1] < topline and l[1] > 5 and l[1] < h-5) :
-                        print( "\nHighest so far: " + str(l), file=sys.stderr)
+                        plog( "\nHighest so far: " + str(l))
                         topline = l[1]
                     else :
-                        print( " NOT RIGHT " + str(l) + " H = " + str(h), file=sys.stderr)
-        print("evocv.level(): topline coordinate is: ",str(topline),file=sys.stderr)
+                        plog( " NOT RIGHT " + str(l) + " H = " + str(h))
+        plog("evocv.level(): topline coordinate is: "+str(topline))
         return topline
 
     def blobs(self, img, color=1, contrast=(3,2,-70)) :
@@ -149,32 +153,35 @@ class EvoCv(object):
 	gray = self.erodeDilate(con, 1, 1, 2)
 	gray2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
         contours, _ = cv2.findContours(gray2, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        print( str(len(contours)) + " contours ( ", file=sys.stderr)
+        plog( str(len(contours)) + " contours ( ")
         toosmall = 0
         toolarge = 0
 	bbs = []
 	for c in contours:
 		rect = cv2.boundingRect(c)
-                print("Considering contour : "+str(rect),file=sys.stderr)
+                plog("Considering contour : "+str(rect))
+                if (rect[1] < 3) :
+                    plog("Too high ")
+                    continue
 		if rect[3] < self.minDim:  # vertical dim is never too small (nearly empty vessel!)
-                    print(str(rect)+ " too small MinDIM="+str(self.minDim),file=sys.stderr)
+                    plog(str(rect)+ " too small MinDIM="+str(self.minDim))
                     toosmall += 1
                     continue
 		elif    rect[2]>self.maxDim or rect[3]>self.maxDim :
-                    print(str(rect)+ " too large MAXDIM="+str(self.maxDim),file=sys.stderr)
+                    plog(str(rect)+ " too large MAXDIM="+str(self.maxDim))
                     toolarge += 1
                     continue
 		else :
                     if (rect[2] > self.maxWidth) :  # Limit width and center
                         margin = (rect[2]-self.maxWidth)/2
                         adjusted = (margin+rect[0],rect[1],self.maxWidth,rect[3])
-                        print( "WIDTH/CENTER ADJUSTED " + str(adjusted), file=sys.stderr)
+                        plog( "WIDTH/CENTER ADJUSTED " + str(adjusted))
                         bbs.append(adjusted)
                     else :
-                        print( "SIZE OKAY   " + str(rect) + "\n", file=sys.stderr)
+                        plog( "SIZE OKAY   " + str(rect) + "\n")
                         bbs.append(rect)
 
-        print(") "+str(toosmall)+" too small "+str(toolarge)+" too large",file=sys.stderr)
+        plog(") "+str(toosmall)+" too small "+str(toolarge)+" too large")
         for r in bbs:
             cv2.rectangle(img,(r[0],r[1]),(r[0]+r[2],r[1]+r[3]),(255,255,255),2)
         self.showUser(img)
@@ -198,10 +205,10 @@ class EvoCv(object):
                 if (rval) :
                     pass
                 else :
-                    print("Return value from usbcam.read() was "+str(rval),file=sys.stderr)
+                    plog("Return value from usbcam.read() was "+str(rval))
                     exit(0)
             except e:
-                print("Failed to grab image from USB camera" + str(e),file=sys.stderr)
+                plog("Failed to grab image from USB camera" + str(e))
         if (self.params['rotate']) :
             img = self.rotateImage(img, self.params['rotate'])
         return img
@@ -209,15 +216,14 @@ class EvoCv(object):
 
 
     def croppedImage(self, brect):
-        print("Evocv cropping "+str(brect),file=sys.stderr)
+        plog("Evocv cropping "+str(brect))
         (y1,x1,y2,x2) = brect
         image = self.grab()
         if (image == None) :
-            print("camera(fail).", file=sys.stderr)
+            plog("camera(fail).")
             exit(0)
         cimg = image[y1:y2,x1:x2,:]
-        print("Evocv cropped resulting in shape: "+str(cimg.shape),file=sys.stderr)
-        return cimg
+        return cv2.copyMakeBorder(cimg, 2,2,2,2, cv2.BORDER_CONSTANT,(0,0,0))
 
 # BB (bounding box) is (y1, x1, height, width) ??    
 # Color  is one of [0,1,2] [Blue, Green, Red]
@@ -227,19 +233,19 @@ class EvoCv(object):
         """Level value is a percentage of the region height"""
         badRead = True
         percentage = 0
-        print("getLevel " + str(bb), file=sys.stderr)
+        plog("getLevel " + str(bb))
         while (badRead) :
             frame = self.croppedImage(bb)
             mono = frame[:,:,color]
             self.showUser(mono)
             (it, sc, off) = contrast
             mono = self.contrast(mono,iter=it,scale=sc,offset=off)
-            print("Image is None after contrast in getLevel",file=sys.stderr)
+            plog("Image is None after contrast in getLevel")
             self.showUser(mono)
             lvl = self.level(mono)
-            print("evocv.getLevel() "+str(lvl),file=sys.stderr)
+            plog("evocv.getLevel() "+str(lvl))
             if (lvl == None or lvl > bb[2] ) :
-                print("getLevel failed", file=sys.stderr)
+                plog("getLevel failed")
             if (lvl > 0 and lvl < bb[2]) : # Level in range
                 H = bb[2]-bb[0]
                 percentage = 100*(H - lvl)/H
@@ -249,7 +255,7 @@ class EvoCv(object):
                 cv2.line(frame,(0,lvl),(bb[2],lvl), (255,0,255),2)
                 self.showUser(frame)
             else :
-                print(str(lvl) + " out of range :" + str(bb), file=sys.stderr)
+                plog(str(lvl) + " out of range :" + str(bb))
         return percentage
 
     def sliceColor(img, color):
@@ -278,7 +284,7 @@ class EvoCv(object):
             bbs = self.blobs(img, color, contrast) # Find colored blobs
             obbs = self.blobs2outlines(bbs)        # Sort left to right removing redundancies
             if (len(obbs) < len(names)):
-                print("Not enough blobs in image",file=sys.stderr)
+                plog("Not enough blobs in image")
                 self.showUser(img)
         self.drawBbs(img, obbs)
         return expandRectangles(obbs,bb[2]-bb[0])
@@ -302,7 +308,7 @@ class EvoCv(object):
                 if bb[0] > (prevbb[0]+prevbb[2]) :
                     vessels.append(bb)
                 else:
-                    print(str(bb) + " redundant: not added to list",file=sys.stderr)
+                    plog(str(bb) + " redundant: not added to list")
         return vessels
 
     def drawBbs(self, image, outlines) :
