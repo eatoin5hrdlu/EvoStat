@@ -67,7 +67,7 @@ class ipCamera(object):
             (rval,img) = self.usbcam.read()
             if (not rval):
                 plog("VideoCapture test returned "+str(rval))
-                exit(0)
+                exit(4)
             self.ip = None
         else :
             plog("No IP camera support at present")
@@ -162,6 +162,7 @@ class ipCamera(object):
                     return None
             if (goodRead != len(bbrects)) :
                 plog(str(goodRead) + " good level reads")
+        self.exportImage(frame)
         return Levels
 
     def updateLagoons(self, brect, needed, color=1) :
@@ -186,6 +187,17 @@ class ipCamera(object):
                     plog("frame was None after drawing bbs")
                 else :
                     self.evocv.showUser(frame)
+
+
+    def exportImage(self, image) :
+        global newSnapshot
+        (x1,y1,x2,y2) = self.params['lagoonRegion']
+        (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
+        if (image != None and newSnapshot != None ) :
+            cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
+            cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
+            cv2.imwrite(newSnapshot,cv2.resize(image,self.params['imageSize']))
+            newSnapshot = None
                     
     def drawLagoons(self, image) :
         global toggle

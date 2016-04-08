@@ -25,7 +25,6 @@ interrogation(lagoon, [t:temperature]).
 
 interrogate(Type) :-
     component(_, Type, Object),
-    trace,
     interrogation(Type, Questions),
     member(Cmd:Functor, Questions),
     send(Object,converse,Cmd),
@@ -99,35 +98,6 @@ repeat1(1) :- !.
 repeat1(_).
 repeat1(N) :- M is N-1, repeat1(M).
 
-% Haven't gotton bt_scan/2 to work yet. Linux was okay, Windows never worked
-% But Linux can be flaky too, so bt_device(Name,Address) facts will
-% be in <hostname>.pl (or <evostat>.pl) with config/1.
-
-% When no devices are around, uncomment the following for fast startup.
-% bt_address(Name, Addr) :- !, fail.
-
-%bt_device(labcellstat,  '98:D3:31:90:29:0E').
-
-%bt_device(cellstat,     '98:D3:31:90:29:0E').
-%bt_device(  lagoond3,   '98:D3:31:80:34:39'). % was d3
-%bt_device(autosampler,  '98:D3:31:40:1D:D4').
-
-%bt_device(autosamplerY, '98:D3:31:20:23:4F').
-%bt_device(autosamplerZ, '98:D3:31:70:2B:70').
-
-% BETA BOX simulator 
-%bt_device( cellstat,     '98:D3:31:90:2B:82').
-%bt_device(  lagoon1,     '98:D3:31:70:2A:22').
-%bt_device(  lagoon2,     '98:D3:31:40:31:BA').
-%bt_device(  autosampler, '98:D3:31:20:2B:EB').
-
-% Museum simulator
-%bt_device( cellstatd,     '98:D3:31:40:90:13').
-%bt_device(  lagoond1,     '98:D3:32:30:42:6A').
-%bt_device(  lagoond2,     '98:D3:31:30:95:60').
-%swbt_device(  lagoond3,     '98:D3:31:80:34:39').
-%bt_device(autosampler,    '98:D3:31:30:95:4B').
-
 :- ( current_prolog_flag(arch,'i386-win32')
      -> load_foreign_library(foreign(plblue))
      ;  load_foreign_library(plblue)
@@ -181,21 +151,21 @@ variable(reply,      name, get, "Last Message from Device" ).
 variable(levelUnits, name, get, "% or mL (usually)"        ).
 
 % Current Settings
-variable(od600,       int, get, "Optical Density (600nM)").
+variable(turbidity,       int, get, "Optical Density (600nM)").
 variable(temperature, real, get, "Temperature").
 
 % Target Settings
-variable(od600_t,       int, get, "Target Optical Density (600nM)").
-variable(temperature_t, real, get, "Target Temperature").
+variable(tturbidity,       int, get, "Target Optical Density (600nM)").
+variable(ttemperature, real, get, "Target Temperature").
 
 initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
         send_super(Self, initialise(Label)),
 	send(Self, slot, levelUnits, 'mL'),
-	send(Self, slot, temperature_t, 37.0),
-	send(Self, slot, od600_t, 400),
+	send(Self, slot, ttemperature, 37.0),
+	send(Self, slot, tturbidity, 400),
 	send(Self, slot, temperature, 0.0),
-	send(Self, slot, od600, 0.0),
+	send(Self, slot, turbidity, 0.0),
 	send(Self, slot, socket, @nil),
 	( bt_device(Label,Mac),
 	  send(Self, slot, mac, Mac),
@@ -235,7 +205,7 @@ shape(Self, W:[int], H:[int]) :->
 	send(Self, size, size(MyWidth,MyHeight)).
 
 od(Self, OD600:[real]) :->
-	 send(Self, slot, od600, OD600).
+	 send(Self, slot, turbidity, OD600).
 
 temp(Self, Temp:[real]) :->
 	 send(Self, slot, temperature, Temp).
@@ -315,7 +285,11 @@ check_leak(P)       :-  writeln(expected(leak/1,P)).
 
 check_leak_value(N) :-  N > 800,
 			!,
-			writeln('No leak').
+			writeln('No leak'),
+			send(@gui?graphicals, for_all,
+			     if(message(@arg1,instance_of,spacer),
+				message(@arg1,reset))).
+			
 
 check_leak_value(N) :- N < 400,
 		       !,
@@ -340,7 +314,7 @@ update(Self) :->
         send(Self,slot, temperature, Temp),
         get(Self, slot, temperature_t, Target),
 	range_color(Target, Temp, Tc),
-        get(Self, slot, od600_t, ODTarget),
+        get(Self, slot, tturbidity, ODTarget),
 	send_super(Self,converse,'w'),
         get(Self, slot, reply, LeakReply),
 	parse_reply(LeakReply,Leak,leak(666)),
@@ -349,7 +323,7 @@ update(Self) :->
         get(Self, slot, reply, TurbReply),
         atom_to_term(TurbReply,TbTerm,_TBBindings),
 	TbTerm = turbidity(TurbVal),
-	send(Self, slot, od600, TurbVal),
+	send(Self, slot, turbidity, TurbVal),
 	range_color(ODTarget, TurbVal, ODc),
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
@@ -417,8 +391,7 @@ update(Self) :->
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
 	),
-	send(Self, label, Label),
-	write(lagoon(level(Level))),write('     ').
+	send(Self, label, Label).
 
 control_level(Self) :->                         % Level within range
 	get(Self,slot,level,Level),
@@ -563,16 +536,27 @@ update(Self) :->
 
 :- pce_begin_class(spacer, box).
 
+variable(defaultColor, name, get, "DefaultColor" ).
+
 initialise(Self, _Name:[name]) :->
         screen(DW,_,WW,_,_),
 	NWid is DW*WW/110,
         send_super(Self, initialise(NWid, 6)),
 	send(Self, colour, colour(black)),
+	send(Self, slot, defaultColor, black),
 	send(Self, fill_pattern, colour(black)).
 
 color(Self, Color) :->
-	send(Self, colour, colour(Color)),
-	send(Self, fill_pattern, colour(Color)).
+     ( get(Self,slot,defaultColor,colour(black))   % First time
+      -> send(Self,slot,defaultColor,Color)  % New default
+      ; true
+     ),
+     send(Self, colour, colour(Color)),
+     send(Self, fill_pattern, colour(Color)).
+
+reset(Self) :-> 
+     get(Self,slot,defaultColor,C),
+     send(Self, colour, colour(C)).
 
 update(_Self) :-> true.
 

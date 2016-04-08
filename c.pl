@@ -82,7 +82,6 @@ camera_reset :-
 
 camera_reset :-
     evostat_directory(Dir),
-    process_create('/bin/rm',['-f','mypic1.jpg','mypic2.jpg'],[cwd(Dir)]),
     Cmd = '/usr/bin/uvcdynctrl',
     config_name(Config,_),    % Hostname or evostat argument
     concat_atom([Config,'.gpfl'], Settings),
@@ -333,9 +332,11 @@ get_level(Type) :-
      ; true
     ),
     evostat_directory(Dir),
+    writeln(launching(Python,CmdLine)),
     process_create(Python,CmdLine,
 		   [stdout(pipe(Out)),stderr(null),cwd(Dir)]),
     assert(levelStream(Type,Out)),
+    writeln(launched),
     !.
 
 get_level(Type) :- 
@@ -527,9 +528,9 @@ autoUpdate(Self) :->
     start_updates.
 
 manualUpdate(Self) :->
-    send(Self,quiet),
-    send(Self,readLevels),
-    send(Self,mixon).
+    send(Self,quiet),      writeln(sent(quiet)),
+    send(Self,readLevels), writeln(sent(readlevels)),
+    send(Self,mixon),      writeln(sent(mixon)).
 
 quiet(Self) :->
     simulator -> true ;
@@ -540,11 +541,13 @@ quiet(Self) :->
     send(Cellstat,converse,'o-').
 
 mixon(Self) :->
-    simulator -> true ;
+    writeln('Updating ebuttons'),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
+    writeln('Updating snapshot'),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
+    writeln('Turning noisy stuff back on'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
     component(_,cellstat,CellStat),
@@ -553,9 +556,9 @@ mixon(Self) :->
     writeln('Updated:Air and Mixers On').
     
 readLevels(_) :->
-    get_level(lagoons),
-    sleep(10),
-    get_level(cellstat).
+    get_level(lagoons), writeln(after(get_level(lagoons))),
+    sleep(6),
+    get_level(cellstat), writeln(after(get_level(cellstat))).
     
     
 :- pce_end_class.  % End of evostat
@@ -631,7 +634,7 @@ c(Name) :-
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@gui, destroy)
-     ;   true
+     ;   writeln(Reply)
     ).
 
 
