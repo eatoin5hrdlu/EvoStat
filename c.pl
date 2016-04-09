@@ -305,7 +305,7 @@ send_info(Msg,_) :- writeln(send_info(Msg)),fail.
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 send_info(level(Level),_) :-  % Single value is Cellstat level/1
-    component(_,cellstat,Cellstat),
+    component(_, cellstat, Cellstat),
     send(Cellstat, setLevel, Level).
 
 send_info(Term,_) :-  % levels/N: arity corresponds to number of lagoons
@@ -334,7 +334,7 @@ get_level(Type) :-
     evostat_directory(Dir),
     writeln(launching(Python,CmdLine)),
     process_create(Python,CmdLine,
-		   [stdout(pipe(Out)),stderr(null),cwd(Dir)]),
+		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
     assert(levelStream(Type,Out)),
     writeln(launched),
     !.
@@ -525,7 +525,10 @@ autoUpdate(Self) :->
     stop_updates,
     update_config(_),
     send(Self,manualUpdate),
+    !,
     start_updates.
+
+autoUpdate(_) :-> start_updates. % If it fails for any reason
 
 manualUpdate(Self) :->
     send(Self,quiet),      writeln(sent(quiet)),

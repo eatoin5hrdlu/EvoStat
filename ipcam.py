@@ -120,6 +120,8 @@ class ipCamera(object):
         """Level is percentage of vessel height. To use mL as unit
         we should add scaling param to <hostname>.pl"""
         plog(">>>>>>>>>>updateLevels>>>>>>>>>>\n")
+        if (bbrects == None):
+            return [1]
         plog(str(brect))
         plog(str(bbrects))
         (gy,gx,_,_) = brect
@@ -170,7 +172,8 @@ class ipCamera(object):
         plog("updateLagoons")
         sbbs = []
         blobs = []
-        while (len(sbbs) < needed) :
+        tries = 3
+        while (len(sbbs) < needed and tries > 0) :
             frame = self.evocv.croppedImage(brect)
             plog("Frame shape:" + str(frame.shape))
             bbs = self.evocv.blobs(frame,color,contrast=self.params['lagoonContrast'])
@@ -180,6 +183,7 @@ class ipCamera(object):
             if (len(sbbs) >= needed) :  # Return the requested number of outlines
                 return sbbs[:needed]
             else :
+                tries = tries - 1
                 plog("Needed " + str(needed) + " bbs, but got " + str(len(sbbs)))
                 for bb in sbbs:
                     cv2.rectangle(frame,(bb[0],bb[1]),(bb[0]+bb[2],bb[1]+bb[3]),(0,0,255),2)
@@ -187,6 +191,7 @@ class ipCamera(object):
                     plog("frame was None after drawing bbs")
                 else :
                     self.evocv.showUser(frame)
+        return None
 
 
     def exportImage(self, image) :
