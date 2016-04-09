@@ -2,7 +2,7 @@ config( [
 	 updateCycle(60),  % In seconds
 	 debugpause(10),
 	 numLagoons(1),
-         imageSize(630,500),
+         imageSize(580,440),
 
          cellstatRegion(10,200,290,330),
          cellstatContrast(1, 1.2, -90), % Iterations, Multiply, Subtract
@@ -39,3 +39,31 @@ config( [
 bt_device(cellstat,    '98:D3:31:90:29:0E').
 bt_device( lagoon1,    '98:D3:31:80:34:39'). % was d3
 bt_device(autosampler, '98:D3:31:40:1D:D4').
+
+% But Linux can be flaky too, so bt_device(Name,Address) facts will
+% be in <hostname>.pl (or <evostat>.pl) with config/1.
+
+% When no devices are around, uncomment the following for fast startup.
+% bt_address(Name, Addr) :- !, fail.
+
+%bt_device(labcellstat,  '98:D3:31:90:29:0E').
+
+%bt_device(cellstat,     '98:D3:31:90:29:0E').
+%bt_device(  lagoond3,   '98:D3:31:80:34:39'). % was d3
+%bt_device(autosampler,  '98:D3:31:40:1D:D4').
+
+%bt_device(autosamplerY, '98:D3:31:20:23:4F').
+%bt_device(autosamplerZ, '98:D3:31:70:2B:70').
+
+% BETA BOX simulator 
+%bt_device( cellstat,     '98:D3:31:90:2B:82').
+%bt_device(  lagoon1,     '98:D3:31:70:2A:22').
+%bt_device(  lagoon2,     '98:D3:31:40:31:BA').
+%bt_device(  autosampler, '98:D3:31:20:2B:EB').
+
+% Museum simulator
+%bt_device( cellstatd,     '98:D3:31:40:90:13').
+%bt_device(  lagoond1,     '98:D3:32:30:42:6A').
+%bt_device(  lagoond2,     '98:D3:31:30:95:60').
+%swbt_device(  lagoond3,     '98:D3:31:80:34:39').
+%bt_device(autosampler,    '98:D3:31:30:95:4B').

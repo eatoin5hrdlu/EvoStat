@@ -557,7 +557,7 @@ mixon(Self) :->
     
 readLevels(_) :->
     get_level(lagoons), writeln(after(get_level(lagoons))),
-    sleep(6),
+    sleep(10),
     get_level(cellstat), writeln(after(get_level(cellstat))).
     
     

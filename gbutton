@@ -132,6 +132,7 @@ image(Self, File:[name])      :->
 imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
 
 update(Self) :->
+	writeln(updating(snapshot)),
 	get(Self, imageDirectory, Path),
 	get(Self, imageFile, OldFile),
 	snapshot(Path, NewFile),
@@ -139,7 +140,8 @@ update(Self) :->
 	; new(I, image(NewFile)),
 	  send(Self, slot, imageFile, NewFile),
 	  send(Self,selection, I)
-	).
+	),
+	writeln(updated(snapshot)).
 
 :- pce_end_class.
 
@@ -304,6 +306,7 @@ check_leak_value(N) :- writeln(leak(maybe,N)),
 				message(@arg1,color,orange))).
 	
 update(Self) :->
+	writeln(updating(cellstat)),
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
@@ -312,7 +315,7 @@ update(Self) :->
 	parse_reply(Reply, temperature(Temp10), temperature(11.3)),
 	Temp is Temp10/10.0,
         send(Self,slot, temperature, Temp),
-        get(Self, slot, temperature_t, Target),
+        get(Self, slot, ttemperature, Target),
 	range_color(Target, Temp, Tc),
         get(Self, slot, tturbidity, ODTarget),
 	send_super(Self,converse,'w'),
@@ -334,7 +337,7 @@ update(Self) :->
  		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
 	),
 	send(Self, label, Label),
-        write(cellstat(level(Level))),write('  ').
+        writeln(updated(cellstat,level(Level))).
 
 setLevel(Self,Level) :->
        send(Self, slot, level, Level).
@@ -343,6 +346,7 @@ setLevel(Self,Level) :->
 
 :- pce_begin_class(lagoon, ebutton).
 
+variable(myname, name, get, "My real name").
 variable(fluorescence,real, get, "Fluorescence").
 variable(fluorescence_t, real, get, "Target Fluorescence").
 variable(level,     real, get, "Level").
@@ -361,6 +365,7 @@ variable(overflow,   int,   get, "Indication of Overflow").
 initialise(Self, Label:[name]) :->
 	"Initialise the lagoon"::
         send_super(Self, initialise(Label)),
+	send(Self, slot, myname, Label),
 	send(Self, slot, calibration, normal),
 	send(Self, slot, level, 0.0),
 	send(Self, slot, level_t, 36.0),
@@ -369,6 +374,8 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, fluorescence, 0.0).
 
 update(Self) :->
+        get(Self, slot, myname, MyName),
+	writeln(updating(lagoon(MyName))),
         send_super(Self, update),
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
@@ -377,7 +384,7 @@ update(Self) :->
 	parse_reply(Reply,temperature(TempInt),temperature(111)),
 	Temp is float(TempInt)/10.0,
         send(Self,slot,temperature,Temp),
-        get(Self,slot,temperature_t,Target),
+        get(Self,slot,ttemperature,Target),
 	range_color(Target, Temp, Color),
 	send(Self, colour(Color)),
         get(Self, slot, level, Level),
@@ -391,7 +398,8 @@ update(Self) :->
 	             'Temp  ', Target, 'C / ',Temp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
 	),
-	send(Self, label, Label).
+	send(Self, label, Label),
+	writeln(updated(lagoon(MyName))).
 
 control_level(Self) :->                         % Level within range
 	get(Self,slot,level,Level),
