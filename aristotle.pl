@@ -1,16 +1,17 @@
 config( [
-	 updateCycle(60),  % In seconds
-	 debugpause(10),
+	 textMessages(14400), % 10 min = 360 hourly = 3600 4-hours = 14400
+	 updateCycle(100),    % In seconds
+	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(10,200,290,330),
-         cellstatContrast(1, 1.2, -90), % Iterations, Multiply, Subtract
+         cellstatRegion(10,200,290,280),
+         cellstatContrast(3, 2.95, -45), % Iterations, Multiply, Subtract
 	 cellstatHeight(250),  % same as 100% of cellstat volume
 
-         lagoonRegion(400,20,620,460),
+         lagoonRegion(400,20,630,460),
          lagoonContrast(  2, 1.9, -69),
-	 lagoonHeight(190),    % same as 100% of lagoon volume
+	 lagoonHeight(120),             % same as 100% of lagoon volume
 	 lagoonWidth(60),
 
 	 frames(100),       % number of frames for lumosity integration
@@ -27,7 +28,7 @@ config( [
 		 lagoon( lagoon2, right,    [temp(35.0), LS, SF]),
 		 lagoon( lagoon3, right,   [temp(34.5) ,LS, SF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
-		 sampler(autosampler, next_row, [shape(40,10),SF])
+		 sampler(autosampler, next_row, [shape(40,12),SF])
                 ])
 	 ]) :-
  LS = shape(31,12),
@@ -67,3 +68,7 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 %bt_device(  lagoond2,     '98:D3:31:30:95:60').
 %swbt_device(  lagoond3,     '98:D3:31:80:34:39').
 %bt_device(autosampler,    '98:D3:31:30:95:4B').
+
+%watcher('vp 9194525097'). % Lea
+watcher('vp 9194525098'). % Peter
+%watcher('a 9193083839'). % The Other Peter

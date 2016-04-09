@@ -1,10 +1,12 @@
-#!C:/cygwin/Python27/python
-import smtplib, sys, time
+#!/usr/bin/python -u
+#!C:/cygwin/Python27/python -u
+import smtplib, os, sys, time
 from email.mime.image      import MIMEImage
 from email.mime.multipart  import MIMEMultipart
 from email.mime.text       import MIMEText
 COMMASPACE = ', '
 
+secrets = eval(open('secrets.py').read())
 carriers = { 'a' : '@mms.att.net',
              't' : '@tmomail.net',
              'v' : '@vtext.com',
@@ -27,24 +29,23 @@ carriers = { 'a' : '@mms.att.net',
  
 car = 'vp'
 num = '9194525098'
-mess = '\n' + "temperature 38C\nturbidity(OD600) 0.38\npH 7.2\n"
+mess = os.popen('tail -10 /home/peter/src/EvoStat/evostat.report').read()
              
 if (len(sys.argv) < 2) :
     print 'smstext [atvs] NNNNNNNNNN "message"';
-    print 'e.g. for [v]erizon use:   smstext v 9194525098 "hi peter"'
+    print 'e.g. for [v]erizon use:   smstext v 9194525098'
 #    exit()
 else :
     car = sys.argv[1]
     num = sys.argv[2]
-    mess = sys.argv[3]
 
 # SMTP Port 25?
 server = smtplib.SMTP( "smtp.gmail.com", 587 )
 server.starttls()
-server.login( 'phagestat', '5ageass!3' )
+server.login( secrets['login'], secrets['password'] )
 
 # Create the container (outer) email message.
-if (car == 'vp') :
+if (car == 'vp' or car == 'a') :
     msg = MIMEMultipart()   #   MIMEText(mess, 'plain')
     msg.attach(MIMEImage(open("phagestat.png", 'rb').read()))
     msg.attach(MIMEText(mess,'plain'))
@@ -54,8 +55,10 @@ else :
 msg['Subject'] = 'PhageStatus'
 msg['From'] = 'phagestat@gmail.com'
 msg['To'] = num + carriers[car]
-               
-# print "server.sendmail( 'phagestat@gmail.com', " + num + carriers[car] + ", " + msg.as_string() + " )"
+
+# Careful, this debug print prints the whole uuencoded picture
+# print "server.sendmail( 'phagestat@gmail.com', "+num+carriers[car]+", "+msg.as_string()+" )"
+
 server.sendmail('phagestat@gmail.com', num+carriers[car], msg.as_string())
 server.quit()
 

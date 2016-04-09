@@ -95,12 +95,12 @@ class EvoCv(object):
                             cv2.multiply(cv2.add( img[:,:,(color+1)%3],
                                                   img[:,:,(color+2)%3]),fraction))
     
-    def showUser(self, img, label=(".",0,0)) :
+    def showUser(self, img, label=(".",0,0),multiplier=1) :
         if (self.params['debugpause'] > 10) :
             (text, y, x) = label
             cv2.putText(img,text, (y,x),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,0,255),1)
             cv2.imshow("camera", img)
-            if cv.WaitKey(self.params['debugpause']) == 27:
+            if cv.WaitKey(multiplier*self.params['debugpause']) == 27:
                  exit(0)
 
     def level(self, img) :
@@ -163,7 +163,7 @@ class EvoCv(object):
                 if (rect[1] < 3) :
                     plog("Too high ")
                     continue
-		if rect[3] < self.minDim:  # vertical dim is never too small (nearly empty vessel!)
+		if rect[2] < self.minDim:  # vertical dim(3) is never too small (nearly empty vessel!)
                     plog(str(rect)+ " too small MinDIM="+str(self.minDim))
                     toosmall += 1
                     continue

@@ -12,6 +12,12 @@
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
+
+timeline(S):-
+    get_time(Now),
+    convert_time(Now,String),
+    write(S,String),nl(S).
+
 %:- pce_autoload(finder, library(find_file)).
 %:- pce_global(@finder, new(finder)).
 :- dynamic component/3.
@@ -23,12 +29,29 @@
 :- dynamic simulator/0.
 :- multifile simulator/0.
 % logfile(logfile).
-    
+
+:- dynamic leak/1, temperature/3, last_level/2.
+
+:- dynamic watcher/1.  % Phone numbers of people watching the EvoStat
+:- multifile watcher/1.
+
+assert_one(Term) :-
+    functor(Term,F,A),
+    functor(Dummy,F,A),
+    retractall(Dummy),
+    assert(Term).
+
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
 temp_file('dbg.txt').
 temp_file(File)       :- logfile(File).
 
+:- dynamic timer_time/1.
+timer_left(T) :-
+    get_time(Now),
+    timer_time(Last),
+    T is integer(Now-Last).
+    
 cleanup :-
     temp_file(F),
     exists_file(F),
@@ -37,18 +60,9 @@ cleanup :-
 cleanup.
 
 stop_updates :-
-       send(@ut, stop),
-       send(@action?members, for_all,
-	    if(@arg1?value==stop,message(@arg1, active, @off))),
-       send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @on))).
-
+       send(@gui, stopped).
 start_updates :-
-       send(@ut, start),
-       send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @off))),
-       send(@action?members, for_all,
-	    if(@arg1?value==stop, message(@arg1, active, @on))).
+       send(@gui, started).
 
 % All messages to logfile (otherwise, message window) Linux only
 
@@ -354,7 +368,6 @@ newFlux(FluxTerm, Stream) :-
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
           send_super(W, initialise(Label)),
-          writeln(evostat_object(W)),
 	  screen(WW,WH,DW,DH,Location),
 	  EWidth is WW*DW/100,
 	  EHeight is WH*DH/100,
@@ -365,13 +378,26 @@ initialise(W, Label:[name]) :->
 	  send(W,  append, new(MB, menu_bar)),
 	  send(MB, label_font(huge)),
 
-	  % Do an update once every two minutes
+	  % Long update cycle for communication with subsystems
 	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
 	  free(@ut),
 	  param(updateCycle(Seconds)),
 	  send(W, attribute, attribute(timer, new(@ut, timer(Seconds, Msg1)))),
 
+	  % Short update cycle for GUI
+	  new(Msg2, message(W, fastUpdate)),  % Message for fast Timer
+	  free(@ft),
+	  param(updateCycle(Seconds)),
+          Frequent is integer(Seconds/10),
+	  writeln(frequentTimer(Frequent)),
+	  send(W, attribute, attribute(timer, new(@ft, timer(Frequent, Msg2)))),
 	
+	  % Status updates via Text Messaging
+	  new(Msg3, message(W, sendTexts)),
+	  free(@tt),
+	  param(textMessages(TextSeconds)),
+	  send(W,attribute,attribute(timer,new(@tt,timer(TextSeconds,Msg3)))),
+
 	  send(MB, append, new(File, popup(file))),
           free(@action),
 	  send_list(File, append,
@@ -392,7 +418,11 @@ initialise(W, Label:[name]) :->
 				    menu_item(stop,
 					      message(W, stopped)),
 				    menu_item(start,
-					      message(W, started))
+					      message(W, started)),
+				    menu_item(texting,
+					      message(W, sendText)),
+				    menu_item('No Texting',
+					      message(W, stopText))
 				  ]),
 	  send(MB, append, new(Help, popup(help))),
 	  about_atom(About),
@@ -412,6 +442,7 @@ initialise(W, Label:[name]) :->
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->
+       send(@ft,stop),  % Stop the GUI update timer as well
        writeln(stopping),
        send(@ut, stop),
        send(@action?members, for_all,
@@ -427,6 +458,11 @@ started(_W) :->
 	    if(@arg1?value==start,message(@arg1, active, @off))),
        send(@action?members, for_all,
 	    if(@arg1?value==stop, message(@arg1, active, @on))),
+       get_time(Now),
+       INow is integer(Now),
+       retractall(timer_time(_)),
+       assert(timer_time(INow)),
+       send(@ft,start),       % Now restart the fast GUI update timer
        writeln(started).
 
 
@@ -520,11 +556,12 @@ range_color(Target, Current, Color) :-
 % 2) Reload the  <hostname>.pl user parameter file if it changed
 % 3) Perform the update on all components
 % 4) Restart the auto update timer (new timer value from settings NYI)
-%
+% 5) Make a fast_update version for the GUI
 autoUpdate(Self) :->
     stop_updates,
     update_config(_),
     send(Self,manualUpdate),
+    report,
     !,
     start_updates.
 
@@ -562,7 +599,35 @@ readLevels(_) :->
     get_level(lagoons), writeln(after(get_level(lagoons))),
     sleep(10),
     get_level(cellstat), writeln(after(get_level(cellstat))).
+
+% Put things to be refreshed more often here:
+% Image update, time to next level detection, etc.
+% Currently only the autosampler/next cycle time indication
+
+fastUpdate(Self) :->
+    send(Self?graphicals, for_all,
+	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))).
+
+sendText(Self) :->
+    send(Self,sendTexts),
+    send(@tt,start),
+    send(@action?members, for_all,
+	 if(@arg1?value=='No Texting',message(@arg1, active, @on))),
+    send(@action?members, for_all,
+	 if(@arg1?value==texting,message(@arg1, active, @off))).
+
+stopText(_S)   :->
+    send(@tt,stop),
+    send(@action?members, for_all,
+	 if(@arg1?value==texting,message(@arg1, active, @on))),
+    send(@action?members, for_all,
+	 if(@arg1?value=='No Texting',message(@arg1, active, @off))).
     
+    
+sendTexts(_Self) :->
+    writeln(sending_texts),
+    findall(W,(watcher(W),concat_atom(['./smstext.py ',W],C),shell(C)),Ws),
+    writeln(sent_to(Ws)).
     
 :- pce_end_class.  % End of evostat
 
@@ -636,12 +701,23 @@ c(Name) :-
     send(@gui?frame, icon, bitmap('./evo.xpm')),
     get(@gui, prompt, Reply),
     (Reply = quit ->
+         send(@ft, stop),
+         send(@ut, stop),
          send(@gui, destroy)
      ;   writeln(Reply)
     ).
 
+report :-
+    open('evostat.report', append, S),
+    nl(S), timeline(S),
+    ( leak(Type)             -> write(S,'leak '),write(S,Type),nl(S) ; true ),
+    ( temperature(Id,Lv,Val) -> write(S,temperature(Id,Lv,Val)),nl(S); true ),
+    close(S).
 
-main :- pce_main_loop(main).
+main :-  open('evostat.report', append, S),
+	 nl(S),nl(S),write(S,'EvoStat started:'),timeline(S),
+	 close(S),
+	 pce_main_loop(main).
 
 main(_Argv) :-
         assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
