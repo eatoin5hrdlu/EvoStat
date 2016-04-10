@@ -761,6 +761,10 @@ main(_Argv) :-
         !.
 
 
+os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe') :-
+	gethostname(egate),
+	current_prolog_flag(windows, true),!.
+
 os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
     current_prolog_flag(windows, true),!.
     
