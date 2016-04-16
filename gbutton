@@ -145,6 +145,7 @@ update(Self) :->
 
 :- pce_end_class.
 
+
 :- pce_begin_class(ebutton, button).
 
 variable(socket,      any, get, "Bluetooth/IP Socket"      ).
@@ -285,7 +286,7 @@ check_leak(leak(N)) :- !, check_leak_value(N).
 check_leak(P)       :-    writeln(expected(leak/1,P)).
 
 
-check_leak_value(N) :-  N > 800,
+check_leak_value(N) :-  N > 700,
 			!,
 			writeln('No leak'),
 			retractall(leak(_)),
@@ -294,7 +295,7 @@ check_leak_value(N) :-  N > 800,
 				message(@arg1,reset))).
 			
 
-check_leak_value(N) :- N < 400,
+check_leak_value(N) :- N < 300,
 		       !,
 		       writeln(leak(definitely)),
 		       retractall(leak(_)),

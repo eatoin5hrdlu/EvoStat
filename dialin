@@ -26,17 +26,19 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	MyH is (DH*HF/100)/2,
         get(Editor,  area, Area),                     % Resize it
 	send(Area, set(width:=MyW,height:=MyH)),
-	send_list(Self, append, [Editor, button(send), button(clear)]),
+	send_list(Self, append, [ Editor,  button(talk),
+				  	   button(clear),
+					   button(reset)]),
 	send_super(Self, open, point(600,200)).      % Show it to the User
 
-send(Self) :->
+talk(Self) :->
 	"Send contents of Editor to Bluetooth Socket and show Reply"::
 	get(Self, socket, Socket),
 	chain_list(Self?graphicals, [Editor|_]),      % Contents of 
 	get(Editor?text_buffer?contents, value, Raw), % Edit pane
 	strip_atom(Raw, Cmd),
 	bluetalk(Socket, Cmd, Msg),
-        (Msg == "" ->
+        ( (Msg=[];string_length(Msg,0)) ->
 	  get_super(Self, label, Whoami),
 	  send(Editor?text_buffer, append, '\nreconnecting('),
 	  send(Editor?text_buffer, append, Whoami),
@@ -54,5 +56,10 @@ clear(Self) :->
 	send(Editor?text_buffer, clear),
 	send(Self, keyboard_focus, Editor).
 
-:- pce_end_class.
+reset(Self) :->
+     get(Self, slot, socket, Sock),
+     writeln(resetting(Self,socket(Sock))),
+     bt_areset(Sock),
+     writeln(reset).
 
+:- pce_end_class.

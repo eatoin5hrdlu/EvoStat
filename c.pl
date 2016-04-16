@@ -643,6 +643,14 @@ create(Dialog, Component) :-
 	send(Dialog, append(@Name, Position)),
         assert(component(Name,Type,@Name)).
 
+add_reset(Dialog,@Name) :-
+    ( send(@Name,instance_of,ebutton) ->
+	  writeln(itsanebutton(@Name)),
+	  new(Anon,reset('R',@Name)),
+	  send(Dialog,append(Anon,right))
+     ; writeln(notsomuch(@Name))
+     ).
+
 about_atom(About) :-
         open('evostat.about', read, Handle),
 	read_pending_input(Handle,FileContent,[]),
