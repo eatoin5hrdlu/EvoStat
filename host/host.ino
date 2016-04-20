@@ -3,7 +3,7 @@
 
 
 #include "valves.h"        // Includes param.h (change constants there)
-VALVES valves = VALVES(2);
+VALVES valves = VALVES(NUM_VALVES);
 
 //#include "Adafruit_MLX90614.h"
 //Adafruit_MLX90614 mlx;
@@ -44,6 +44,9 @@ int reading[10];
 
 boolean auto_temp;   // Automatically control Heater
 boolean auto_valve;  // Automatically control Valves
+boolean auto_mixer;  // Automatically control Mixer
+boolean auto_air;    // Automatically control Aeration
+boolean mixer_state;
 boolean bluetooth;
  
 char reply[40];
@@ -305,14 +308,20 @@ int OD;
 
 void mixer(byte v)
 {
-	if (v == 0)
+	if (v == 0) {
 		analogWrite(MIXER,0);
-	else 
-	    for(int i=3; i<11; i++) {
-		analogWrite(MIXER, i*mixerspeed/10);
-		if (auto_valve) valves.checkValves();
-		delay(600);
- 	    }
+		mixer_state = false;
+	} else { 
+	    if (!mixer_state) {
+		delay(1000);
+	    	for(int i=3; i<11; i++) {
+			analogWrite(MIXER, i*mixerspeed/10);
+			if (auto_valve) valves.checkValves();
+				delay(600);
+		}
+		mixer_state = true;
+	    }
+	}
 }
 
 boolean cellstat_command(char c1, char c2, int value)
@@ -331,9 +340,13 @@ byte d;
 			if (d == 1) {
 				auto_temp = true;
 				auto_valve = true;
+				auto_mixer = true;
+				auto_air = true;
 			} else {
 				auto_temp = false;
 				auto_valve = false;
+				auto_mixer = false;
+				auto_air = false;
 			}
 			break;
 		case 'b':
@@ -372,19 +385,28 @@ byte d;
 			digitalWrite(JARLIGHT, d);
 			break;
 		case 'm':
-		     if (c2 == 's') mixerspeed = value;
+		     if (c2 == 's') {
+			if (value == 0) {
+				sprintf(reply,"mixer(%d).",mixerspeed);
+				soutln(reply);
+			} else 
+				mixerspeed = value;
+		     }
 		     else if (d == 9) {
-		     	  sprintf(reply,"mixer(%d).",mixerspeed);
+		     	  sprintf(reply,"mixer(%d).",auto_mixer);
 			  soutln(reply);
 		     } else mixer(d);
 		     break;
 		case 'n':
 			forceTurbidity(value);
 			break;
-		case 'o':     // Only one valve in cellstat
-		     if (c2 == '2')      digitalWrite(AIR,1);
-		     else if (c2 == '-') digitalWrite(AIR,0);
-		     else    		 valves.openValve('1');
+		case 'o':
+		     if      (c2 == '2'|| c2 == '1') digitalWrite(AIR,1);
+		     else if (c2 == '-'|| c2 == '0') digitalWrite(AIR,0);
+		     else {
+		     	  sprintf(reply,"air(%d,%d).",auto_air,digitalRead(AIR));
+			  soutln(reply);
+		     }
 		     break;
 		case 'p':
 			auto_valve = false;
@@ -416,11 +438,16 @@ byte d;
 			break;
 		case 'v':
 			vn = (int)(c2 - '0');
-			if (value == 0) {
-				sprintf(reply,"valve(%d,%d).",vn,valves.getTime(vn));
-		   		soutln(reply);
-			} else
-				valves.setTime(vn,value);
+			if (vn > -1 && vn < NUM_VALVES) {
+				if (value == 0) {
+				 sprintf(reply,"valve(%d,%d).",vn,valves.getTime(vn));
+		   		 soutln(reply);
+				} else
+				 valves.setTime(vn,value);
+			} else {
+			        sprintf(reply, "valveRangeError(%c).", c2);
+				sout(reply);
+			}
 			break;
 		case 'w':
 		        sprintf(reply, "leak(%d).", analogRead(ANALOG_LEAK));
@@ -520,7 +547,9 @@ void setup()
 int i;
 	bluetooth = true;
 	auto_temp = true;  // Maintain Temperature Control
-	auto_valve = true;  // Maintain Flow (check turbidity)
+	auto_valve = true; // Maintain Flow (check turbidity)
+	auto_mixer = true; // Maintain Mixer
+	auto_air = true;   // Maintain Aeration
 
 	pinMode(NUTRIENT,  OUTPUT);
 	digitalWrite(NUTRIENT,   0);
@@ -567,6 +596,7 @@ int i;
         valves.setCycletime(gcycletime);
 	once = true;
 	for (i=0;i<10;i++) checkTurbidity(); // Fill averaging vector
+	mixer_state = false;
 	mixer(1);
 }
 
@@ -592,6 +622,8 @@ while(1) {
 		checkTemperature();
 	if (auto_valve)		// Check and update nutrient valve
 		valves.checkValves();
+	if (auto_mixer)		// Restart the motor
+		mixer(1);
 	delay(1000);
 	tb_thresh = checkTurbidity();
 	if (tb_thresh > 0) {
