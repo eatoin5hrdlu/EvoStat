@@ -1,0 +1,144 @@
+:- module( pid, [ launch_controllers/1,
+		  pidstart/0,
+	   	  pidstop/0,
+		  remove/1,
+		  compute/3,
+		  setMode/2,
+		  setSampleTime/2,
+		  setOutputLimits/3 ]).
+
+:- dynamic stop_controllers/0.
+pidstop  :- assert(stop_controllers).
+pidstart :- thread_create(control, _, []).
+
+%
+% Proportional/Integral/Differential process control requires state
+% so is not a great match with Prolog, but here it is.
+% 
+
+:- dynamic iterm/4.
+% iterm( Id, ITerm, LastInput, LastTime )
+% iterm/4 holds the Integral term, Last input, and Last Sample time
+% the state information which must be updated when compute/3 is called.
+
+:- dynamic state/9.
+% state( Id, Kp, Ki, Kd, {forward,reverse}, SetPoint, Min, Max, SampleTime)
+% state/9 contains all of the other constants of operation
+
+%
+% mode/2 is a flag for manual override of the PID controller
+% mode( Id, {auto,manual})
+%
+:- dynamic mode/2.
+
+:- use_module(library(apply)).
+
+launch_controllers(List) :-
+	maplist(controller, List),
+	pidstart.
+%
+% Create a single PID controller
+% controller(pid(name, 0.4, 0.2, 0.2, {forward,reverse}, 3, 3, 0, 8))
+%
+
+controller(pid(Id, Kp, Ki, Kd, Dir, SetPt, Out, Min, Max, SampleTime)) :-
+	constrain(Out, Min, Max, ITerm),
+	get_time(Last),
+	LastTime is Last - 1,
+	retractall(iterm(Id,_,_,_)),
+	assert(iterm(Id, ITerm, SetPt,LastTime)),
+	retractall(state(Id,_,_,_,_,_,_,_,_)),
+	assert(state(Id,Kp,Ki,Kd,Dir,SetPt,Min,Max,SampleTime)).
+
+% Remove the named PID controller (can be done while it is running!)
+
+remove(Id) :-
+	retractall(iterm(Id,_,_,_)),
+	retractall(state(Id,_,_,_,_,_,_,_,_)).
+
+% This will run forever, or not at all (if no controllers exist).
+
+control :-
+	retractall(stop_controllers),
+	( \+ iterm(_, _, _, _) -> fail ; true ),
+	setof(Time, A^B^C^D^E^F^G^H^state(A,B,C,D,E,F,G,H,Time),[Shortest|_]),
+	MinSampleTimeInSeconds is Shortest/1000,
+	repeat,
+		sleep(MinSampleTimeInSeconds),
+		write('.'),flush_output,
+		iterm(Id, _, _, _), % For each existant controller
+		get_input(Id, Value),
+		compute(Id, Value, Result), % fails if time isn't long enough
+		set_output(Id, Result),
+		{ Adjust = Result-Value },
+		writeln(processed(Id,Value,Adjust)),writeln(' '),
+%
+% Test of foreign predicate defined in rpi.cpp
+%		pumper(42),
+	stop_controllers,
+	writeln('                  Stopping PID Controllers').
+
+compute(Id, Input, Output) :-
+	state(Id, Kp,Ki,Kd, _, SetPoint, Min, Max, SampleTime),
+	get_time(Now),
+	iterm(Id, ITerm0, LastInput, LastTime),
+	{ Now - LastTime >= SampleTime/1000.0,
+	  Error = SetPoint - Input,
+	  ITerm = min(Max,max(Min, ITerm0 + Ki * Error)),
+	  Output = min(Max,max(Min, Kp*Error + ITerm - Kd*(Input-LastInput)))
+	},
+	retractall(iterm(Id,_,_,_)),
+	assert(iterm(Id,ITerm,Input,Now)).
+
+
+polarity(forward,Kp,Ki,Kd, Kp, Ki, Kd).
+polarity(reverse,Kp,Ki,Kd,NKp,NKi,NKd) :- NKp is -Kp, NKi is -Ki, NKd is -Kd.
+
+setTunings(Id, Kp, Ki, Kd, Dir) :-
+	Kp >= 0,
+	Ki >= 0,
+	Kd >= 0,
+	polarity(Dir,Kp,Ki,Kd,NKp,NKi,NKd),
+        retractall(state(Id,  _,  _,  _,  _,SetPt,Min,Max,SampleTime)),
+	assert( state(Id,NKp,NKi,NKd,Dir,SetPt,Min,Max,SampleTime)).
+
+% Set a new sample time and adjust the (time sensitive) parameters
+% e.g. the Integral and Differential multipliers must scale with dT
+
+setSampleTime(Id, NewSampleTime) :-
+	NewSampleTime > 0,
+        state(Id,Kp,Ki,Kd,Dir,SetPt,Min,Max,SampleTime),
+	Ratio is NewSampleTime/ SampleTime,
+	NKi is Ki * Ratio,
+	NKd is Kd / Ratio,
+        retract(state(Id,Kp,  _,  _,Dir,SetPt,Min,Max, _ )),
+	assert( state(Id,Kp,NKi,NKd,Dir,SetPt,Min,Max,NewSampleTime)).
+ 
+% state( Id, Kp, Ki, Kd, Dir, SetPt, Min, Max, SampleTime)
+
+setOutputLimits(Id, Min, Max) :-
+	Min < Max,
+	retract(iterm(Id, ITerm0, Input, LastTime)),
+	constrain(ITerm0, Min, Max, ITerm),
+	assert(iterm(Id, ITerm, Input, LastTime)),
+        retractall(state(Id,Kp,Ki,Kd,Dir,SetPt,_,_,SampleTime)),
+	assert( state(Id,Kp,Ki,Kd,Dir,SetPt,Min,Max,SampleTime)).
+
+setMode(Id, Mode) :- mode(Id, Mode), !.
+setMode(Id, Mode) :-
+	retractall(mode(Id,_)),
+	assert(mode(Id,Mode)).
+ 
+setControllerDirection(Id, Dir) :- state(Id,_,_,_,Dir,_,_,_,_,_),!.
+setControllerDirection(Id, Dir) :-
+        state(Id,Kp,Ki,Kd,_,SetPt,Min,Max,SampleTime,LastTime),
+	NKp is -Kp,
+	NKi is -Ki,
+	NKd is -Kd,
+	retractall(state(Id,_,_,_,_,_,_,_,_,_)),
+	assert(state(Id,NKp,NKi,NKd,Dir,SetPt,Min,Max,SampleTime,LastTime)).
+
+constrain(X,Min,_,Min) :- X < Min, !.
+constrain(X,_,Max,Max) :- X > Max, !.
+constrain(X,_,  _,  X).
+
