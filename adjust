@@ -1,0 +1,30 @@
+
+control(cellstat1, 'v0', autosampler, 'm').
+control(lagoon3,  'v1', autosampler, 'k').
+control(lagoon2,  'v1', autosampler, 'j').
+control(lagoon1,  'v1', autosampler, 'i').
+
+
+send_adjustment(Component, Value) :-
+	Half is integer(Value/2),
+	control(Component, PCmd, NComponent, NCmd),
+	component(Component,  _, PObj),
+	component(NComponent, _, NObj),
+% Get the current inflow time value
+	send(PObj,converse, PCmd),
+	get(PObj, slot, reply, PValveInfo),
+	parse_reply(PValveInfo, valve(0,PTime), valve(0,0)),
+% Adjust the PID control value
+	NewPTime is PTime + Half,
+	concat_atom([PCmd,NewPTime],PSetCmd),
+	send(PObj,converse(PSetCmd)),
+% Get the current outflow time value
+	send(NObj, converse, NCmd),
+	get(NObj, slot, reply, NValveInfo),
+	parse_reply(NValveInfo, valve(_,NTime), valve(0,0)),
+% Adjust the PID control value
+	NewNTime is NTime - Half,
+	concat_atom([NCmd,NewNTime],NSetCmd),
+	send(PObj,converse(NSetCmd)).
+
+
