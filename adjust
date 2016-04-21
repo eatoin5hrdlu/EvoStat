@@ -28,6 +28,6 @@ send_adjustment(Component, Value) :-
 	send(PObj,converse(NSetCmd)).
 
 get_input(Component, Value) :-
-	control(Component, Parameter, PCmd, NComponent, NCmd),
+	control(Component, Parameter, _, _, _),
 	component(Component,  _, PObj),
 	get(PObj, slot, Parameter, Value).

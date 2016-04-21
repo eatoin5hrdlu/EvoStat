@@ -117,8 +117,9 @@ python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
 python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
 python('/usr/bin/python').
 
-:- [gbutton].
-:- [dialin].
+:- [gbutton]. % Micro-controllers as PCE objects
+:- [dialin].  % Pop up Aduino dialog interface
+:- [adjust].  % PID controller <-> PCE interface
 
 :- dynamic target_value/2,
            current_value/4,
@@ -437,7 +438,10 @@ initialise(W, Label:[name]) :->
 	 maplist(create(@gui), Components),
 
          send(W,started),
-         send_super(W, open, Location).
+         send_super(W, open, Location),
+	writeln(startPID),
+	x,     % Start the PID controllers
+	writeln(started).
 
 drain(_W, What) :->  writeln(draining(What)).
 
@@ -768,6 +772,7 @@ main(_Argv) :-
 	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
 	assert(supress(screen(_,_,_))),       %     ''
         writePythonParams(Root),
+
 	c(Root),
         !.
 
