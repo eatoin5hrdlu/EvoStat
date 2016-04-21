@@ -280,7 +280,7 @@ variable(leak,   int, get, "Leak Detector").
 initialise(Self, Label:[name]) :->
 	"Initialise the cellstat"::
         send_super(Self, initialise(Label)),
-	send(Self, slot, level, 0).
+	send(Self, slot, level, 85.0).
 
 check_leak(leak(N)) :- !, check_leak_value(N).
 check_leak(P)       :-    writeln(expected(leak/1,P)).
@@ -379,7 +379,7 @@ initialise(Self, Label:[name]) :->
         send_super(Self, initialise(Label)),
 	send(Self, slot, myname, Label),
 	send(Self, slot, calibration, normal),
-	send(Self, slot, level, 0.0),
+	send(Self, slot, level, 33.0),
 	send(Self, slot, level_t, 36.0),
 	send(Self, slot, fluorescence_t, 0.2),
 	send(Self, slot, overflow, 0),

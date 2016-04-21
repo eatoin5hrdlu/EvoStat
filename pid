@@ -67,6 +67,7 @@ control :-
 		sleep(MinSampleTimeInSeconds),
 		write('.'),flush_output,
 		iterm(Id, _, _, _), % For each existant controller
+		trace,
 		get_input(Id, Value),
 		compute(Id, Value, Result), % fails if time isn't long enough
 		set_output(Id, Result),

@@ -85,7 +85,7 @@ camera_device(Device) :-
 camera_device(_) :- writeln('No Camera Device'),fail.
 
 % No camera reset on Windows (yet)
-camera_reset :- current_prolog_flag(windows,true), !.
+camera_reset :- windows, !.
 
 % No camera reset if no camera
 camera_reset :-
@@ -671,10 +671,7 @@ hostname_root(H) :-
 
 bluetalk(@nil,  _,  'no_connection.'  ).
 bluetalk(   _,  '', 'nothing_to_send.').
-bluetalk(   S, Cmd,     Reply    ) :-
-  writeln(callingbt_converse(Cmd)),
-  bt_converse(S ,Cmd, Reply),
-  writeln(reply(Reply)).
+bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
 bluetalk(   _,   _, 'send_failed.'    ).
 
 
@@ -738,7 +735,7 @@ main(_Argv) :-
         assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
 %        use_module(library(pce)),
     
-        ( logfile(_), current_prolog_flag(windows, true)
+        ( logfile(_), windows
          -> retract(logfile(_))
          ; true
         ),
@@ -753,7 +750,7 @@ main(_Argv) :-
 
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),  % Special exit predicate to call
-	( current_prolog_flag(windows, true)
+	( windows
          -> load_foreign_library(foreign(plblue))
 	  ; load_foreign_library(plblue)
         ),
@@ -778,11 +775,11 @@ main(_Argv) :-
 
 
 os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe') :-
-	gethostname(egate),
-	current_prolog_flag(windows, true),!.
+    gethostname(egate),
+    windows, !.
 
 os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
-    current_prolog_flag(windows, true),!.
+    windows, !.
     
 os_emulator('/home/peter/bin/swipl') :- % Haldane at SplatSpace
      gethostname(haldane),
