@@ -1,0 +1,167 @@
+:- use_module(library(clpr)).
+:- use_module(pid).
+
+
+control(cellstat, 'v0', autosampler, 'm').
+control(lagoon4,  'v1', autosampler, 'l').
+control(lagoon3,  'v1', autosampler, 'k').
+control(lagoon2,  'v1', autosampler, 'j').
+control(lagoon1,  'v1', autosampler, 'i').
+
+
+send_adjustment(Component, Value) :-
+	Half is integer(Value/2),
+	control(Component, PCmd, NComponent, NCmd),
+	component(Component,  _, PObj),
+	component(NComponent, _, NObj),
+% Get the current inflow time value
+	send(PObj,converse,PCmd)),
+	get(PObj, slot, reply, valve(_,PTime)),
+% Adjust the PID control value
+	NewPTime is PTime + Half,
+	concat_atom([PCmd,NewPTime],PSetCmd),
+	send(PObj,converse(PSetCmd)),
+% Get the current outflow time value
+	send(NObj,converse,NCmd)),
+	get(NObj, slot, reply, valve(_,NTime)),
+% Adjust the PID control value
+	NewNTime is NTime - Half,
+	concat_atom([NCmd,NewNTime],NSetCmd),
+	send(PObj,converse(NSetCmd)).
+
+
+pump(rate, 1.0).              % 1 liter/hour (maximum pump rate)
+% pump(rate,   liters/hour).
+% pump(flow,   liters/hour).
+
+syringe(arabinose).
+syringe(cAMP).
+
+%syringe(range, meters).
+%syringe( rate,  liters/meters).
+%stepper( rate,  meters/step).
+%stepper(range, meters).
+%inducer( rate,  liters/hour).
+%inducer(concentration,  moles).
+%lagoon(  rate,  liters/hour).
+%lagoon(volume, liters).
+%host(   rate,  liters/hour).
+%host( volume, liters).
+
+syringe(arabinose, length, 0.05).     % 5cm
+syringe(arabinose, rate, 0.010/0.05). % 10ml/5cm
+
+syringe(cAMP, length, 0.05).          % 5cm
+syringe(cAMP, rate, 0.010/0.05).      % 10ml/5cm
+
+stepper(range, 0.05).         % 5cm
+stepper( rate, 0.05/300).     % 5cm/300 steps
+lagoon(volume, 0.200).        % 200ml (nominal in 250ml vessel)
+
+lagoon(1, rate,  2.5).
+lagoon(2, rate,  2.5).        % 2.5 Volumes/hour
+lagoon(3, rate,  3.0).        % 3.0 Volumes/hour
+lagoon(4, rate,  3.5).        % 3.5 Volumes/hour
+
+:- dynamic temp/1.  % Heater
+temp(31).
+
+:- dynamic level/2. % 200mL Lagoon level values
+level(1, 190).
+level(2, 210).
+level(3, 200).
+level(4, 250).
+
+% Pump on-time in seconds per minute
+% Pump off-time adjusted to maintain volume
+
+pump_in(Pump, SecondsPerMinute) :-
+	pump(Pump),
+	lagoon(volume, Volume),
+	lagoon(Pump, rate, Rate),
+	pump(rate, MaxFlow),
+	{ Dutycycle * MaxFlow = Rate * Volume,
+	  SecondsPerMinute = 60 * Dutycycle
+	}.
+
+% Pump out time is adjusted by level creeping up or down
+% This seems like a good application of the PID algorithm
+
+pump_out(Pump, SecondsPerMinute) :-
+	pump_in(Pump, InPerMinute),
+	lagoon(volume, Volume),
+	level(Pump, Level),
+	{ SecondsPerMinute = InPerMinute + 0.02 * (Volume-Level) }.
+
+induce(Inducer, StepsPerMinute) :-
+	inducer(Inducer, TargetRate),  % Desired liters/hour
+	syringe(Inducer, rate, VolumePerLength), % liters/meter
+	stepper(rate, LengthPerSteps),  % meters/step
+	{ VolumePerStep = VolumePerLength*LengthPerSteps,
+	  60 * StepsPerMinute =  TargetRate/VolumePerStep }.
+
+%
+% VOLUME/LENGTH * LENTH/STEP = VOLUME/STEP
+%
+% VOLUME/HOUR  /  VOLUME/STEPS = STEPS/HOUR
+%
+
+concentration(arabinose, 1.0).
+concentration(cAMP,      1.0).
+
+inducer(cAMP, 3.0).
+inducer(arabinose, 3.0).
+
+
+% Syringe parameter(rate):  liters/meter
+%range(syringe, 
+%Stepper parameter(rate):  meters/step
+%Stepper parameter(range):  meters
+%Inducer parameter(rate):  liters/hour
+%Inducer parameter(concentration):  Molarity
+%Lagoon parameter(rate):  volumes/hour
+%Lagoon parameter(volume):  liters
+%Host parameter(volume): liters
+%Host parameter(rate): liters/hour
+%Pump parameter(rate):     liters/hour
+%Pump parameter(flow):   liters/hour
+%Nutrient parameter(volume): liters
+
+:- use_module(library(time)).
+
+
+% 1) Define get_input(<name>, ?Value) to return current value of controller
+% 2) Define set_output(<name>, +Value) to return current value of controller
+
+set_output(heater, Value) :- 
+	!,
+	retractall(temp(_)),
+	assert(temp(Value)).
+set_output(N, Value) :- 
+	retractall(level(N,_)),
+	assert(level(N,Value)).
+
+get_input(heater, Temp) :-
+	!,
+	temp(T),
+	Lower is T - 3,
+	Upper is T + 3,
+	random(Lower, Upper, Temp).
+
+get_input(N, Level) :-
+	level(N, L),
+	Lower is L - 20,
+	Upper is L + 20,
+	random(Lower, Upper, Level).
+
+% pid(Who, Kp, Ki, Kd, Polarity, Target, Current, Min, Max, SampleTime)
+
+x :-	launch_controllers(
+	 [ pid(cellstat, 0.4, 0.3, 0.3, forward,  85, 85,   10, 100, 60000 ),
+	   pid(lagoon1,  0.4, 0.3, 0.3, forward,  30, 30, 100, 60000 ),
+	   pid(lagoon2,  0.4, 0.3, 0.3, forward,  30, 30,  10, 100, 60000 ),
+	   pid(lagoon3,  0.4, 0.3, 0.3, forward,  30, 30,  10, 100, 60000),
+	   pid(lagoon4,  0.4, 0.3, 0.3, forward,  30, 30,  10, 100, 60000 )]).
+
+
+% :- repeat, sleep(10), write('-'), flush_output, fail.
