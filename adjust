@@ -1,3 +1,8 @@
+:- use_module(library(clpr)).
+:- use_module(library(time)).
+:- use_module(pid).
+
+x :- pid_controllers(Cs),launch_controllers(Cs).
 
 control(cellstat1, 'v0', autosampler, 'm').
 control(lagoon3,  'v1', autosampler, 'k').
