@@ -72,10 +72,7 @@ control :-
 		set_output(Id, Result),
 		{ Adjust = Result-Value },
 		writeln(processed(Id,Value,Adjust)),writeln(' '),
-%
-% Test of foreign predicate defined in rpi.cpp
-%		pumper(42),
-	stop_controllers,
+	stop_controllers, % True if PID is being stopped
 	writeln('                  Stopping PID Controllers').
 
 compute(Id, Input, Output) :-
@@ -124,7 +121,6 @@ setOutputLimits(Id, Min, Max) :-
         retractall(state(Id,Kp,Ki,Kd,Dir,SetPt,_,_,SampleTime)),
 	assert( state(Id,Kp,Ki,Kd,Dir,SetPt,Min,Max,SampleTime)).
 
-setMode(Id, Mode) :- mode(Id, Mode), !.
 setMode(Id, Mode) :-
 	retractall(mode(Id,_)),
 	assert(mode(Id,Mode)).

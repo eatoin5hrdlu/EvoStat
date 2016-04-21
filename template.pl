@@ -93,3 +93,9 @@ pid_controllers([
    pid(lagoon2, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000),
    pid(lagoon3, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000),
    pid(lagoon4, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000)]).
+
+control(cellstat1,level, 'v0', autosampler, 'm').
+control(lagoon3,  level, 'v1', autosampler, 'k').
+control(lagoon2,  level, 'v1', autosampler, 'j').
+control(lagoon1,  level, 'v1', autosampler, 'i').
+

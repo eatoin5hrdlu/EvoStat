@@ -667,7 +667,10 @@ hostname_root(H) :-
 
 bluetalk(@nil,  _,  'no_connection.'  ).
 bluetalk(   _,  '', 'nothing_to_send.').
-bluetalk(   S, Cmd,     Reply    ) :- bt_converse(S ,Cmd, Reply).
+bluetalk(   S, Cmd,     Reply    ) :-
+  writeln(callingbt_converse(Cmd)),
+  bt_converse(S ,Cmd, Reply),
+  writeln(reply(Reply)).
 bluetalk(   _,   _, 'send_failed.'    ).
 
 
