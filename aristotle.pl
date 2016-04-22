@@ -82,12 +82,13 @@ input(lagoon1, 41).
 %     Kp, Ki, Kd, Polarity,
 %     TargetValue, CurrentValue,
 %     Minimum, Maximum, SampleTime)
-% Undershoot/Overshoot: Modify the Kd and maybe Kp
-% Response too slow:  reduce Ki
+% Undershoot/Overshoot: Modify Kd and maybe Kp
+% Response too slow:    Increase Ki
 
 pid_controllers([
-   pid(cellstat,0.4, 0.3, 0.3, pos, 85, 85, 10, 100, 90),
-   pid(lagoon1, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 50)]).
+   pid(cellstat,0.4, 0.3, 0.3, pos, 85, 85, 10, 100, 20),
+   pid(lagoon1, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 10)]).
 
+%control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 control(cellstat1, level, 'v0', autosampler, 'm').
 control(  lagoon1, level, 'v1', autosampler, 'i').

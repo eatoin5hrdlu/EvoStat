@@ -2,7 +2,8 @@
 :- use_module(pid).
 :- dynamic input/2.    % For debugging
 
-x :-	pid_controllers(Cs),
+initPID :-
+	pid_controllers(Cs),
 	launch_controllers(Cs).
 
 set_output(Component, Old, New) :-
@@ -11,7 +12,7 @@ set_output(Component, Old, New) :-
 	Delta is (New - Old)/2,
 	retract(input(Component,V)),
 	( Delta == 0  -> NV = V
-	; Delta  > 0  -> NV is V + 
+	; Delta  > 0  -> NV is V + 1
 	;                NV is V - 1
 	),
 	assert(input(Component, NV)),

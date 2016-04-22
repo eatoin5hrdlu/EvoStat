@@ -420,6 +420,10 @@ initialise(W, Label:[name]) :->
 					      message(W, stopped)),
 				    menu_item(start,
 					      message(W, started)),
+				    menu_item(pIDoff,
+					      message(W, stopPID)),
+				    menu_item(pIDon,
+					      message(W, startPID)),
 				    menu_item(texting,
 					      message(W, sendText)),
 				    menu_item('No Texting',
@@ -439,15 +443,18 @@ initialise(W, Label:[name]) :->
 
          send(W,started),
          send_super(W, open, Location),
-	writeln(startPID),
-	x,     % Start the PID controllers
-	writeln(started).
+	 writeln(startPID),
+	 initPID,                     % Start PID controllers
+         send(@action?members, for_all,
+	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
+         send(@action?members, for_all,
+	      if(@arg1?value==pIDoff,message(@arg1, active, @on))).
 
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->
        send(@ft,stop),  % Stop the GUI update timer as well
-       writeln(stopping),
+       writeln('Stopping Level Detection (image processing)'),
        send(@ut, stop),
        send(@action?members, for_all,
 	    if(@arg1?value==stop,message(@arg1, active, @off))),
@@ -467,8 +474,21 @@ started(_W) :->
        retractall(timer_time(_)),
        assert(timer_time(INow)),
        send(@ft,start),       % Now restart the fast GUI update timer
-       writeln(started).
+       writeln('Starting Level Detection (Image processing)').
 
+stopPID(_W) :-> 
+    pidstop,
+    send(@action?members, for_all,
+	 if(@arg1?value==pIDoff,message(@arg1, active, @off))),
+    send(@action?members, for_all,
+	 if(@arg1?value==pIDon,message(@arg1, active, @on))).
+
+startPID(_W) :->
+    pidstart,
+    send(@action?members, for_all,
+	 if(@arg1?value==pIDon,message(@arg1, active, @off))),
+    send(@action?members, for_all,
+	 if(@arg1?value==pIDoff,message(@arg1, active, @on))).
 
 cellstat(Self) :-> "User pressed the CellStat button"::
     send(Self,stopped),

@@ -8,8 +8,11 @@
 		  setOutputLimits/3 ]).
 
 :- dynamic stop_controllers/0.
+
 pidstop  :- assert(stop_controllers).
-pidstart :- thread_create(control, _, []).
+pidstart :-
+	 thread_create(control, _, []),
+	 writeln('Started PID controllers').
 
 %
 % Proportional/Integral/Differential process control requires state
