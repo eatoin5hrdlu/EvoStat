@@ -1,6 +1,9 @@
 #include "param.h"        // Includes param.h (change constants there)
 #include <Wire.h>
 
+#ifndef INTERNAL // Mega has two references, but no default
+#define INTERNAL INTERNAL2V56
+#endif
 
 #include "valves.h"        // Includes param.h (change constants there)
 VALVES valves = VALVES(NUM_VALVES);
@@ -450,7 +453,7 @@ byte d;
 			}
 			break;
 		case 'w':
-		        sprintf(reply, "leak(%d).", analogRead(ANALOG_LEAK));
+		        sprintf(reply, "leak(%d).", leakage());
 			sout(reply);
 			break;
 		case 'z':
@@ -588,8 +591,9 @@ int i;
 	{
 		saveRestore(RESTORE);
 #ifdef DEBUG
-		sprintf(reply,"tmtbscale(%f,%f,%f).",
-			target_temperature,target_turbidity,gtscale);
+		sprintf(reply,"tmtbscale(%d,%d,%d).",
+			((int) (target_temperature*10.0)),
+			target_turbidity,gtscale);
 //		soutln(reply);
 #endif
 	}
@@ -600,12 +604,14 @@ int i;
 	mixer(1);
 }
 
-boolean leak(void)
+#define LEAK	(leakage()<300)
+
+int leakage(void)
 {
 int leakage = analogRead(ANALOG_LEAK);
-     sprintf(reply, "leak(%f).",leakage);
-     sout(reply);
-    return false;
+    leakage += analogRead(ANALOG_LEAK);
+    leakage += analogRead(ANALOG_LEAK);
+    return leakage/3;
 }
 
 int cnt_light = 0;
