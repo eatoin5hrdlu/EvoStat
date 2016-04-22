@@ -1,6 +1,6 @@
 config( [
-	 textMessages(14400), % 10 min = 360 hourly = 3600 4-hours = 14400
-	 updateCycle(100),    % In seconds
+	 textMessages(43200), % Twice Daily (10min=360 hour=3600 4-hour=14400)
+	 updateCycle(360),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
@@ -72,3 +72,22 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 %watcher('vp 9194525097'). % Lea
 watcher('vp 9194525098'). % Peter
 %watcher('a 9193083839'). % The Other Peter
+%watcher('a 5056037415'). % Marshall
+
+simulator.
+input(cellstat,80).
+input(lagoon1, 41).
+
+% pid(Component,
+%     Kp, Ki, Kd, Polarity,
+%     TargetValue, CurrentValue,
+%     Minimum, Maximum, SampleTime)
+% Undershoot/Overshoot: Modify the Kd and maybe Kp
+% Response too slow:  reduce Ki
+
+pid_controllers([
+   pid(cellstat,0.4, 0.3, 0.3, pos, 85, 85, 10, 100, 90),
+   pid(lagoon1, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 50)]).
+
+control(cellstat1, level, 'v0', autosampler, 'm').
+control(  lagoon1, level, 'v1', autosampler, 'i').

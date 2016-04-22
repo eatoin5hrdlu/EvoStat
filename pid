@@ -22,7 +22,7 @@ pidstart :- thread_create(control, _, []).
 % the state information which must be updated when compute/3 is called.
 
 :- dynamic state/9.
-% state( Id, Kp, Ki, Kd, {forward,reverse}, SetPoint, Min, Max, SampleTime)
+% state( Id, Kp, Ki, Kd, {pos,neg}, SetPoint, Min, Max, SampleTime)
 % state/9 contains all of the other constants of operation
 
 %
@@ -38,7 +38,7 @@ launch_controllers(List) :-
 	pidstart.
 %
 % Create a single PID controller
-% controller(pid(name, 0.4, 0.2, 0.2, {forward,reverse}, 3, 3, 0, 8))
+% controller(pid(name, 0.4, 0.2, 0.2, {pos,neg}, 3, 3, 0, 8))
 %
 
 controller(pid(Id, Kp, Ki, Kd, Dir, SetPt, Out, Min, Max, SampleTime)) :-
@@ -62,17 +62,13 @@ control :-
 	retractall(stop_controllers),
 	( \+ iterm(_, _, _, _) -> fail ; true ),
 	setof(Time, A^B^C^D^E^F^G^H^state(A,B,C,D,E,F,G,H,Time),[Shortest|_]),
-	MinSampleTimeInSeconds is Shortest/1000,
+	MinSampleTime is Shortest,
 	repeat,
-		sleep(MinSampleTimeInSeconds),
-		write('.'),flush_output,
-		iterm(Id, _, _, _), % For each existant controller
-		trace,
-		get_input(Id, Value),
-		compute(Id, Value, Result), % fails if time isn't long enough
-		set_output(Id, Result),
-		{ Adjust = Result-Value },
-		writeln(processed(Id,Value,Adjust)),writeln(' '),
+		sleep(MinSampleTime),
+		iterm(Id, _, _, _),    % For each existant controller
+		get_input(Id, Value),  % Read the current value
+		compute(Id, Value, Result), % fails 'til time has elapsed
+		set_output(Id, Value, Result),
 	stop_controllers, % True if PID is being stopped
 	writeln('                  Stopping PID Controllers').
 
@@ -80,17 +76,19 @@ compute(Id, Input, Output) :-
 	state(Id, Kp,Ki,Kd, _, SetPoint, Min, Max, SampleTime),
 	get_time(Now),
 	iterm(Id, ITerm0, LastInput, LastTime),
-	{ Now - LastTime >= SampleTime/1000.0,
-	  Error = SetPoint - Input,
-	  ITerm = min(Max,max(Min, ITerm0 + Ki * Error)),
-	  Output = min(Max,max(Min, Kp*Error + ITerm - Kd*(Input-LastInput)))
-	},
+	Elapsed is Now - LastTime,
+	Elapsed > SampleTime,
+	Error is SetPoint - Input,
+	Integral is ITerm0 + Ki * Error,
+	constrain(Integral,Min,Max,ITerm),
+	PID is Kp*Error + ITerm - Kd*(Input-LastInput),
+	constrain(PID, Min, Max, Output),
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)).
 
 
-polarity(forward,Kp,Ki,Kd, Kp, Ki, Kd).
-polarity(reverse,Kp,Ki,Kd,NKp,NKi,NKd) :- NKp is -Kp, NKi is -Ki, NKd is -Kd.
+polarity(pos,Kp,Ki,Kd, Kp, Ki, Kd).
+polarity(neg,Kp,Ki,Kd,NKp,NKi,NKd) :- NKp is -Kp, NKi is -Ki, NKd is -Kd.
 
 setTunings(Id, Kp, Ki, Kd, Dir) :-
 	Kp >= 0,

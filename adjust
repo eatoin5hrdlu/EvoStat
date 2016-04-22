@@ -1,12 +1,25 @@
-:- use_module(library(clpr)).
 :- use_module(library(time)).
 :- use_module(pid).
+:- dynamic input/2.    % For debugging
 
 x :-	pid_controllers(Cs),
 	launch_controllers(Cs).
 
-send_adjustment(Component, Value) :-
-	Half is integer(Value/2),
+set_output(Component, Old, New) :-
+        simulator,
+	!,
+	Delta is (New - Old)/2,
+	retract(input(Component,V)),
+	( Delta == 0  -> NV = V
+	; Delta  > 0  -> NV is V + 
+	;                NV is V - 1
+	),
+	assert(input(Component, NV)),
+	writeln(level(Component,NV)).
+
+set_output(Component, Old, New) :-
+	writeln(requires(communication,Component)),
+	Half is integer(5*(New-Old)),
 	control(Component, _, PCmd, NComponent, NCmd),
 	component(Component,  _, PObj),
 	component(NComponent, _, NObj),
@@ -26,6 +39,9 @@ send_adjustment(Component, Value) :-
 	NewNTime is NTime - Half,
 	concat_atom([NCmd,NewNTime],NSetCmd),
 	send(PObj,converse(NSetCmd)).
+
+
+get_input(Comp, Val) :- simulator, !, input(Comp,Val).
 
 get_input(Component, Value) :-
 	control(Component, Parameter, _, _, _),
