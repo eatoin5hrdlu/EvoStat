@@ -1,5 +1,5 @@
 :- use_module(library(time)).
-:- use_module(pid).
+:- use_module(newpid).
 :- dynamic input/2.    % For debugging
 
 initPID :-
