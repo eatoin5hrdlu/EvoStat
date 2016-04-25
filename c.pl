@@ -124,7 +124,8 @@ python('/usr/bin/python').
 :- dynamic target_value/2,
            current_value/4,
 	   current_value/2,
-	   screen/5.
+	   screen/5,
+           input/2.
 
 :- dynamic component/2,
            levelStream/2,
@@ -286,12 +287,13 @@ pathe_report(_) :-
     writeln('No Logging Enabled').
 
 freeall :-
-    catch( get(@gui, graphicals, Chain),
-	   ( chain_list(Chain, CList), freeall(CList) ),
-	    writeln(firsttime)).
-	   
-freeall([]).
-freeall([H|T]) :- writeln(free(H)), free(H), freeall(T).
+    get(@gui, graphicals, Chain),
+    chain_list(Chain, CList),
+    maplist(free,CList).
+
+%    catch( get(@gui, graphicals, Chain),
+%	   ( chain_list(Chain, CList), freeall(CList) ),
+%	    writeln(firsttime)).
 
 check_error(camera(IP))    :- writeln(error(camera(IP))),!,fail.
 check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
@@ -440,16 +442,15 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
-
-         send(W,started),
-         send_super(W, open, Location),
-	 writeln(startPID),
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
          send(@action?members, for_all,
-	      if(@arg1?value==pIDoff,message(@arg1, active, @on))).
+	      if(@arg1?value==pIDoff,message(@arg1, active, @on))),
+         send(W,started),
+         send_super(W, open, Location).
 
+    
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->

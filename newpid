@@ -14,25 +14,28 @@ launch_controllers(List) :-
 	maplist(controller, List),
 	pidstart.
 
-% iterm( Id, ITerm, LastInput, LastTime )
-% iterm/4 holds the Integral term, Last input, and Last Sample time
-% the state information which must be updated when compute/3 is called.
-
-% state( Id, Kp, Ki, Kd, SetPt, Min, Max, SampleTime)
+% Info updated each time compute is called:
+% iterm( Id, IntegralTerm, LastInput, LastCycleTime )
+%
+% The per-controller Information:
 % state( Id, Kp, Ki, Kd, SetPoint, Min, Max, SampleTime)
-% state/9 contains all of the other constants of operation
 
-% Generate time to next compute cycle for every controller
+% Time to next compute cycle for each controller
 next_interval(Interval) :-
 	get_time(Now),
 	iterm(Id, _, _, LastTime),
 	state(Id,_,_,_,_,_,_,DeltaT),
         Time is DeltaT - (Now - LastTime),
-	limit(Time, 1, DeltaT, Interval).
+	limit(Time, 0, DeltaT, Interval).
 
 %
 % create a PID controller
+%          pid(Name, Lp, Ki, Kd, SetPt, Out, Min, Max, DeltaT)
 % Example: pid(Name, 0.4, 0.2, 0.2, 30,   30,  10, 100,     30     )
+% A sanity check: pid/9 specification subject to change.
+
+controller(PID) :- \+ functor(PID,pid,9),!,writeln(error(pid_spec,PID)).
+
 controller(pid(Id,   Kp,  Ki,  Kd, SetPt, Out, Min, Max, SampleTime)) :-
 	limit(Out, Min, Max, ITerm),
 	get_time(Last),
@@ -43,13 +46,12 @@ controller(pid(Id,   Kp,  Ki,  Kd, SetPt, Out, Min, Max, SampleTime)) :-
 	assert(state(Id,Kp,Ki,Kd,SetPt,Min,Max,SampleTime)).
 
 control :-
-	iterm(_, _, _, _),            % requires at least one active controller
+	iterm(_, _, _, _),            % require at least one active controller
 	retractall(stop_controllers),
 	repeat,
 		setof(T,next_interval(T), [Interval|_]),
-		writeln(sleeping(Interval)),
 		sleep(Interval),
-		compute,        % Run a cycle on each controller that's due
+		compute,        % Run one cycle on each controller that's due
 	stop_controllers,       % True if PID is being stopped
 	writeln('               Stopping PID Controllers').
 
@@ -60,21 +62,21 @@ compute :-
 	state(Id, Kp,Ki,Kd, SetPoint, Min, Max, SampleTime),
 	Elapsed > SampleTime,
 
-	get_input(Id, Input),         % Read the current value
-	Error is SetPoint - Input,
-	Integral is ITerm0 + Ki * Error,
-	limit(Integral,Min,Max,ITerm),   % Keep within boupnds
-	PID is Kp*Error + Integral - Kd*(Input-LastInput),
+	get_input(Id, Input),            % Read the current value
+	Error is SetPoint - Input,       % Calculate the Error
+	Integral is ITerm0 + Ki * Error, % New Integral Term
+	limit(Integral,Min,Max,ITerm),   % Keep it within bounds
+	PID is Kp*Error + ITerm - Kd*(Input-LastInput),
 	limit(PID, Min, Max, Output),    % Keep within bounds
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)),
-	writeln(done(Id)),
 	set_output(Id, Input, Output).
 
+% limit(In, MinValue, MaxValue, Out).
 
-limit(X,Min,_,Min) :- X < Min, !.
-limit(X,_,Max,Max) :- X > Max, !.
-limit(X,_,  _,  X).
+limit(X, Min,   _, Min) :- X < Min, !.
+limit(X,   _, Max, Max) :- X > Max, !.
+limit(X,   _,   _,   X).
 
 
 

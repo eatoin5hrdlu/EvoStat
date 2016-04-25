@@ -1,6 +1,8 @@
 :- use_module(library(time)).
 :- use_module(newpid).
-:- dynamic input/2.    % For debugging
+
+% The PID algorithm will call get_input/2 and set_output/3,
+% but their implementation is PID independent, so they live here.
 
 initPID :-
 	pid_controllers(Cs),
