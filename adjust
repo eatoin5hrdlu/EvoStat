@@ -1,6 +1,5 @@
 :- use_module(library(time)).
 :- use_module(newpid).
-
 % The PID algorithm will call get_input/2 and set_output/3,
 % but their implementation is PID independent, so they live here.
 
@@ -19,6 +18,7 @@ set_output(Component, Old, New) :-
 	),
 	assert(input(Component, NV)),
 	writeln(level(Component,NV)).
+
 
 set_output(Component, Old, New) :-
 	writeln(requires(communication,Component)),

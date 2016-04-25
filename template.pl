@@ -1,14 +1,14 @@
 config( [
+	 textMessages(14400),
 	 updateCycle(40),
 	 debugpause(10),
-
          cellstatRegion(80,120,300,350),
          cellstatContrast(2,1.4,-90),
-	 cellstatHeight(220),   % This sets 100% vessel full line
+	 cellstatHeight(220),   % 100% full line
 
          lagoonRegion(330,20,510,470),
          lagoonContrast(2,1.4,-90),
-	 lagoonHeight(180),
+	 lagoonHeight(180),     % 100% full line
 
 	 lagoonWidth(100),
 
@@ -24,16 +24,8 @@ config( [
 	 levelOffset(10),   % Minimum percentage or mL
 	 frames(100),       % lumosity integration
 	 darkness(60),      % Average pixel thresh dark
-	 camera(outdoor),
+	 camera(0),
 	 rotate(90),
-	 mac(0),  % belongs in snapshot
-	 defaultIP('172.16.3.136'),  % belongs in snapshot
-	 userpwd('&user=scrapsec&pwd=lakewould'),
-	 brightness(11), % 0-240 for indoor camera
-	 brightnessCmd('/camera_control.cgi?param=1&value='),
-	 contrast(40),
-	 contrastCmd('/camera_control.cgi?param=2&value='),
-	 picCmd('/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'),
 	 layout([
 		 cellstat(cellstatb,below,[od(0.4),temp(37.0),shape(20,8),CF]),
 		 spacer(        x1, next_row, [color(blue)]),
@@ -58,7 +50,9 @@ bt_device(  lagoon1,     '98:D3:31:70:2A:22').
 bt_device(  lagoon2,     '98:D3:31:40:31:BA').
 bt_device(  autosampler, '98:D3:31:20:2B:EB').
 
-simulator. % Avoid excessive component handshaking
+simulator.    % Avoid excessive component handshaking
+deadzone(1).  % Min change for PID to modify valve times
+
 % logfile(logfile).
     
 % Simulated devices in the Arduino Mega2560 box
@@ -82,17 +76,14 @@ simulator. % Avoid excessive component handshaking
 %bt_device(  lagoond3,     '98:D3:31:80:34:39').
 %bt_device(autosampler,    '98:D3:31:30:95:4B').
 
-% pid(Component,
-%     Kp, Ki, Kd, Polarity,
-%     TargetValue, CurrentValue,
-%     Minimum, Maximum, SampleTime)
+% pid(Id, Kp, Ki, Kd, Target, Min, Max, DeltaT)
 
 pid_controllers([
-   pid(cellstat,0.4, 0.3, 0.3, pos, 85, 85, 10, 100, 60000),
-   pid(lagoon1, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000),
-   pid(lagoon2, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000),
-   pid(lagoon3, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000),
-   pid(lagoon4, 0.4, 0.3, 0.3, pos, 30, 30, 10, 100, 60000)]).
+   pid(cellstat,0.4, 0.3, 0.3, 85, 10, 100, 60),
+   pid(lagoon1, 0.4, 0.3, 0.3, 30, 10, 100, 30),
+   pid(lagoon2, 0.4, 0.3, 0.3, 30, 10, 100, 30),
+   pid(lagoon3, 0.4, 0.3, 0.3, 30, 10, 100, 30),
+   pid(lagoon4, 0.4, 0.3, 0.3, 30, 10, 100, 30)]).
 
 control(cellstat1,level, 'v0', autosampler, 'm').
 control(lagoon3,  level, 'v1', autosampler, 'k').

@@ -1,23 +1,28 @@
-%
-% Proportional/Integral/Differential (PID) control requires state
-% which Prolog gets with assert/retract of facts iterm/4, state/8.
-%
-:- module( pid, [ launch_controllers/1, pidstart/0, pidstop/0, compute/0 ]).
+:- module( pid, [ launch_controllers/1,
+		  pidstart/0,
+		  pidstop/0,
+		  compute/0    ]).
 :- use_module(library(apply)).
-
 :- dynamic stop_controllers/0, iterm/4, state/8.
+%
+% Proportional/Integral/Differential (PID) control
+% state machine via assert/retract of iterm/4, state/8.
+%
 
 pidstop  :- assert(stop_controllers).
-pidstart :- thread_create(control, _, []), writeln('Started PID controllers').
+
+pidstart :-
+	thread_create(control, _, []),
+	writeln('PID controllers started').
 
 launch_controllers(List) :-
 	maplist(controller, List),
 	pidstart.
 
-% Info updated each time compute is called:
+% Info updated whenever compute is called:
 % iterm( Id, IntegralTerm, LastInput, LastCycleTime )
 %
-% The per-controller Information:
+% Per-controller information in:
 % state( Id, Kp, Ki, Kd, SetPoint, Min, Max, SampleTime)
 
 % Time to next compute cycle for each controller
@@ -28,32 +33,33 @@ next_interval(Interval) :-
         Time is DeltaT - (Now - LastTime),
 	limit(Time, 0, DeltaT, Interval).
 
-%
-% create a PID controller
-%          pid(Name, Lp, Ki, Kd, SetPt, Out, Min, Max, DeltaT)
-% Example: pid(Name, 0.4, 0.2, 0.2, 30,   30,  10, 100,     30     )
-% A sanity check: pid/9 specification subject to change.
+% Create PID controller from:
+% pid(Name, Kp, Ki, Kd, SetPt, Min, Max, DeltaT)
+% pid(lagoon,0.4,0.2,0.2, 30,   10, 100,  30 )
 
-controller(PID) :- \+ functor(PID,pid,9),!,writeln(error(pid_spec,PID)).
+% sanity check: pid/9 specification subject to change.
+controller(PID) :-
+	\+ functor(PID,pid,8),
+	!,
+	writeln(error(pid_spec,PID)).
 
-controller(pid(Id,   Kp,  Ki,  Kd, SetPt, Out, Min, Max, SampleTime)) :-
-	limit(Out, Min, Max, ITerm),
+controller(pid(Id,Kp,Ki,Kd,SetPt,Min,Max,DeltaT)) :-
 	get_time(Last),
 	LastTime is Last - 1,
 	retractall(iterm(Id,_,_,_)),
-	assert(iterm(Id, ITerm, SetPt,LastTime)),
+	assert(iterm(Id, SetPt, SetPt, LastTime)),
 	retractall(state(Id,_,_,_,_,_,_,_)),
-	assert(state(Id,Kp,Ki,Kd,SetPt,Min,Max,SampleTime)).
+	assert(state(Id,Kp,Ki,Kd,SetPt,Min,Max,DeltaT)).
 
 control :-
-	iterm(_, _, _, _),            % require at least one active controller
+	iterm(_, _, _, _), % requires an active controller
 	retractall(stop_controllers),
 	repeat,
-		setof(T,next_interval(T), [Interval|_]),
+		setof(T,next_interval(T), [Interval|_]), % Shortest time
 		sleep(Interval),
-		compute,        % Run one cycle on each controller that's due
-	stop_controllers,       % True if PID is being stopped
-	writeln('               Stopping PID Controllers').
+		compute,        % Run one cycle
+	stop_controllers,       % Signal to stop
+	writeln('      Stopping PID Controllers').
 
 compute :-
 	iterm(Id, ITerm0, LastInput, LastTime),
@@ -61,16 +67,19 @@ compute :-
 	Elapsed is Now - LastTime,
 	state(Id, Kp,Ki,Kd, SetPoint, Min, Max, SampleTime),
 	Elapsed > SampleTime,
-
-	get_input(Id, Input),            % Read the current value
-	Error is SetPoint - Input,       % Calculate the Error
+	get_input(Id, Input),            % Get current value
+	Error is SetPoint - Input,       % Calculate  Error
 	Integral is ITerm0 + Ki * Error, % New Integral Term
-	limit(Integral,Min,Max,ITerm),   % Keep it within bounds
+	limit(Integral,Min,Max,ITerm),   % Keep within bounds
 	PID is Kp*Error + ITerm - Kd*(Input-LastInput),
 	limit(PID, Min, Max, Output),    % Keep within bounds
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)),
-	set_output(Id, Input, Output).
+	( in_deadzone(SetPoint, Output) -> write('.'),flush_output
+        ; set_output(Id, Input, Output)
+	).
+
+in_deadzone(V1,V2) :- deadzone(D), N is abs(V1-V2), N<D.
 
 % limit(In, MinValue, MaxValue, Out).
 
