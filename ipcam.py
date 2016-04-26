@@ -1,5 +1,5 @@
-#!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
+#!/usr/bin/python -u
 #!C:/Python27/python -u
 # Regions lead with y  (y1,x1,y2,x2) where (y1,x1) is (uppermost,leftmost)
 # OpenCV blob,contour algorithms return (X,Y,Width,Height) not(x,y,x2,y2)
@@ -63,7 +63,7 @@ class ipCamera(object):
         self.usbcam = None
         if isinstance(self.params['camera'],int) :
             self.usbcam = cv2.VideoCapture(self.params['camera'])
-            time.sleep(0.1)
+            time.sleep(1)
             (rval,img) = self.usbcam.read()
             if (not rval):
                 plog("VideoCapture test returned "+str(rval))

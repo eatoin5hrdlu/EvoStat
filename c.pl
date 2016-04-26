@@ -13,33 +13,20 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
+:- dynamic debug/0. % Removed by save_evostat when building binary
+debug.
+
 timeline(S):-
     get_time(Now),
     convert_time(Now,String),
     write(S,String),nl(S).
 
-%:- pce_autoload(finder, library(find_file)).
-%:- pce_global(@finder, new(finder)).
-:- dynamic component/3.
+:- dynamic component/3, leak/1, temperature/3, last_level/2.
 
-:- dynamic bt_device/2.
-:- multifile bt_device/2.
-:- dynamic logfile/1.
-:- multifile logfile/1.
-:- dynamic simulator/0.
-:- multifile simulator/0.
+% Configuration <hostname>.pl settings
+:- dynamic bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/3.
+:- multifile bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/3.
 % logfile(logfile).
-
-:- dynamic leak/1, temperature/3, last_level/2.
-
-:- dynamic watcher/1.  % Phone numbers of people watching the EvoStat
-:- multifile watcher/1.
-
-assert_one(Term) :-
-    functor(Term,F,A),
-    functor(Dummy,F,A),
-    retractall(Dummy),
-    assert(Term).
 
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
@@ -52,19 +39,9 @@ timer_left(T) :-
     timer_time(Last),
     T is integer(Now-Last).
     
-cleanup :-
-    temp_file(F),
-    exists_file(F),
-    delete_file(F),
-    fail.
-cleanup.
+cleanup :- temp_file(F), exists_file(F), delete_file(F) ; true.
 
-stop_updates :-
-       send(@gui, stopped).
-start_updates :-
-       send(@gui, started).
-
-% All messages to logfile (otherwise, message window) Linux only
+% All messages to logfile (otherwise, message window)
 
 logging :-
     ( logfile(File)
@@ -84,11 +61,9 @@ camera_device(Device) :-
 
 camera_device(_) :- writeln('No Camera Device'),fail.
 
-% No camera reset on Windows (yet)
-camera_reset :- windows, !.
+camera_reset :- windows, !.   % No camera reset on Windows
 
-% No camera reset if no camera
-camera_reset :-
+camera_reset :-               % No camera to reset
     camera_device(Device),
     \+ access_file(Device,exist),
     writeln(no_camera),
@@ -107,6 +82,7 @@ camera_reset :-
     writeln(resetCamera).
 
 windows :- current_prolog_flag(windows,true).
+unix    :- current_prolog_flag(unix,true).
 
 evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :-
   gethostname('ncmls8066.ncmls.org'),!.
@@ -121,11 +97,7 @@ python('/usr/bin/python').
 :- [dialin].  % Pop up Aduino dialog interface
 :- [adjust].  % PID controller <-> PCE interface
 
-:- dynamic target_value/2,
-           current_value/4,
-	   current_value/2,
-	   screen/5,
-           input/2.
+:- dynamic screen/5, input/2.
 
 :- dynamic component/2,
            levelStream/2,
@@ -134,52 +106,36 @@ python('/usr/bin/python').
 	   toggle_auto/0.
 
 %
-% System Configuration
-% Dialog Layout
-% Communications Information
+% Copy and edit template.pl to create a configuration <hostname>.pl
+% (or <evostatname>.pl if more than one on the same computer).
+% 'evostat' reads this file and creates <hostname>.settings
+% for Python programs (ipcam.py, level.py, fluor.py, pH.py)
 %
-% pathe.config
-%
-%
-% After device discovery process, the evostat specification
-% will be written to evostat.config with verified BT addresses.
-% Shutting down should preserve verified bluetooth addresses
-% as well as target values for temperature, turbidity, and flow.
+% You can edit the .settings file to test/debug the Python
+% programs, but it will be overwritten when 'evostat' runs.
 %
 % Color code for labeling text (name or parameter values):
 %   Red before connections are established
 %   Blue when parameter values are low
 %   Orange when parameters are high
 %   Green when paramaters are in the target range
-% To create your own configuration edit a copy of template.pl named
-%  <hostname>.pl (or <evostatname>.pl if more than one on the same computer).
-% The 'evostat' program reads this file and creates <hostname>.settings
-% for the the Python programs (ipcam.py, level.py, fluor.py, pH.py)
-%
-% You can edit the .settings file to test/debug the Python programs
-% but it will be overwritten whenever you run: 'evostat'
 %
 :- use_module(library(lists), [ flatten/2 ] ).
 
 :- dynamic config/1.       % Loaded configuration
 :- dynamic file_modtime/2. % Modification time of loaded file
-:- dynamic supress/1.      % Terms to exclude from dictionary (see grammar below)
-
-:- dynamic debug/0.
-debug.                % Will be retracted by save_evostat (building binary)
-
+:- dynamic supress/1.      % Exclude terms from Python dictionary
 
 param(P) :- config(List), memberchk(P,List).
 
-check_file(Root,File) :-   % consult(foo) will work for files named foo or foo.pl
+check_file(Root,File) :-  % consult(foo) works files 'foo' or 'foo.pl'
 	( exists_file(Root)
         -> true
         ; concat_atom([Root,'.pl'],File),
 	  exists_file(File)
         ).
 
-% config_name(-Root,-File)
-
+% config_name(-Root,-File) is on command line or <hostname>
 config_name(Root,File) :-
 	current_prolog_flag(argv,[_Exe|Args]),  % Command-line argument
 	member(Root,Args),
@@ -189,13 +145,13 @@ config_name(Root,File) :-
 config_name(Root,File) :-
 	gethostname(Name),    % <HOSTNAME>.pl configuration file
 	atom_chars(Name,Cs),
-	( append( RCs,['.'|_],Cs ) % Could be full domain name ('x.y.com')
+	( append( RCs,['.'|_],Cs ) % Eliminate domain name ('x.y.com')
         -> atom_chars(Root,RCs)
         ;  Root = Name
         ),
 	check_file(Root,File).
 
-% Convert Prolog term to Python dictionary
+% Grammar to convert Prolog term to Python dictionary
 :- dynamic tabs/1.
 tabs(1).
 
@@ -270,8 +226,8 @@ pl2py(Term) --> { Term =.. [F|Args],  % NESTED DICTIONARY  f(g(a),...)
 		pl2py(Args),
 		['      }'].
                  
-% Addition 'logfile' messages: pathe_report/1 will be called on exit
-% We call append/1 because redirected logfile output has been closed.
+% Additional messages: pathe_report/1 called on exit.
+% Call append/1 because output logfile has been closed.
 
 pathe_report(verbose) :-
     logfile(File),
@@ -291,14 +247,6 @@ freeall :-
     chain_list(Chain, CList),
     maplist(free,CList).
 
-%    catch( get(@gui, graphicals, Chain),
-%	   ( chain_list(Chain, CList), freeall(CList) ),
-%	    writeln(firsttime)).
-
-check_error(camera(IP))    :- writeln(error(camera(IP))),!,fail.
-check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
-check_error(_).               % Everything else is not an error
-
 %
 % Find the Nth lagoon(object), names can be complex
 % but must end with a single digit (usually 1-4)
@@ -317,22 +265,33 @@ lagoons(Cmd) :-
     fail.
 lagoons(_).
 
-send_info(end_of_file,_) :- writeln('Is debugging on? Possibly calling level detection on Cellstat while it is still working on Lagoons'),fail.
-send_info(Msg,_) :- writeln(send_info(Msg)),fail.
+% Many responses from the micro-controllers contain
+% data to be stored in corresponding PCE (GUI) objects.
+
+send_info(end_of_file,_) :-
+   write('Is debugging on? Possibly calling Cellstat '),
+   writeln('level detection while working on Lagoons'),
+   fail.
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 send_info(level(Level),_) :-  % Single value is Cellstat level/1
     component(_, cellstat, Cellstat),
     send(Cellstat, setLevel, Level).
 
-send_info(Term,_) :-  % levels/N: arity corresponds to number of lagoons
+send_info(Term,_) :-  % levels/N: arity equal to the number of lagoons
     functor(Term,levels,_),
     arg(N, Term, Level),
-    lagoon_number(Object, N),
+    lagoon_number(Object, N),   % position correspnds to lagoon
     send(Object, setLevel, Level),
     fail.
 
-send_info(_,_).
+send_info(Msg,_) :- writeln(send_info(Msg)).
+
+% Code to launch python/OpenCV level detection programs
+
+check_error(camera(IP))    :- writeln(error(camera(IP))),!,fail.
+check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
+check_error(_).               % Everything else is not an error
 
 get_level(Type) :-
     python(Python),
@@ -403,21 +362,13 @@ initialise(W, Label:[name]) :->
 
 	  send(MB, append, new(File, popup(file))),
           free(@action),
-	  send_list(File, append,
-				  [
-				    menu_item(ok,
-					      message(W, return, ok)),
-				    menu_item(quit,
-					      message(W, quit))
-				  ]),
+	  send_list(File, append, [ menu_item(ok,message(W, return, ok)),
+				    menu_item(quit,message(W, quit)) ]),
 	  send(MB, append, new(@action, popup(action))),
-	  send_list(@action, append,
-				  [ menu_item('Drain Lagoons',
-					      message(W, drain, lagoons)
-					     ),
+	  send_list(@action, append,[ menu_item('Drain Lagoons',
+					message(W, drain, lagoons)),
 				    menu_item('Drain Cellstat',
-					      message(W, drain, cellstat)
-					     ),
+				        message(W, drain, cellstat)),
 				    menu_item(stop,
 					      message(W, stopped)),
 				    menu_item(start,
@@ -433,24 +384,23 @@ initialise(W, Label:[name]) :->
 				  ]),
 	  send(MB, append, new(Help, popup(help))),
 	  about_atom(About),
-	  send_list(Help, append,
-				  [ menu_item(about,
-					      message(@display, inform, About)),
+	  send_list(Help, append, [ menu_item(about,
+					message(@display, inform, About)),
 				    menu_item(debug,
-					      message(@prolog, manpce))
-				  ]),
+					message(@prolog, manpce))]),
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
+
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
          send(@action?members, for_all,
 	      if(@arg1?value==pIDoff,message(@arg1, active, @on))),
+
          send(W,started),
          send_super(W, open, Location).
 
-    
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->
@@ -492,70 +442,50 @@ startPID(_W) :->
 	 if(@arg1?value==pIDoff,message(@arg1, active, @on))).
 
 cellstat(Self) :-> "User pressed the CellStat button"::
-    send(Self,stopped),
-    simulator -> true ; send(Self,manualUpdate).
+                   send(Self,stopped),
+		   ( simulator -> writeln(simulator)
+                   ;              send(Self,manualUpdate)
+                   ).
 
-l1(_W) :-> "User pressed the L1 button"::
-  current_prolog_flag(argv,[_,X|_]),
-  send(@l1, label, X).
+lagoon1(_W) :->  "User selected Lagoon 1"::
+                 component(lagoon1,lagoon,L),
+		 ( toggle_auto
+	         ->  retract(toggle_auto), Cmd = 'a0'
+		 ;   assert(toggle_auto), Cmd = 'a1'
+ 	         ),
+		 send(L,converse,Cmd).
 
-lagoon1(_W) :->
-       "User selected Lagoon 1"::
-       component(lagoon1,lagoon,L), writeln(calibrate(lagoon1)),
-        ( toggle_auto ->
-	     retract(toggle_auto), Cmd = 'a0'
-	 ;   assert(toggle_auto), Cmd = 'a1'
-	),
-        send(L,converse,Cmd).
+lagoon2(_W) :->   "User selected Lagoon 2"::
+                  component(lagoon2,lagoon,L),
+		  send(L,calibrate).
 
-lagoon2(_W) :->
-       "User selected Lagoon 2"::
-       component(lagoon2,lagoon,L), writeln(calibrate(lagoon2)), send(L,calibrate).
+lagoon3(_W) :->  "User selected Lagoon 3"::
+                 component(lagoon3,lagoon,L),
+		 ( toggle_auto
+		 ->  retract(toggle_auto), Cmd = 'o2'
+		 ;   assert(toggle_auto), Cmd = 'o-'
+	         ),
+		 send(L,converse,Cmd).
 
-lagoon3(_W) :->
-       "User selected Lagoon 3"::
-       component(lagoon3,lagoon,L),
-        ( toggle_auto ->
-	     retract(toggle_auto), Cmd = 'o2'
-	 ;   assert(toggle_auto), Cmd = 'o-'
-	),
-        send(L,converse,Cmd).
+lagoon3d(_W) :-> "User selected Lagoon 3-Darwin"::
+                 component(lagoon3d,lagoon,L),
+		 ( toggle_auto
+		 -> retract(toggle_auto), Cmd = 'o2'
+		 ;  assert(toggle_auto), Cmd = 'o-'
+	         ),
+		 send(L,converse,Cmd).
 
-lagoon3d(_W) :->
-       "User selected Lagoon 3-Darwin"::
-       component(lagoon3d,lagoon,L),
-        ( toggle_auto ->
-	     retract(toggle_auto), Cmd = 'o2'
-	 ;   assert(toggle_auto), Cmd = 'o-'
-	),
-        send(L,converse,Cmd).
-
-lagoon4(_W) :->
-       "User selected Lagoon 4"::
-       component(lagoon4,lagoon,L), writeln(calibrate(lagoon4)), send(L,calibrate).
-
-newvalue(Name,Parent) :-
-        get(getValue('New Target Value'), prompt, String),
-	catch(atom_number(String,Value),error(type_error(_,_),_),fail),
-        retract(target_value(Name,_)),
-        assert(target_value(Name, Value)),
-        send(Parent,update).
-
+lagoon4(_W) :->	"User selected Lagoon 4"::
+                component(lagoon4,lagoon,L),
+		send(L,calibrate).
 
 quit(W) :->
-        "User pressed the Quit button"::
-%	send(@ut, stop),     % Shut down the label update timer
-	retractall(current_value(_,_,_,_)),
-	retractall(current_value(_,_)),
-	retractall(target_value(_,_)),
+       "User pressed the Quit button"::
         send(W, return(quit)).
 
 load(W, File:[file]) :->
         "User pressed the Load button"::
 %	send(@ut, stop),     % Shut down the label update timerg
-	retractall(current_value(_,_,_,_)),
-	retractall(current_value(_,_)),
-	retractall(target_value(_,_)),
         send(W, return(File)).
 
 ok(W) :->
@@ -582,20 +512,14 @@ range_color(Target, Current, Color) :-
 % 3) Perform the update on all components
 % 4) Restart the auto update timer (new timer value from settings NYI)
 % 5) Make a fast_update version for the GUI
+
 autoUpdate(Self) :->
-    stop_updates,
-    update_config(_),
-    send(Self,manualUpdate),
-    report,
-    !,
-    start_updates.
-
-autoUpdate(_) :-> start_updates. % If it fails for any reason
-
-manualUpdate(Self) :->
+    send(@gui, stopped),
+    update_config(_),          % Re-load if change
     send(Self,quiet),      writeln(sent(quiet)),
     send(Self,readLevels), writeln(sent(readlevels)),
-    send(Self,mixon),      writeln(sent(mixon)).
+    send(Self,mixon),      writeln(sent(mixon)),
+    send(@gui, started).
 
 quiet(Self) :->
     simulator -> true ;
@@ -621,9 +545,12 @@ mixon(Self) :->
     writeln('Updated:Air and Mixers On').
     
 readLevels(_) :->
+    writeln(read_lagoon_levels),
     get_level(lagoons), writeln(after(get_level(lagoons))),
     sleep(10),
-    get_level(cellstat), writeln(after(get_level(cellstat))).
+    writeln(read_cellstat_level),
+    get_level(cellstat), writeln(after(get_level(cellstat))),
+    writeln(read_levels(finished)).
 
 % Put things to be refreshed more often here:
 % Image update, time to next level detection, etc.
@@ -696,19 +623,13 @@ bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
 bluetalk(   _,   _, 'send_failed.'    ).
 
 
-% Making a Prolog executable (saved-state)
-% :- [c],save_evostat.
-% main(Argv) :-  start application here, using passed arguments from Argv
-%
-
-%
+% Create prolog executable (saved-state) with goal [c],save_evostat.
 % Configuration <name> is either a command-line argument or <hostname>
 % The corresponding Prolog file ( <name>.pl ) must exist.
 % Load configuration and generate Python .settings (dictionary) file.
+% Many dynamic predicates (config, debug options ) from <hostname>.pl
 
-% Load runtime predicates (config, debug options ) from <hostname>.pl
-% Periodical checks to reload if the file changes
-update_config(Config) :-
+update_config(Config) :-      % Load or reload when file changes
     config_name(Config,File),  %  Find configuration name (hostname or cmd arg)
     load_newest(Config,File).
 
@@ -724,7 +645,6 @@ load_newest(Config,File) :-
     source_file_property(File,modified(Time)),
     retractall(file_modtime(File,_)),
     assert(file_modtime(File, Time)).
-
 
 c :- main([]).
 
@@ -794,29 +714,28 @@ main(_Argv) :-
 	c(Root),
         !.
 
+% To build stand-alone 'evostat', there are different emulators
+% Windows  'C:\\cygwin\\swipl\\bin\\swipl-win.exe'
+% Cygwin   '/cygdrive/c/cygwin/swipl/bin/swipl-win.exe'
+%          '/usr/bin/swipl-win'
+% Linux    swi('bin/xpce-stub.exe'), swi('bin/swipl-win.exe')
+%
 
 os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe') :-
-    gethostname(egate),
-    windows, !.
+    gethostname(egate), !.   % My windows laptop
 
 os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
     windows, !.
     
 os_emulator('/home/peter/bin/swipl') :- % Haldane at SplatSpace
-     gethostname(haldane),
+     gethostname(haldane),              % Custom-build SWI Prolog
      !,
      pce_autoload_all,
      pce_autoload_all.
 
-os_emulator('/usr/bin/swipl') :- % Linux
+os_emulator('/usr/bin/swipl') :-  % Linux
      pce_autoload_all,
      pce_autoload_all.
-
-% 'C:\\cygwin\\swipl\\bin\\swipl-win.exe'
-%  '/cygdrive/c/cygwin/swipl/bin/swipl-win.exe'
-%  '/usr/bin/swipl-win'
-%  swi('bin/xpce-stub.exe'
-%  swi('bin/swipl-win.exe'
 
 save_evostat :-
     os_emulator(Emulator),
