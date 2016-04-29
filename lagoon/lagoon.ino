@@ -310,9 +310,15 @@ int tmp;
 			}
 			break;
 		case 'v':
-		     if (valveRange(c2))
-			valve.setup_valve(c2-'0', value);
-	             else
+		     if (valveRange(c2)) {
+		     	int vnum = c2-'0';
+		        if (value == 0) 
+			   sprintf(reply,"valve(%d,%d).",vnum,valve.getTime(vnum));
+			else if (value == 1)
+			   valve.setup_valve(vnum, 0);
+			else
+			   valve.setup_valve(vnum, value);
+	             } else
 		     	valve.report(reply);
 		     break;
 		case 'z':

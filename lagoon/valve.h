@@ -118,7 +118,10 @@ boolean checkValve(void) {
 /* getTimes() returns pointer to the first valve position time */
   int  *getTimes()          { return         &valve_time[1]; }
 
-  int getTime(int v)        { return valve_time[v]; }
+  int getTime(int v)        {
+    if (v == size-1) return valve_time[v];
+    else             return 2*valve_time[v];
+  }
   int setTime(int v, int t){ valve_time[v] = t; }
 
   byte *getAngles()          { return &valve_angle[0];   }
