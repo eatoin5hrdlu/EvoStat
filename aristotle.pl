@@ -1,12 +1,12 @@
 config( [
-	 textMessages(43200), % Twice Daily (10min=360 hour=3600 4-hour=14400)
-	 updateCycle(360),    % In seconds
+	 textMessages(360), % Twice Daily (10min=360 hour=3600 4-hour=14400)
+	 updateCycle(90),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(10,200,290,280),
-         cellstatContrast(3, 2.95, -45), % Iterations, Multiply, Subtract
+         cellstatRegion(40,200,300,280),
+         cellstatContrast(1, 1.9, -55), % Iterations, Multiply, Subtract
 	 cellstatHeight(250),  % same as 100% of cellstat volume
 
          lagoonRegion(400,20,630,460),
@@ -71,8 +71,8 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 %watcher('vp 9194525097'). % Lea
 watcher('vp 9194525098'). % Peter
-%watcher('a 9193083839'). % The Other Peter
-%watcher('a 5056037415'). % Marshall
+watcher('a 9193083839'). % The Other Peter
+watcher('a 5056037415'). % Marshall
 
 simulator.
 input(cellstat,80).

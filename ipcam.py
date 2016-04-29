@@ -1,5 +1,5 @@
-#!C:/cygwin/Python27/python -u
 #!/usr/bin/python -u
+#!C:/cygwin/Python27/python -u
 #!C:/Python27/python -u
 # Regions lead with y  (y1,x1,y2,x2) where (y1,x1) is (uppermost,leftmost)
 # OpenCV blob,contour algorithms return (X,Y,Width,Height) not(x,y,x2,y2)
@@ -23,6 +23,7 @@ def on_exit(nLagoons) :
     print(termIntList('levels',[80, 60, 40, 20]))
     exit(0)
 
+levelPhase = 1
 rbox =  [100,150,200,300]
 bbfp = None
 threshold = 1100
@@ -63,7 +64,7 @@ class ipCamera(object):
         self.usbcam = None
         if isinstance(self.params['camera'],int) :
             self.usbcam = cv2.VideoCapture(self.params['camera'])
-            time.sleep(1)
+            time.sleep(0.1)
             (rval,img) = self.usbcam.read()
             if (not rval):
                 plog("VideoCapture test returned "+str(rval))
@@ -195,14 +196,16 @@ class ipCamera(object):
 
 
     def exportImage(self, image) :
-        global newSnapshot
+        global levelPhase
         (x1,y1,x2,y2) = self.params['lagoonRegion']
         (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
-        if (image != None and newSnapshot != None ) :
+        filename = "mypic"+str(levelPhase)+".jpg"
+        file2 = "phagestat"+str(levelPhase)+".png"
+        if (image != None ) :
             cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
-            cv2.imwrite(newSnapshot,cv2.resize(image,self.params['imageSize']))
-            os.system("convert "+newSnapshot+" phagestat.png")
+            cv2.imwrite(filename,cv2.resize(image,self.params['imageSize']))
+            os.system("convert "+filename+" "+file2)
             newSnapshot = None
                     
     def drawLagoons(self, image) :
@@ -393,8 +396,6 @@ def showBox(img, bb, colorin, size) :
 def showCoord(img,pt,color,size) :
     cv2.putText(img,str(pt), pt, cv2.FONT_HERSHEY_PLAIN,size,color,size)
 
-newSnapshot = None
-
 if __name__ == "__main__" :
     plog("openCV('" + str(cv2.__version__) + "').")
     ipcam = setupCamera()
@@ -402,15 +403,6 @@ if __name__ == "__main__" :
         exit(0)
     # EvoStat removes temporary pics at the beginning of the run
     # Here we toggle the two files between runs of this program
-    jpg = glob.glob('mypic?.jpg')
-    if (len(jpg) == 1):
-        os.remove(jpg[0])
-        if (jpg[0].endswith('1.jpg')) :
-            newSnapshot = 'mypic2.jpg'
-        else :
-            newSnapshot = 'mypic1.jpg'
-    else :
-        newSnapshot = 'mypic1.jpg'
     if ('fluor' in sys.argv) :      # Add frames to detect bio-luminescence
         getFluor(ipcam)
         exit(0)
@@ -441,6 +433,9 @@ if __name__ == "__main__" :
         bbfp = None   # END OF LOCATE/BBOX HELPER
         exit(0)
     if (('lagoon' in sys.argv) or ('lagoons' in sys.argv)) : # Read lagoon levels
+        print("levels(30).")
+        exit(0)
+        levelPhase = 1
         height = ipcam.params['lagoonHeight']
         brect = ipcam.params['lagoonRegion']
         num =  ipcam.params['numLagoons']
@@ -449,6 +444,7 @@ if __name__ == "__main__" :
                 ipcam.updateLevels(height, brect,
                     ipcam.updateLagoons(brect,num),contrast)))
     if ('cellstat' in sys.argv) :        # Just the CellStat level
+        levelPhase = 1
         height = ipcam.params['cellstatHeight']
         brect = ipcam.params['cellstatRegion']
         num = 1

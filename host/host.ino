@@ -100,13 +100,24 @@ void soutln(const char *str) {
 
 int get_temperature()// Returns temperature in tenths of degrees C
 {
-float tf = (float)mlx.readObjectTempC() * 10.0;
-int tries = 0;
-	while ( ( abs(tf) > 1000.0 || abs(tf) < 100.0) && tries++ < 3) {
-		delay(100);
-		tf = (float)mlx.readObjectTempC() * 10.0;
-	}
-	return (int) tf;
+int tries = 10;
+float tmp = (float) mlx.readObjectTempC();
+      while(tries-- > 0 && (tmp<10.0 || tmp>80.0))
+      {
+      	    delay(200);
+	    mlx.begin();
+	    delay(200);
+	    tmp = (float) mlx.readObjectTempC();
+      }
+
+      if (tmp>10.0  && tmp<80.0)
+            return (int) (tmp * 10.0);
+      mlx = MLX90614();
+      delay(200);
+      mlx.begin();   // Initialize Mexexis Thermometer
+      delay(200);
+      tmp = (float) mlx.readObjectTempC();
+      return (int) (tmp * 10.0);
 }
 
 void printHelp(void)
@@ -191,10 +202,22 @@ bool wfProcess_command(char c1, char c2, int value)
 
 void checkTemperature()
 {
+int tries = 3;
 float tmp = (float) mlx.readObjectTempC();
+      while(tries-- > 0 && (tmp<10.0 || tmp>80.0))
+      {
+		    mlx.begin();
+      		    delay(200);
+      		    tmp = (float) mlx.readObjectTempC();
+      }
+      if (tmp < 10.0 || tmp > 80.0) return;
+
+// Got a reasonable reading		    
+
 float t = tmp*10.0;
 int hit =  (int) t/10.0;
 int lot =  abs(((int)t) % 10);
+
 	if (tmp < target_temperature) {
 #ifdef DEBUG
                 sprintf(reply, "temperature(low,%d.%d).",hit,lot);
@@ -392,8 +415,10 @@ byte d;
 			if (value == 0) {
 				sprintf(reply,"mixer(%d).",mixerspeed);
 				soutln(reply);
-			} else 
+			} else {
 				mixerspeed = value;
+				analogWrite(MIXER, mixerspeed);
+			}
 		     }
 		     else if (d == 9) {
 		     	  sprintf(reply,"mixer(%d).",auto_mixer);

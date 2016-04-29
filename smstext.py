@@ -29,7 +29,7 @@ carriers = { 'a' : '@mms.att.net',
  
 car = 'vp'
 num = '9194525098'
-mess = os.popen('tail -10 /home/peter/src/EvoStat/evostat.report').read()
+mess = os.popen('tail -5 /home/peter/src/EvoStat/evostat.report').read()
              
 if (len(sys.argv) < 2) :
     print 'smstext [atvs] NNNNNNNNNN "message"';
@@ -47,7 +47,7 @@ server.login( secrets['login'], secrets['password'] )
 # Create the container (outer) email message.
 if (car == 'vp' or car == 'a') :
     msg = MIMEMultipart()   #   MIMEText(mess, 'plain')
-    msg.attach(MIMEImage(open("phagestat.png", 'rb').read()))
+    msg.attach(MIMEImage(open("phagestat1.png", 'rb').read()))
     msg.attach(MIMEText(mess,'plain'))
 else :
     msg = MIMEText(mess,'plain')

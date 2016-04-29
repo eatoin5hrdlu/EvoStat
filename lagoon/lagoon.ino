@@ -37,7 +37,7 @@ VALVE    valve = VALVE(NUM_VALVES+1, VALVEPIN);      // 5-position valve on pin 
 
 
 #include "temperature.h" 
-TEMPERATURE temp = TEMPERATURE(0);  // Analog Temperature on pin A0
+TEMPERATURE temp = TEMPERATURE(A0);  // Analog Temperature on pin A0
 
 boolean auto_temp;   // Automatically control Heater
 boolean auto_valve;  // Automatically control Valves
@@ -265,9 +265,15 @@ int tmp;
 			}
 			break;
 		case 'm':
-		        if      (c2 == 's') mixerspeed = value;
-			else if (d == 9)    printTermInt("mixer", mixerspeed);
-			else  	            mixer(d);
+		        if (c2 == 's') {
+				if (value == 0)
+				   printTermInt("mixer", mixerspeed);
+				else {
+				   mixerspeed = value;
+				   analogWrite(MIXER, mixerspeed );
+				}
+			}
+			else mixer(d);
 			break;
 		case 'n':
 		        valve.enable(1);
