@@ -16,8 +16,8 @@
 // void openValve(int v)    - Open the valve for its "open time" duration
 //
 
-#include "Arduino.h"
-#include "param.h"
+//#include "Arduino.h"
+//#include "param.h"
 #define INFLOW  1
 #define OUTFLOW 2
 #define ALLFLOW (INFLOW|OUTFLOW)

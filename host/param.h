@@ -21,6 +21,6 @@
 #define NUM_VALVES      2
 #define MAX_VALVES      6
 
-#define MIXERSPEED 100   // PWM value for top mixer speed
+#define MIXERSPEED 80   // PWM value for top mixer speed
 
 
