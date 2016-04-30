@@ -325,8 +325,11 @@ update(Self) :->
 	LowThresh is Target - 2,
 	HighThresh is Target + 2,
 	retractall(temperature(cellstat,_,_)),
-	( Temp < LowThresh -> assert(temperature(cellstat,low,Temp)) ; true ),
-	( Temp > HighThresh -> assert(temperature(cellstat,high,Temp)) ; true ),
+	( Temp < LowThresh -> assert(temperature(cellstat,low,Temp))
+	; ( Temp > HighThresh -> assert(temperature(cellstat,high,Temp))
+	  ; assert(temperature(cellstat,okay,Temp))
+	  )
+	),
 	writeln(update(cellstat,aftertemp)),
 	range_color(Target, Temp, Tc),
         get(Self, slot, tturbidity, ODTarget),
@@ -563,9 +566,14 @@ fast_update(Self) :->
 	param(updateCycle(Cycle)),
 	TimeLeft is Cycle-CTime,
 	(TimeLeft < 0 -> ShowTime = Cycle ; ShowTime = TimeLeft),
-	concat_atom(['\nAutoSampler\n',
+	(ShowTime < 10
+	-> concat_atom(['\nAutoSampler\n',
+		      ' Level reading in Progress...\n',
+		      TimeAtom,' to next sample\n'],Label)
+	; concat_atom(['\nAutoSampler\n',
 		      ShowTime,' seconds to level reading\n',
-		      TimeAtom,' to next sample\n'],Label),
+		      TimeAtom,' to next sample\n'],Label)
+        ),
 	send(Self, label, Label).
 
 :- pce_end_class.  % autosampler

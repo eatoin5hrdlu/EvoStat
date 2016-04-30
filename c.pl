@@ -519,7 +519,8 @@ autoUpdate(Self) :->
     send(Self,quiet),      writeln(sent(quiet)),
     send(Self,readLevels), writeln(sent(readlevels)),
     send(Self,mixon),      writeln(sent(mixon)),
-    send(@gui, started).
+    send(@gui, started),
+    report.
 
 quiet(Self) :->
     simulator -> true ;
@@ -664,7 +665,12 @@ report :-
     open('evostat.report', append, S),
     nl(S), timeline(S),
     ( leak(Type)             -> write(S,'leak '),write(S,Type),nl(S) ; true ),
-    ( temperature(Id,Lv,Val) -> write(S,temperature(Id,Lv,Val)),nl(S); true ),
+    ( temperature(cellstat,_,Val) ->
+        write(S,'Host at '),write(S,Val),write(S,'C'),nl(S),
+        write(S,'OD600 '),write(S,'N/A'),nl(S),
+        write(S,'Lagoon Tm '),write(S,'N/A'),nl(S)
+    ; true
+    ),
     close(S).
 
 main :-  open('evostat.report', append, S),

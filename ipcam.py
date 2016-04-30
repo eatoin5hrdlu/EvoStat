@@ -454,10 +454,9 @@ if __name__ == "__main__" :
         ipcam.evocv.set_minsize((brect[3]-brect[1])/2)
         plog("Maxsize for cellstat = "+str(height))
         ipcam.evocv.set_maxsize(height)
-        print(termIntList('level',
-                ipcam.updateLevels(height,brect,
-                                   ipcam.updateLagoons(brect,num,red),contrast,red)))
+        print(termIntList('level',ipcam.updateLevels(height,brect,[(brect[0],brect[1],brect[2]-brect[0],brect[3]-brect[1])],contrast,red)))
     ipcam.release()
 
+#                                   ipcam.updateLagoons(brect,num,red),contrast,red)))
 
 
