@@ -1,17 +1,23 @@
 #include "param.h"        // Includes param.h (change constants there)
+#if (ARDUINO >= 100)
+ #include "Arduino.h"
+#else
+ #include "WProgram.h"
+#endif
+//
 #include <Wire.h>
 
 #ifndef INTERNAL // Mega has two references, but no default
 #define INTERNAL INTERNAL2V56
 #endif
 
-#include "valves.h"        // Includes param.h (change constants there)
+#include "valves.h"        // not!Includes param.h (change constants there)
 VALVES valves = VALVES(NUM_VALVES);
 
 //#include "Adafruit_MLX90614.h"
 //Adafruit_MLX90614 mlx;
-#include <MLX90614.h>
-MLX90614 mlx;
+//#include <MLX90614.h>
+//MLX90614 mlx;
 
 //#define DEBUG 1
 #define EOT "end_of_data."
@@ -23,7 +29,7 @@ int RomAddress  = 0;
 
 byte id = 'z'; // Zeno = unassigned, by default
 int gcycletime;
-float target_temperature;
+int target_temperature;
 int target_turbidity;
 int gtscale;
 int gtoffset;  // Offset and scale for Turbidity calculation
@@ -32,6 +38,33 @@ int interval;   // Variable to keep track of the time
 int mixerspeed;
 
 int reading[10];
+/*
+ * Temperature Stuff
+ */
+void initializeT()
+{
+  static boolean once = true;
+  if (once) { Wire.begin(); once = false; }
+}
+
+#define MLX90614_I2CADDR 0x5A
+#define MLX90614_TOBJ1   0x07
+
+uint16_t objTC(void) {
+  int tenths;
+  uint16_t ret;
+  initializeT();
+  Wire.beginTransmission((uint8_t) MLX90614_I2CADDR); // start transmission
+  Wire.write((uint8_t)MLX90614_TOBJ1);               // send register address for read
+  Wire.endTransmission(false);              // end transmission
+  Wire.requestFrom((uint8_t) MLX90614_I2CADDR, (uint8_t)3);// send data n-bytes read
+  ret = Wire.read();
+  ret |= Wire.read() << 8;                       // read three bytes
+  uint8_t pec = Wire.read();
+  tenths = ((ret<<1)-27315) / 10;  // Tenths of degrees C
+//  Serial.print(ret); Serial.print("  "); Serial.println(tenths);
+  return tenths;
+}
 
 /*
  * Host controller
@@ -98,26 +131,20 @@ void soutln(const char *str) {
  *  r  : Run mode (calibration off)
  */
 
-int get_temperature()// Returns temperature in tenths of degrees C
+int get_temperature()  // Temperature in tenths of degrees C
 {
 int tries = 10;
-float tmp = (float) mlx.readObjectTempC();
-      while(tries-- > 0 && (tmp<10.0 || tmp>80.0))
-      {
-      	    delay(200);
-	    mlx.begin();
-	    delay(200);
-	    tmp = (float) mlx.readObjectTempC();
-      }
+int resets = 3;
+int tmp;
 
-      if (tmp>10.0  && tmp<80.0)
-            return (int) (tmp * 10.0);
-      mlx = MLX90614();
-      delay(200);
-      mlx.begin();   // Initialize Mexexis Thermometer
-      delay(200);
-      tmp = (float) mlx.readObjectTempC();
-      return (int) (tmp * 10.0);
+      while(tries-- > 0)
+      {
+	    tmp = objTC();
+	    if (tmp>100  && tmp<800) return tmp;
+	    delay(100);
+	    if ( tries == 0 && resets-- > 0 ) { Wire.begin(); delay(200); tries=10; }
+      }
+      return 888;
 }
 
 void printHelp(void)
@@ -144,9 +171,9 @@ int *times = valves.getTimes();
 	Serial.println("cmd(p,[0,1,2,3,4],'foce valve open').");
 	Serial.println("cmd(r,'Restore settings from EEPROM').");
 	Serial.println("cmd(s,'Save settings in EEPROM').");
-	Serial.print("cmd(t,[");Serial.print((int) (target_temperature*10.0));
+	Serial.print("cmd(t,[");Serial.print(target_temperature);
 	Serial.println("],'Set/get target temperature in tenth degrees C').");
-	Serial.print("cmd(tt,[");Serial.print((int) (target_temperature*10.0));
+	Serial.print("cmd(tt,[");Serial.print(target_temperature);
 	Serial.println("],'Set/get target temperature in tenth degrees C').");
 	Serial.println("cmd(t,'Get temperature').");
 	Serial.println("cmd(z,'Zero EEPROM').");
@@ -202,38 +229,9 @@ bool wfProcess_command(char c1, char c2, int value)
 
 void checkTemperature()
 {
-int tries = 3;
-float tmp = (float) mlx.readObjectTempC();
-      while(tries-- > 0 && (tmp<10.0 || tmp>80.0))
-      {
-		    mlx.begin();
-      		    delay(200);
-      		    tmp = (float) mlx.readObjectTempC();
-      }
-      if (tmp < 10.0 || tmp > 80.0) return;
-
-// Got a reasonable reading		    
-
-float t = tmp*10.0;
-int hit =  (int) t/10.0;
-int lot =  abs(((int)t) % 10);
-
-	if (tmp < target_temperature) {
-#ifdef DEBUG
-                sprintf(reply, "temperature(low,%d.%d).",hit,lot);
-		sout(reply);
-#endif
-	        digitalWrite(HEATER,1);
-	        digitalWrite(LED,1);
-	}
-	if (tmp > target_temperature + 0.25) {
-		digitalWrite(HEATER,0);
-		digitalWrite(LED,0);
-#ifdef DEBUG
-                sprintf(reply, "temperature(high,%d.%d).",hit,lot);
-		sout(reply);
-#endif
-	}
+int t   = objTC();
+	if (t < target_temperature - 2) digitalWrite(HEATER,1);
+	else                            digitalWrite(HEATER,0);
 }
 
 // 'RomAddress' global will be bumped by successive
@@ -256,7 +254,7 @@ void saveRestore(int op)
 #endif
 	RomAddress = 0;
 	moveData(op, 1, &id);
-	moveData(op, sizeof(float), (byte *) &target_temperature);
+	moveData(op, sizeof(int), (byte *) &target_temperature);
 	moveData(op, NUM_VALVES*sizeof(int), (byte *) valves.getTimes());
 	moveData(op, sizeof(int), (byte *) &target_turbidity);
 	moveData(op, sizeof(int), (byte *) &gtscale);
@@ -456,7 +454,7 @@ byte d;
 		        switch(c2) {
 			  case 't':
 			   sprintf(reply,"target_temperature(%d).",
-                                          (int) (target_temperature*10.0));
+                                          target_temperature);
 			   soutln(reply);
 			   break;
 			 default:
@@ -479,7 +477,7 @@ byte d;
 			break;
 		case 'w':
 		        sprintf(reply, "leak(%d).", leakage());
-			sout(reply);
+			soutln(reply);
 			break;
 		case 'z':
 			int i;
@@ -598,13 +596,13 @@ int i;
 	interval = millis();
 	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
 //	mlx = Adafruit_MLX90614();
-	mlx = MLX90614();
-	mlx.begin();   // Initialize Mexexis Thermometer
+//	mlx = MLX90614();
+//	mlx.begin();   // Initialize Mexexis Thermometer
 	
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = 'h';	// Default Lagoon ID (haldane)
-		target_temperature = 37.0;
+		target_temperature = 370;
 		gcycletime = DEFAULT_CYCLETIME;
 		target_turbidity = 400;
 		gtscale = 9100;
@@ -617,7 +615,7 @@ int i;
 		saveRestore(RESTORE);
 #ifdef DEBUG
 		sprintf(reply,"tmtbscale(%d,%d,%d).",
-			((int) (target_temperature*10.0)),
+			target_temperature,
 			target_turbidity,gtscale);
 //		soutln(reply);
 #endif

@@ -22,7 +22,7 @@
 //              Pin 8: Motor (-)
 //
 #define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
-
+#define NUM_VALVES 5
 //
 // The following numbers work for the 12-volt motor supply
 // With four tubes to compress, 5-volts wasn't enough torque
@@ -57,7 +57,7 @@ const int P4 = 11;
 
 const int DEFAULT_VALVECYCLE = 20000UL;
 const int DEFAULT_SAMPLES    = 24;
-const int DEFAULT_SAMPLETIME = 3600;
+const int DEFAULT_SAMPLETIME = 3600UL;
 const int DEFAULT_ALIQUOT    = 500UL;
 
 #define EOT     "end_of_data."
@@ -119,8 +119,8 @@ int groupNum;      // Number of samples per group
 int groupTime;     // Time between groups
 int aliquot;       // Milliseconds for sample taking
 int valveInterval;
-int valveTime[5]; // Valve open time in milliseconds per interval
-int valvePin[5]; // Valve open time in milliseconds per interval
+int valveTime[6]; // Valve open time in milliseconds per interval
+int valvePin[6]; // Valve open time in milliseconds per interval
 
 int sampleCountdown; // Set to SampleNum after RESET
 unsigned long int sampleTimeMS;
@@ -165,7 +165,6 @@ int toolong = 100;
 		respondToRequest();
 	}
 	sampleCountdown = sampleNum;  // Reset to start sample count
-	sampleTimeMS = sampleTime*1000UL;  // Sampling interval in milliseconds
 	if (debug) {
 		if (toolong < 1) Serial.println("reset(timeout).");
 		Serial.println("reset(finished).");
@@ -192,11 +191,13 @@ int i;
 	pinMode(A3,OUTPUT);digitalWrite(A3,0);
 	pinMode(A4,OUTPUT);digitalWrite(A4,0);
 	pinMode(A5,OUTPUT);digitalWrite(A5,0);
+	pinMode(A6,OUTPUT);digitalWrite(A6,0); // Change NUM_VALVES to use this one
 	valvePin[0] = A1;
 	valvePin[1] = A2;
 	valvePin[2] = A3;
 	valvePin[3] = A4;
 	valvePin[4] = A5;
+	valvePin[5] = A6;
 	
 	closedPosition = false;
 	lastTime = millis();
@@ -212,8 +213,6 @@ int i;
 	pinMode(ENDSTOP,        INPUT_PULLUP);
 
 	RomAddress  = 0;
-	saveRestore(RESTORE);
-//	if (true)
 	if (EEPROM.read(0) == 0 or EEPROM.read(0) == 255) // firsttime
 	{
 		if (debug)
@@ -224,10 +223,12 @@ int i;
 		groupNum   = 12;                // Number of samples per group
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
-		for (i=0; i< 5; i++) valveTime[i] = 3000;
+		for (i=0; i< 6; i++) valveTime[i] = 3000;
 		valveInterval = DEFAULT_VALVECYCLE;
 		saveRestore(SAVE);
 	}
+	saveRestore(RESTORE);
+	sampleTimeMS = sampleTime*1000UL;  // Sampling interval in milliseconds
 	openInterval = aliquot;
 	if (debug)
 		printHelp();
@@ -314,7 +315,7 @@ void saveRestore(int op)
 	moveData(op, sizeof(int), (byte *)&groupTime );
 	moveData(op, sizeof(int), (byte *)&aliquot );
 	moveData(op, sizeof(int), (byte *)&valveInterval );
-	moveData(op, 5*sizeof(int), (byte *)&valveTime );
+	moveData(op, 6*sizeof(int), (byte *)&valveTime );
 }
 
 void dump(void)    // Print configuration settings
@@ -360,7 +361,7 @@ void printTermChar(char *functor, char arg)
 void process(char c, int value)
 {
 unsigned long time_left;
-int temp;
+unsigned int temp;
 int i;
 	switch(c) {
 		case 'a':
@@ -554,7 +555,7 @@ boolean allclosed = true;
 unsigned long elapsed;
 unsigned long now = millis();
 	elapsed = now - lastValveCycle;
-	for(i=0;i<5;i++) {
+	for(i=0;i<NUM_VALVES;i++) {
 	 	if (digitalRead(valvePin[i])) {  // Valve is open
 		   allclosed = false;
 		   if (valveTime[i] < (int)elapsed)
@@ -566,7 +567,7 @@ unsigned long now = millis();
 		if (debug)
 	           Serial.println("starting valve cycle");
 		lastValveCycle = now;
-		for(i=0;i<5;i++) {
+		for(i=0;i<NUM_VALVES;i++) {
 		    if (valveTime[i] > 0)
 		       digitalWrite(valvePin[i],1);
 		}
