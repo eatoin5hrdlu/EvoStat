@@ -14,7 +14,7 @@
 #define HEATER         11     // Power resistors
 #define MIXER           3     // PWM for 5V motor
 
-#define MIXERSPEED 80         // PWM value for top mixer speed
+#define MIXERSPEED  180      // PWM (5v) value for top mixer speed
 
 #define DEFAULT_CYCLETIME 30L // Can be changed/stored in EEPROM
 
