@@ -402,7 +402,7 @@ update(Self) :->
         get(Self,slot,ttemperature,Target),
 	LowThresh is Target - 2,
 	HighThresh is Target + 2,
-	retractall(temperature(MyName,_,_)),
+	retractall(temperature(lagoon,_,_)),
 	( Temp < LowThresh -> assert(temperature(lagoon,low,Temp))
 	; ( Temp > HighThresh -> assert(temperature(lagoon,high,Temp))
 	  ; assert(temperature(lagoon,okay,Temp))
