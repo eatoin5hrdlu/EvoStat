@@ -29,7 +29,7 @@ carriers = { 'a' : '@mms.att.net',
  
 car = 'vp'
 num = '9194525098'
-mess = os.popen('tail -5 /home/peter/src/EvoStat/evostat.report').read()
+mess = os.popen('tail -9 /home/peter/src/EvoStat/evostat.report').read()
              
 if (len(sys.argv) < 2) :
     print 'smstext [atvs] NNNNNNNNNN "message"';
