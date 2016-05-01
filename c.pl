@@ -667,8 +667,11 @@ report :-
     ( leak(Type)             -> write(S,'leak '),write(S,Type),nl(S) ; true ),
     ( temperature(cellstat,_,Val) ->
         write(S,'Host at '),write(S,Val),write(S,'C'),nl(S),
-        write(S,'OD600 '),write(S,'N/A'),nl(S),
-        write(S,'Lagoon Tm '),write(S,'N/A'),nl(S)
+        write(S,'OD600 '),write(S,'N/A'),nl(S)
+    ; true
+    ),
+    ( temperature(lagoon,_,LVal) ->
+        write(S,'Lagoon Tm '),write(S,LVal),write(S,'C'),nl(S)
     ; true
     ),
     close(S).
