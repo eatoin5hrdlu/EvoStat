@@ -14,6 +14,9 @@ strip_codes([W|T],     Out) :- W < 33, !, strip_codes(T,Out).
 strip_codes([C|In],[C|Out]) :- strip_codes(In,Out).
 
 
+nlevent(Who, What) :->
+        writeln(gotevent(Who,What)).
+
 initialise(Self, Label:[name], Socket:[any]) :->
 	"Have a short conversation over Bluetooth"::
         send_super(Self, initialise(Label)),
@@ -21,6 +24,10 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	send(Self?frame, icon, bitmap('./evo.xpm')), % Our logo
         new(Diatxt, text_buffer),                    % Text object in
         new(Editor, editor(Diatxt)),                 % Emacs-like edit window
+
+	send(Editor, recogniser, new(K, key_binding(@nil, argument))),
+	send(K, function, 10, nlevent),
+
 	screen(DW,DH,WF,HF,_),
 	MyW is 30+(DW*WF/100)/2,
 	MyH is (DH*HF/100)/2,
