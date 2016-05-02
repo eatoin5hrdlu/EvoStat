@@ -1,4 +1,5 @@
 #!/usr/bin/xpce
+:- dynamic show_conversation/1.
 
 :- pce_begin_class(dialin, dialog, "Conversation").
 
@@ -19,13 +20,6 @@ nlevent(Who,What) :<-
         writeln(what(What)),
         writeln(got_nlevent(Who)).
 
-nlevent(Self) :->
-	"process a newline in the editor"::
-	chain_list(Self?graphicals, [Editor|_]),
-	send(Editor?text_buffer, append, '<nl>\n'),
-        writeln(got_nlevent).
-
-
 initialise(Self, Label:[name], Socket:[any]) :->
 	"Have a short conversation over Bluetooth"::
         send_super(Self, initialise(Label)),
@@ -34,35 +28,47 @@ initialise(Self, Label:[name], Socket:[any]) :->
         new(Diatxt, text_buffer),                    % Text object in
         new(Editor, editor(Diatxt)),                 % Emacs-like edit window
 
-	send(Editor?bindings, function, 'RET', message(Self,talk)),
+	send(Editor?bindings, function, 'RET', message(Self,enter)),
 	screen(DW,DH,WF,HF,_),
 	MyW is 30+(DW*WF/100)/2,
 	MyH is (DH*HF/100)/2,
         get(Editor,  area, Area),                     % Resize it
 	send(Area, set(width:=MyW,height:=MyH)),
-	send_list(Self, append, [ Editor,  button(talk),
-				  	   button(clear),
-					   button(reset)]),
+	send(Self, append, Editor),
 	send_super(Self, open, point(600,200)).      % Show it to the User
 
-talk(Self) :->
-	"Send contents of Editor to Bluetooth Socket and show Reply"::
-	get(Self, socket, Socket),
+enter(Self) :->
+	"Stateful command/response window"::
+	retract(show_conversation(Self)),
+	!,
+	send(Self, clear).
+
+enter(Self) :->
+	"Stateful command/response window"::
 	chain_list(Self?graphicals, [Editor|_]),      % Contents of 
 	get(Editor?text_buffer?contents, value, Raw), % Edit pane
 	strip_atom(Raw, Cmd),
+	( Cmd = reset
+	 -> send(Self,reset),
+	    send(Self,clear)
+	;   talk(Self, Cmd, Editor)
+	).
+
+talk(Self, Cmd, Editor) :-
+	get(Self, socket, Socket),
 	bluetalk(Socket, Cmd, Msg),
-        ( (Msg=[];string_length(Msg,0)) ->
-	  get_super(Self, label, Whoami),
-	  send(Editor?text_buffer, append, '\nreconnecting('),
-	  send(Editor?text_buffer, append, Whoami),
-	  send(Editor?text_buffer, append, ').'),
-	  send(@Whoami, connect),
-	  get(@Whoami, socket, NewSocket),
-	  send(Self, slot, socket, NewSocket)
-        ; send(Editor?text_buffer, append, '\n'),
-	  send(Editor?text_buffer, append, Msg)
+	( ( Msg=[] ; string_length(Msg,0) )
+	     -> get_super(Self, label, Whoami),
+		send(Editor?text_buffer, append, '\nreconnecting('),
+		send(Editor?text_buffer, append, Whoami),
+		send(Editor?text_buffer, append, ').'),
+		send(@Whoami, connect),
+		get(@Whoami, socket, NewSocket),
+		send(Self, slot, socket, NewSocket)
+             ;  send(Editor?text_buffer, append, '\n'),
+		send(Editor?text_buffer, append, Msg)
 	),
+	assert(show_conversation(Self)),
 	send(Self, keyboard_focus, Editor).
 
 clear(Self) :->
@@ -75,19 +81,17 @@ reset(Self) :->
      writeln(resetting(Self,socket(Sock))),
      bt_areset(Sock),
      writeln(reset).
+reset(Self) :->
+	get_super(Self, label, Whoami),
+	writeln(resetfailed(Whoami)).
 
 :- pce_end_class.
 	
 % send(K, function, 'backspace', message(P, execute_backward)),
 %	send(K, function, 'DEL',message(P,execute_del)),
-%	
-%	% les autres sont prédéfinies
 %	send(K, function, 'cursor_home',message(P,beginning_of_line)),
 %	send(K, function, 'cursor_left',message(P,backward_char)),
 %	send(K, function, 'cursor_right',message(P,forward_char)),
 %	send(K, function, 'end',message(P,end_of_line)),
-%	
-%	% ici le message envoyé "next" est un message de fenêtre
-%	% on passe au contrôle suivant
 %	send(K, function, 'TAB', message(P,next)),
 %	send(K, function, 'RET', enter).
