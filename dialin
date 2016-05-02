@@ -14,8 +14,17 @@ strip_codes([W|T],     Out) :- W < 33, !, strip_codes(T,Out).
 strip_codes([C|In],[C|Out]) :- strip_codes(In,Out).
 
 
-nlevent(Who, What) :->
-        writeln(gotevent(Who,What)).
+nlevent(Who,What) :<-
+	"process a newline in the editor"::
+        writeln(what(What)),
+        writeln(got_nlevent(Who)).
+
+nlevent(Self) :->
+	"process a newline in the editor"::
+	chain_list(Self?graphicals, [Editor|_]),
+	send(Editor?text_buffer, append, '<nl>\n'),
+        writeln(got_nlevent).
+
 
 initialise(Self, Label:[name], Socket:[any]) :->
 	"Have a short conversation over Bluetooth"::
@@ -25,9 +34,7 @@ initialise(Self, Label:[name], Socket:[any]) :->
         new(Diatxt, text_buffer),                    % Text object in
         new(Editor, editor(Diatxt)),                 % Emacs-like edit window
 
-	send(Editor, recogniser, new(K, key_binding(@nil, argument))),
-	send(K, function, 10, nlevent),
-
+	send(Editor?bindings, function, 'RET', message(Self,talk)),
 	screen(DW,DH,WF,HF,_),
 	MyW is 30+(DW*WF/100)/2,
 	MyH is (DH*HF/100)/2,
@@ -70,3 +77,17 @@ reset(Self) :->
      writeln(reset).
 
 :- pce_end_class.
+	
+% send(K, function, 'backspace', message(P, execute_backward)),
+%	send(K, function, 'DEL',message(P,execute_del)),
+%	
+%	% les autres sont prédéfinies
+%	send(K, function, 'cursor_home',message(P,beginning_of_line)),
+%	send(K, function, 'cursor_left',message(P,backward_char)),
+%	send(K, function, 'cursor_right',message(P,forward_char)),
+%	send(K, function, 'end',message(P,end_of_line)),
+%	
+%	% ici le message envoyé "next" est un message de fenêtre
+%	% on passe au contrôle suivant
+%	send(K, function, 'TAB', message(P,next)),
+%	send(K, function, 'RET', enter).
