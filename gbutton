@@ -13,6 +13,8 @@
 
 :- dynamic tog/1.
 :- dynamic ard/5.
+:- dynamic errs/2.
+:- multifile errs/2.
 
 % This fact implies:
 % 
@@ -110,7 +112,7 @@ variable(imageDirectory, name, get, "Current Image Path" ).
 variable(imageFile,      name, get, "Current Image Filename" ).
 
 initialise(Self, Label:[name]) :->
-	"Initialise the image area"::
+	  "Initialise the image area"::
         send_super(Self, initialise(Label)),
 	snapshot('./',File),
 	send(Self, slot, imageFile, File),
@@ -132,16 +134,16 @@ image(Self, File:[name])      :->
 imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
 
 update(Self) :->
-	writeln(updating(snapshot)),
-	get(Self, imageDirectory, Path),
-	get(Self, imageFile, OldFile),
-	snapshot(Path, NewFile),
-	( NewFile = OldFile -> true
-	; new(I, image(NewFile)),
-	  send(Self, slot, imageFile, NewFile),
-	  send(Self,selection, I)
-	),
-	writeln(updated(snapshot)).
+      writeln(updating(snapshot)),
+      send(Self, selection, 'Refresh Image'),
+      send(Self, flush),
+      get(Self, imageDirectory, Path),
+      snapshot(Path, NewFile),
+      new(I, image(NewFile)),
+      send(Self, slot, imageFile, NewFile),
+      send(Self,selection, I),
+      send(Self, flush),
+      writeln(updated(snapshot)).
 
 :- pce_end_class.
 
@@ -158,7 +160,7 @@ variable(turbidity,       int, get, "Optical Density (600nM)").
 variable(temperature, real, get, "Temperature").
 
 % Target Settings
-variable(tturbidity,       int, get, "Target Optical Density (600nM)").
+variable(tturbidity,   int, get, "Target Optical Density (600nM)").
 variable(ttemperature, real, get, "Target Temperature").
 
 initialise(Self, Label:[name]) :->
@@ -209,10 +211,12 @@ shape(Self, W:[int], H:[int]) :->
 	send(Self, size, size(MyWidth,MyHeight)).
 
 od(Self, OD600:[real]) :->
-	 send(Self, slot, turbidity, OD600).
+	 Turb is integer(OD600*1000),
+	 send(Self, slot, tturbidity, Turb).
 
 temp(Self, Temp:[real]) :->
-	 send(Self, slot, temperature, Temp).
+	 Temp10 is integer(Temp*10),
+	 send(Self, slot, ttemperature, Temp10).
 
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
 
@@ -220,11 +224,25 @@ converse(Self, Cmd) :->
 	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
         get(Self, socket, Socket),
 	bluetalk(Socket, Cmd, Reply),
-	(Reply == "" ->
-	  send(Self, slot, reply, 'reconnecting.'),
-	  send(Self, connect),
-	  send(Self, converse, Cmd)
-        ; send(Self, slot, reply, Reply)
+	((Reply == "" ; Reply == end_of_file)
+	 ->  get_super(Self, label, Who),
+	     writeln(trying(Who,reset)),
+	     assert(err(Who,reset)),
+	     bt_areset(Socket),
+	     sleep(4),
+	     bluetalk(Socket, Cmd, Reply2),
+	     (Reply2 == ""
+	      -> assert(err(Who, new_socket)),
+		 send(Self, connect),
+		 bluetalk(Socket, Cmd, Reply3),
+		 (Reply3 == ""
+		  -> assert(err(Who,and(reset,new_socket))),
+		     send(Self, slot, reply, 'failure.')
+		  ; send(Self, slot, reply, Reply3)
+		 )
+	      ; send(Self, slot, reply, Reply2)
+	     )
+	 ; send(Self, slot, reply, Reply)
 	).
 
 connect(Self) :->
@@ -292,7 +310,7 @@ check_leak_value(N) :-  N > 700,
 			retractall(leak(_)),
 			send(@gui?graphicals, for_all,
 			     if(message(@arg1,instance_of,spacer),
-				message(@arg1,reset))).
+				message(@arg1,resetColor))).
 			
 
 check_leak_value(N) :- N < 300,
@@ -310,7 +328,12 @@ check_leak_value(N) :- writeln(leak(possible,N)),
 		       send(@gui?graphicals, for_all,
 			    if( message(@arg1,instance_of,spacer),
 				message(@arg1,color,orange))).
-	
+
+reportDeltaT(Who,Old,New) :-
+	DeltaT is integer(abs(Old-New)/10),
+	retractall(err(Who,deltaT(_))),
+	(DeltaT > 5 -> assert(err(Who,deltaT(DeltaT))) ; true).
+
 update(Self) :->
 	writeln(updating(cellstat)),
 	send_super(Self, update),
@@ -318,8 +341,9 @@ update(Self) :->
         get(Self,slot,reply,Reply),
 	(Reply='no_connection.' -> Label='Cellstat\nNo Bluetooth\nConnection'
 	;
-	parse_reply(Reply, temperature(Temp10), temperature(11.3)),
-	Temp is Temp10/10.0,
+	parse_reply(Reply, temperature(Temp), temperature(111)),
+	get(Self, slot, temperature, PreviousTemp),
+	reportDeltaT(cellstat, PreviousTemp, Temp),
         send(Self,slot, temperature, Temp),
         get(Self, slot, ttemperature, Target),
 	LowThresh is Target - 2,
@@ -346,10 +370,13 @@ update(Self) :->
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
 	get(Self, slot, level, Level),
-	format(atom(TempFmt), '~4g', [Temp]),
-	format(atom(TargFmt), '~4g', [Target]),
+	TempF is float(Temp)/10.0,
+	TargetF is float(Target)/10.0,
+	limit(TurbVal, 0, 999, TurbL),
+	format(atom(TempFmt), '~4g', [TempF]),
+	format(atom(TargFmt), '~4g', [TargetF]),
         concat_atom(['\nCellStat  ',Level,'%\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
- 		'Turbidity:  0.', ODTarget,' / 0.', TurbVal, '\n'], Label)
+ 		'Turbidity:  0.', ODTarget,' / 0.', TurbL, '\n'], Label)
 	),
 	send(Self, label, Label),
         writeln(updated(cellstat,level(Level))).
@@ -398,6 +425,13 @@ update(Self) :->
 	;
 	parse_reply(Reply,temperature(TempInt),temperature(111)),
 	Temp is float(TempInt)/10.0,
+        get(Self,slot,temperature,PreviousTemp),
+	DeltaT is integer(abs(PreviousTemp-Temp)),
+	retractall(err(MyName,deltaT(_))),
+	( DeltaT > 5
+	-> assert(err(MyName,deltaT(DeltaT)))
+	 ; true
+	),
         send(Self,slot,temperature,Temp),
         get(Self,slot,ttemperature,Target),
 	LowThresh is Target - 2,
@@ -602,7 +636,7 @@ color(Self, Color) :->
      send(Self, colour, colour(Color)),
      send(Self, fill_pattern, colour(Color)).
 
-reset(Self) :-> 
+resetColor(Self) :-> 
      get(Self,slot,defaultColor,C),
      send(Self, colour, colour(C)).
 

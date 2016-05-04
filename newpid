@@ -1,6 +1,7 @@
 :- module( pid, [ launch_controllers/1,
 		  pidstart/0,
 		  pidstop/0,
+		  limit/4,
 		  compute/0    ]).
 :- use_module(library(apply)).
 :- dynamic stop_controllers/0, iterm/4, state/8.

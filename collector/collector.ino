@@ -135,9 +135,9 @@ void printHelp(void)
 	Serial.println("g(value,'number of samples in group').");
 	Serial.println("h('help - print this command menu').");
 	Serial.print("i(");Serial.print(valveTime[0]);Serial.println(",'set lagoon1 drain time(ms)').");
-	Serial.print("j(");Serial.print(valveTime[1]);Serial.println(",'set lagoon1 drain time(ms)').");
-	Serial.print("k(");Serial.print(valveTime[2]);Serial.println(",'set lagoon1 drain time(ms)').");
-	Serial.print("l(");Serial.print(valveTime[3]);Serial.println(",'set lagoon1 drain time(ms)').");
+	Serial.print("j(");Serial.print(valveTime[1]);Serial.println(",'set lagoon2 drain time(ms)').");
+	Serial.print("k(");Serial.print(valveTime[2]);Serial.println(",'set lagoon3 drain time(ms)').");
+	Serial.print("l(");Serial.print(valveTime[3]);Serial.println(",'set lagoon4 drain time(ms)').");
 	Serial.print("m(");Serial.print(valveTime[4]);Serial.println(",'set cellStat drain time(ms)').");
 	Serial.println("n(value,'total number of samples').");
 	Serial.println("p(value,'set drain timing interval').");
@@ -482,8 +482,8 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 					}
 				}
 				if (debug) Serial.println(sampleCountdown);
-				lastSampleTime = millis(); // Reset Time
 			}
+			lastSampleTime = millis(); // Reset Time
 			lastTime = millis();
 			state = CLOSED;
 		}

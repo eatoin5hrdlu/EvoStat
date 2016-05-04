@@ -13,6 +13,10 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
+:- dynamic err/2.
+:- multifile err/2.
+:- dynamic cycle/1.
+
 :- dynamic debug/0. % Removed by save_evostat when building binary
 debug.
 
@@ -24,8 +28,8 @@ timeline(S):-
 :- dynamic component/3, leak/1, temperature/3, last_level/2.
 
 % Configuration <hostname>.pl settings
-:- dynamic bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/3.
-:- multifile bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/3.
+:- dynamic bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/2.
+:- multifile bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/2.
 % logfile(logfile).
 
 temp_file('mypic1.jpg').
@@ -391,7 +395,6 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
-
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
@@ -530,13 +533,31 @@ quiet(Self) :->
     send(Cellstat,converse,'m0'),
     send(Cellstat,converse,'o-').
 
+new_snapshot(Self) :->
+    param(layout(Components)),
+    memberchk(snapshot(Name, Position, Data), Components),
+    new_component(@Name, snapshot, Data),
+    send(@Name, slot, above, @x2),
+    send(@Name, slot, below, @x1),
+    send(@Name, slot, displayed, @on),
+    send(@Name, slot, device, @gui),
+    new(Graphicals,chain),
+    send(Self?graphicals, for_all,
+	 if( message(@arg1,instance_of,snapshot),
+	     message(Graphicals,append,@Name,Position),
+	     message(Graphicals,append,@arg1))),
+    send(Self, slot, graphicals, Graphicals),
+    writeln(update(snapShot)).
+
 mixon(Self) :->
     writeln('Updating ebuttons'),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
     writeln('Updating snapshot'),
+%    send(Self,new_snapshot),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
+    
     writeln('Turning noisy stuff back on'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
@@ -578,9 +599,18 @@ stopText(_S)   :->
     
     
 sendTexts(_Self) :->
-    writeln(sending_texts),
-    findall(W,(watcher(W),concat_atom(['./smstext.py ',W],C),shell(C)),Ws),
-    writeln(sent_to(Ws)).
+    retract(cycle(Last)),
+    Next is Last + 1,
+    assert(cycle(Next)),
+    ( watcher(Who, Where, When),
+      MyTime is Last mod When,
+      MyTime =:= 0,
+      concat_atom(['./smstext.py ',Where],Cmd),
+      shell(Cmd),
+      writeln('                             TEXTING'(Who)),
+      fail
+    ; true
+    ).
     
 :- pce_end_class.  % End of evostat
 
@@ -589,12 +619,16 @@ sendTexts(_Self) :->
 
 create(Dialog, Component) :-
 	Component =.. [Type, Name, Position, Data],
+        new_component(@Name, Type, Data),
+	send(Dialog, append(@Name, Position)),
+	retractall(component(Name,Type,_)),
+        assert(component(Name,Type,@Name)).
+
+new_component(@Name, Type, Data) :-
 	free(@Name),
 	Class =.. [Type,Name],
 	new(@Name, Class),
-	maplist(send(@Name), Data), % Process all before appending
-	send(Dialog, append(@Name, Position)),
-        assert(component(Name,Type,@Name)).
+	maplist(send(@Name), Data).
 
 add_reset(Dialog,@Name) :-
     ( send(@Name,instance_of,ebutton) ->
@@ -674,12 +708,21 @@ report :-
         write(S,'Lagoon Tm '),write(S,LVal),write(S,'C'),nl(S)
     ; true
     ),
+    (err(Who,Err),
+     write(S,error(Who,Err)),nl(S),fail
+     ;true
+    ),
     close(S).
 
-main :-  open('evostat.report', append, S),
-	 nl(S),nl(S),write(S,'EvoStat started:'),timeline(S),
-	 close(S),
-	 pce_main_loop(main).
+main :-
+    ( shell('./multiples',1)
+     -> writeln('EvoStat is already running'), halt
+    ; assert(cycle(0))
+    ),
+    open('evostat.report', append, S),
+    nl(S),nl(S),write(S,'EvoStat started:'),timeline(S),
+    close(S),
+    pce_main_loop(main).
 
 main(_Argv) :-
         assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
@@ -751,3 +794,4 @@ save_evostat :-
     retractall(debug),
     Options = [stand_alone(true), goal(main)],
     qsave_program(evostat, [emulator(Emulator)|Options]).
+
