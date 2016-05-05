@@ -168,7 +168,7 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, levelUnits, 'mL'),
 	send(Self, slot, ttemperature, 37.0),
 	send(Self, slot, tturbidity, 400),
-	send(Self, slot, temperature, 0.0),
+	send(Self, slot, temperature, 37.0),
 	send(Self, slot, turbidity, 0.0),
 	send(Self, slot, socket, @nil),
 	( bt_device(Label,Mac),

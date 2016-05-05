@@ -701,7 +701,9 @@ report :-
     nl(S), timeline(S),
     ( leak(Type)             -> write(S,'leak '),write(S,Type),nl(S) ; true ),
     ( temperature(cellstat,_,Val) ->
-        write(S,'Host at '),write(S,Val),write(S,'C'),nl(S),
+        HiC is Val/10, LoC is Val mod 10,
+        write(S,'Host at '),
+        write(S,HiC),write(S,0'.),write(S,LoC),write(S,'C'),nl(S),
         write(S,'OD600 '),write(S,'N/A'),nl(S)
     ; true
     ),
