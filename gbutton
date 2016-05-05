@@ -7,7 +7,6 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
-
 :- use_module(library(time)).
 :- use_module(library(process)).
 
@@ -220,22 +219,30 @@ temp(Self, Temp:[real]) :->
 
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
 
+nullreply("") :- !,writeln(reply(doublequotes)).
+nullreply([]) :- !,writeln(reply(emptylist)).
+nullreply(['']) :- !,writeln(reply(emptyatominalist)).
+nullreply('') :- !,writeln(reply(emptyatom)).
+nullreply(``) :- !,writeln(reply(emptystring)).
+nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
+nullreply(NR) :- !,writeq(reply(none,NR)),fail.
+
 converse(Self, Cmd) :->
 	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
         get(Self, socket, Socket),
 	bluetalk(Socket, Cmd, Reply),
-	((Reply == "" ; Reply == end_of_file)
+	( nullreply(Reply)
 	 ->  get_super(Self, label, Who),
 	     writeln(trying(Who,reset)),
 	     assert(err(Who,reset)),
 	     bt_areset(Socket),
 	     sleep(4),
 	     bluetalk(Socket, Cmd, Reply2),
-	     (Reply2 == ""
+	     ( nullreply(Reply2)
 	      -> assert(err(Who, new_socket)),
 		 send(Self, connect),
 		 bluetalk(Socket, Cmd, Reply3),
-		 (Reply3 == ""
+		 ( nullreply(Reply3)
 		  -> assert(err(Who,and(reset,new_socket))),
 		     send(Self, slot, reply, 'failure.')
 		  ; send(Self, slot, reply, Reply3)

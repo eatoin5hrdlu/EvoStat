@@ -1,5 +1,6 @@
 %:- use_foreign_library(dlltest). 
 %:- rlc_color(window, 150,150,200).
+:- set_prolog_flag(double_quotes,codes).
 :- use_module(library(time)).
 :- use_module(library(pce)).
 
