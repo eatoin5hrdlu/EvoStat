@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN"
+   "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US">
+  <style>
+    div {
+    padding-bottom: 10px;
+    margin: 10px 10px 10px 10px;
+    }
+    
+    label {
+    font-weight: bold;
+    font-size: 170%;
+    text-align: center;
+    border: 8px solid rgba(110,90,65,0.5);
+    border-style: inset;
+    border-radius: 1em ;
+    }
+
+.cellstat label {
+    color: #553344;
+    background-color: rgba(110,110,90,0.4);
+    margin-left: 30%;
+    display: block;
+    float: center;
+    width: 30%;
+}
+
+.lagoon label {
+    color: #223344;
+    background-color: rgba(80,170,120,0.4);
+    display: block;
+    float: left;
+    width: 20%;
+    height : 100px;
+    font-size: 140%;
+    margin-left: 1%;
+    margin-right: 1%;
+    }
+
+.autosampler label {
+    color: #445566;
+    margin-top: 20px;
+    margin-left: 24%;
+    background-color: rgba(200,170,120,0.5);
+    display: block;
+    float: left;
+    height: 90px;
+    width: 40%;
+    }
+</style>
+
+<head>
+<!--#set var="mytitle" value="Pathe" -->
+<!--#include file="styleheader.html" -->
+<body background="./images/platebg2.png">
+<center><img src="./images/darwinplate.png"></img></center>
+   <div class=cellstat><label>Nutrient  50%</label></div>
+   <div class=cellstat>
+    <img src="./images/tknob22.png" height="42" width="42">
+       <label>Cellstat 86%<br>Temperature 37/36<br>OD<sub>600</sub> .400/.286</label>
+    <img src="./images/tknob.png" height="42" width="42">
+
+   </div>
+   <p>
+
+   <div class=lagoon>
+     <label>
+       Lagoon1 30%<br>Temperature 37/36.9<br>Rate 3.5/3.2</label>
+     <label>
+       Lagoon2 30%<br>Temperature 37/36.9<br>Rate 3.5/3.2</label>
+     <label>
+       Lagoon3 30%<br>Temperature 37/36.9<br>Rate 3.5/3.2</label>
+     <label>
+       Lagoon4 30%<br>Temperature 37/36.9<br>Rate 3.5/3.2</label>
+   </div>
+   <div class=autosampler>
+   <label>AutoSampler<br>Next Level Reading in 10s<br>Next Sample 00:20:15</labe
+   </div>
+   <div class=autosampler>
+   <label style="width:200px;font-size: 120%">WASTE<br>30% full</label>
+   </div>
+
+ </body>
+
+</head>

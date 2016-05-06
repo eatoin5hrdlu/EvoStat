@@ -1,0 +1,194 @@
+/* mozilla.org Base Template Styles
+ * Initial Design by Dave Shea
+ * Severely tweaked by David Baron
+ * Reorganized by fantasai
+ * modified for BioLogic by Peter Reintjes
+ */
+
+/* Basic Structure */
+	html,
+	body {
+		padding: 0;
+		margin: 0;
+		background: #F0E0C0;
+	}
+
+	#container {
+		margin: 0;
+		padding: 0;
+	}
+	#mBody {
+		margin: 0;
+		padding: 0;
+	}
+
+
+	#side {
+		position: absolute;
+		left: 0;
+		top: 100px;
+		padding: 10px 15px;
+		width: 206px;
+		voice-family: "\"}\""; voice-family:inherit; /* Tantek's hack */
+		width: 176px;
+	} #ignored {}
+
+	.nomenu #side {
+		display: none;
+	}
+
+	#side h2 {
+		margin-top: 1em;
+	}
+
+	#mainContent {
+		margin-left: 206px;
+	}
+	.homepage #mainContent {
+		padding: 20px 30px;
+	}
+	.nomenu #mainContent {
+		margin-left: 0;
+	}
+	.secondLevel #mainContent, .deepLevel #mainContent {
+		padding: 20px 50px;
+	}
+
+/* Header */
+
+	#header img {
+		float: left;
+		margin: 0;
+	}
+
+	#mainNav {
+		margin: 0 3px 0 140px;
+		padding: 9px 0 0 0;
+		width: auto;
+		height: 31px;
+		text-align: right;
+	}
+
+	#fc li, /* xxx remove? search turns up no id="fc" */
+	#mainNav li {
+		white-space: nowrap;
+		list-style-type: none;
+		display: inline;
+		padding-right: 0.6em;
+	}
+
+	#sf {
+		margin: 0 3px 0 140px;
+		position: relative;
+		top: -6px;
+		text-align: right;
+		padding: 15px 15px 0 0;
+		height: 57px;
+		voice-family: "\"}\""; voice-family:inherit; /* Tantek's hack */
+		height: 42px;
+	} #ignored {}
+
+	#sf label {
+		font-size: 80%;
+	}
+	#q {
+		font-size: 70%;
+	}
+
+/* Sidebar */
+
+	#getcd {
+		margin: 1em 0 0 45px;
+	}
+
+	#side h3 {
+		margin: 2em 0 0 0;
+	}
+	#side h4 {
+		font-size: 90%;
+		margin-top: 0;
+		margin-bottom: 0.5em;
+	}
+	#side p {
+		margin: 0 0 2em 0;
+		font-size: 87%;
+	}
+	#side dl {
+		margin-top: 0;
+	}
+	#side dt {
+		display: inline;
+		font-size: 87%;
+	}
+	#side dd {
+		padding: 0 0 5px 5px;
+		margin: 0 0 1em 0;
+		font-size: 87%;
+	}
+	#side ul {
+		padding: 0;
+		margin: 0;
+	}
+	#side li {
+		list-style: none;
+		padding: 0 0 0.3em 11px;
+	}
+
+	#oN {
+		padding: 10px;
+		margin: 1em 0 0 0;
+	}
+	#oN li {
+		list-style-type: none;
+		margin-bottom: 0.5em;
+		padding-left: 15px;
+	}
+
+/* Footer */
+
+	#bn {
+		clear: both;
+		padding: 0 0 0 0.5em;
+		margin: 3em 0 0.5em 0;
+	}
+	#bn li {
+		list-style: none;
+		display: inline;
+		white-space: nowrap;
+	}
+	#bn :link, #bn :visited {
+		padding: 0 1em 0 0.5em;
+	}
+	#footer p {
+		font-size: 73%;
+		line-height: normal;
+		margin: 0 0 0 1em;
+	}
+	#int {
+		padding: 0 0 0 1em;
+		margin: 0;
+	}
+	#int li {
+		font-size: 73%;
+		list-style: none;
+		display: inline;
+		white-space: nowrap;
+	}
+	.copyright {
+		padding-bottom: 0.5em;
+	}
+
+/*accessibility tweaks*/
+	.skipLink {
+		position: absolute;
+		left: -999px;
+		width: 990px;
+	}
+	hr.hide {
+		display: none;
+	}
+
+
+        .WARNING {
+		color: red;
+	}
