@@ -1,5 +1,5 @@
 config( [
-	 textMessages(3600),  % Twice Daily (10min=360 hour=3600 4-hour=14400)
+	 textMessages(360),  % Twice Daily (10min=360 hour=3600 4-hour=14400)
 	 updateCycle(90),    % In seconds
 	 debugpause(10),     % Debug essentially off when pause is 10ms
 	 numLagoons(1),
@@ -71,7 +71,7 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 %watcher(lea,    'vp 9194525097',4).  % Lea
 watcher(reintjes,'vp 9194525098',7).  % Peter Reintjes
 watcher(pc,      'a 9193083839', 5).  % The Other Peter
-watcher(martha, 'vp 9196024293', 23). % Martha Collier
+%watcher(martha, 'vp 9196024293', 23). % Martha Collier
 watcher(marshall,'a 5056037415', 4). % Marshall
 
 % Fake Level Data for PID debugging

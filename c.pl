@@ -21,10 +21,8 @@
 :- dynamic debug/0. % Removed by save_evostat when building binary
 debug.
 
-timeline(S):-
-    get_time(Now),
-    convert_time(Now,String),
-    write(S,String),nl(S).
+timestring(TString):- get_time(Now), convert_time(Now,TString).
+timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
 
 :- dynamic component/3, leak/1, temperature/3, last_level/2.
 
@@ -48,15 +46,16 @@ cleanup :- temp_file(F), exists_file(F), delete_file(F) ; true.
 
 % All messages to logfile (otherwise, message window)
 
-logging :-
-    ( logfile(File)
-     -> tell(File),
-	telling(S),
-	set_stream(S,buffer(line)),
-	set_stream(user_error,buffer(line)),
-	set_stream(S,alias(user_error))
-     ;  true
-    ).
+% Never use logfile on Windows
+logging :- windows, !, retractall(logfile(_)).
+logging :- ( logfile(File)
+            -> tell(File),
+	       telling(S),
+	       set_stream(S,buffer(line)),
+	       set_stream(user_error,buffer(line)),
+	       set_stream(S,alias(user_error))
+	    ; true
+	   ).
 
 camera_device(Device) :-
     param(camera(Num)),
@@ -699,11 +698,11 @@ c(Name) :-
 report :-
     open('evostat.report', append, S),
     nl(S), timeline(S),
-    ( leak(Type)             -> write(S,'leak '),write(S,Type),nl(S) ; true ),
+    ( leak(Type)  -> write(S,'leak '),write(S,Type),nl(S) ; true ),
     ( temperature(cellstat,_,Val) ->
         HiC is integer(Val/10), LoC is integer(Val) mod 10,
         write(S,'Host at '),
-        write(S,HiC),write(S,0'.),write(S,LoC),write(S,'C'),nl(S),
+        write(S,HiC),write(S,'.'),write(S,LoC),write(S,'C'),nl(S),
         write(S,'OD600 '),write(S,'N/A'),nl(S)
     ; true
     ),
@@ -711,34 +710,33 @@ report :-
         write(S,'Lagoon Tm '),write(S,LVal),write(S,'C'),nl(S)
     ; true
     ),
-    (err(Who,Err),
-     write(S,error(Who,Err)),nl(S),fail
-     ;true
-    ),
+    (err(Who,Err),write(S,error(Who,Err)),nl(S),fail ;true),
     close(S).
 
+count(ErrorType, Who) :-
+    Prev =.. [ErrorType, _When, HowMany],
+    ( retract(err(Who,Prev)) -> NErrors is HowMany+1 ;  NErrors=1 ),
+    timestring(Now),
+    Result =.. [ErrorType, Now, NErrors],
+    assert(err(Who,Result)).
+
 main :-
-    ( shell('./multiples',1)
-     -> writeln('EvoStat is already running'), halt
-    ; assert(cycle(0))
-    ),
-    open('evostat.report', append, S),
-    nl(S),nl(S),write(S,'EvoStat started:'),timeline(S),
-    close(S),
-    pce_main_loop(main).
+    pce_main_loop(main). % This calls main(Argv)
 
 main(_Argv) :-
-        assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
-%        use_module(library(pce)),
+    ( shell('./multiples',1)
+     -> writeln('EvoStat is already running'), halt
+     ; assert(cycle(0))
+    ),
+
+    open('evostat.report', write, S),
+    nl(S),nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
     
-        ( logfile(_), windows
-         -> retract(logfile(_))
-         ; true
-        ),
-        evostat_directory(HomeDir),  % With this, the savestate
-        cd(HomeDir),               % can be executed from anywhere
-        cleanup,                   % uses temp_file/1 to remove files
-	logging,                   % Send output to F if logfile(F) defined
+    assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
+    evostat_directory(HomeDir),  % With this, the savestate
+    cd(HomeDir),               % can be executed from anywhere
+    cleanup,                   % uses temp_file/1 to remove files
+    logging,                   % Send output to F if logfile(F) defined
 
 	% Delay a bit if the computer is just starting up (low PID)
         current_prolog_flag(pid, PID),
