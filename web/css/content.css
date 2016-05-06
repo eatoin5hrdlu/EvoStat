@@ -59,7 +59,7 @@
     font-weight: bold;
     font-size: 170%;
     text-align: center;
-    border: 8px solid rgba(110,90,65,0.5);
+    border: 8px solid rgba(110,90,65,0.4);
     border-style: inset;
     border-radius: 1em ;
     }
@@ -71,7 +71,7 @@
     
 .cellstat label {
     color: #553344;
-    background-color: rgba(110,110,90,0.4);
+    background-color: rgba(110,110,90,0.3);
     margin-left: 30%;
     display: block;
     width: 30%;
@@ -79,7 +79,7 @@
 
 .lagoon label {
     color: #223344;
-    background-color: rgba(80,170,120,0.4);
+    background-color: rgba(80,170,120,0.3);
     display: block;
     float: left;
     width: 20%;
@@ -93,7 +93,7 @@
     color: #445566;
     margin-top: 20px;
     margin-left: 24%;
-    background-color: rgba(200,170,120,0.5);
+    background-color: rgba(200,170,120,0.3);
     display: block;
     float: left;
     height: 90px;
