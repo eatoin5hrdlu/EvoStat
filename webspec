@@ -8,12 +8,7 @@
 
 user:head(_, Head) -->       % CSS: Add to every page
     html(head([
-link([ type('text/css'), rel('stylesheet'), href('/open/css/default.css') ]),
-link([ type('text/css'), rel('stylesheet'), href('/open/css/template.css') ]),
-link([ type('text/css'), rel('stylesheet'), href('/open/css/mtemplate.css') ]),
-link([ type('text/css'), rel('stylesheet'), href('/open/css/content.css') ]),
-link([ type('text/css'), rel('stylesheet'), href('/open/css/mcontent.css') ]),
-link([ type('text/css'), rel('stylesheet'), href('/open/css/print.css') ])
+link([ type('text/css'), rel('stylesheet'), href('/web/css/content.css') ])
 	 | Head ])).
 
 emit_file(Path,Options,Request) :-
