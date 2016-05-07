@@ -13,26 +13,22 @@ pathe(_Request) :-
  Title = 'Pathe Control Panel',
  Name = 'darwin',
  concat_atom(['./images/',Name,'plate.png'],NamePlate),
- forall(label(Supply),get_label(supply,S,Supply),Nutrient_Inducers),
+ findall(label(Supply),get_label(supply,_S,Supply),Nutrient_Inducers),
  get_label(cellstat,_,Cellstat),
- forall(label(Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
+ findall(label(Lagoon),get_label(lagoon,_L,Lagoon),LagoonLabels),
  get_label(_,autosampler,AutoSampler),
  get_label(_,waste,Waste),
  reply_html_page(evostat,
   [title(Title),
    meta(['http-equiv'(refresh),content(5)],[]),
-   script([ language(javascript) ],[]),
-   Style ],
+   script([ language(javascript) ],[])],
    body([id(biologic),background('./images/platebg2.png')],
-	[ center(img([src(NamePlate)]))
+	[ center(img([src(NamePlate)],[])),
        div([class(cellstat)],Nutrient_Inducers),
-       div([class(cellstat)],
-	[img([src('./images/tknob22.png'),height(42),width(42)]),
-	 label(Cellstat),
-	 img([src('./images/tknob.png'),height(42),width=(42)])]),
-       div([class(lagoon)],LagoonLabels)
-	 div([class(autosampler)],label(AutoSampler))
-         div([class(autosampler)],label([style('width:200px;font-size: 120%')],Waste))]
+       div([class(cellstat)], label(Cellstat)),
+       div([class(lagoon)],LagoonLabels),
+       div([class(autosampler)],label(AutoSampler)),
+       div([class(autosampler)],label([style('width:200px;font-size: 120%')],Waste))]
     )% body
   ). % reply_html_page
 

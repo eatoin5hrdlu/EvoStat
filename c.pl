@@ -13,13 +13,21 @@
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
+:- use_module(library(http/thread_httpd)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_header)).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
+
 
 :- dynamic err/2.
 :- multifile err/2.
 :- dynamic cycle/1.
 
-:- dynamic debug/0. % Removed by save_evostat when building binary
-debug.
+%:- dynamic debug/0. % Removed by save_evostat when building binary
+%debug.
+
+message(A,B) :- (debug -> format(user_error,A,B) ; true).
 
 timestring(TString):- get_time(Now), convert_time(Now,TString).
 timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
@@ -96,6 +104,25 @@ evostat_directory('/home/peter/src/EvoStat/').
 python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
 python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
 python('/usr/bin/python').
+
+% :- [webspec]. % HTTP Server  (start_http/0, stop_http/0)
+
+running :- catch(thread_httpd:http_workers(8080,N),_,fail), N>0.
+
+stop_http    :- catch(http_stop_server(8080,[]),_,true).
+
+start_http   :-(running -> true
+	     ;
+		process_files('web/*.pl',        [] ),
+	     process_files('web/*.html', [] ),
+	     process_files('web/css/*',    [] ),
+	     process_files('web/images/*', [] ),
+	     writeln(starting('HTTPD[21847]')),
+	     http_server( http_dispatch, [ port(21847) ] ), % Run Web Server
+	     writeln(started('HTTPD'))
+         ).
+
+reload :- stop_http, reconsult(webspec), start_http.
 
 :- [gbutton]. % Micro-controllers as PCE objects
 :- [dialin].  % Pop up Aduino dialog interface
@@ -763,8 +790,8 @@ main(_Argv) :-
 	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
 	assert(supress(screen(_,_,_))),       %     ''
         writePythonParams(Root),
-
-	c(Root),
+%	start_http,
+        c(Root),
         !.
 
 % To build stand-alone 'evostat', there are different emulators
@@ -792,7 +819,7 @@ os_emulator('/usr/bin/swipl') :-  % Linux
 
 save_evostat :-
     os_emulator(Emulator),
-    retractall(debug),
+%    retractall(debug),
     Options = [stand_alone(true), goal(main)],
     qsave_program(evostat, [emulator(Emulator)|Options]).
 
