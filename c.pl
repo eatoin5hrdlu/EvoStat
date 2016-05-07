@@ -1,22 +1,31 @@
+%:- use_module(library('http/httpd')).        
+%:- use_module(library(semweb/rdf_db)).
 %:- use_foreign_library(dlltest). 
 %:- rlc_color(window, 150,150,200).
 :- set_prolog_flag(double_quotes,codes).
 :- use_module(library(time)).
 :- use_module(library(pce)).
-
-:- free(@'_dialog_bg'),  % This should make the background light-blue steel
-   XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
-   new(@'_dialog_bg', colour(@default,XR,XG,XB)).
-
+:- use_module(library(http/thread_httpd)).   % Server loop
+:- use_module(library(http/http_dispatch)).  % dispatch table
+:- use_module(library(http/http_header)).    % Terms -> HTML conversion
+:- use_module(library(http/html_write)).     % Terms -> HTML conversion
+:- use_module(library(http/html_head)).      % html_requires//1
 :- use_module(library(process)).
 :- use_module(library(charsio)).
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
+:- ensure_loaded(webspec).           % HTTP Request handlers
+
+:- free(@'_dialog_bg'),  % This should make the background light-blue steel
+   XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
+   new(@'_dialog_bg', colour(@default,XR,XG,XB)).
 
 :- dynamic err/2.
 :- multifile err/2.
 :- dynamic cycle/1.
+:- dynamic webok/0.
+:- multifile webok/0.
 
 :- dynamic debug/0. % Removed by save_evostat when building binary
 debug.
@@ -104,8 +113,7 @@ python('/usr/bin/python').
 
 :- dynamic screen/5, input/2.
 
-:- dynamic component/2,
-           levelStream/2,
+:- dynamic levelStream/2,
 	   air/0,
 	   mix/0,
 	   toggle_auto/0.
@@ -121,15 +129,16 @@ python('/usr/bin/python').
 %
 % Color code for labeling text (name or parameter values):
 %   Red before connections are established
-%   Blue when parameter values are low
-%   Orange when parameters are high
-%   Green when paramaters are in the target range
+%   Blue when values are low
+%   Orange when values are high
+%   Green when in the target range
 %
 :- use_module(library(lists), [ flatten/2 ] ).
 
 :- dynamic config/1.       % Loaded configuration
 :- dynamic file_modtime/2. % Modification time of loaded file
 :- dynamic supress/1.      % Exclude terms from Python dictionary
+:- dynamic param/4.        % param(Name, Type, Attr, Value)
 
 param(P) :- config(List), memberchk(P,List).
 
@@ -396,6 +405,7 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
+	 assert(webok),
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
@@ -765,9 +775,10 @@ main(_Argv) :-
 	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
 	assert(supress(screen(_,_,_))),       %     ''
         writePythonParams(Root),
-
+        start_http,
 	c(Root),
-        !.
+        !,
+	stop_http.
 
 % To build stand-alone 'evostat', there are different emulators
 % Windows  'C:\\cygwin\\swipl\\bin\\swipl-win.exe'
@@ -798,3 +809,49 @@ save_evostat :-
     Options = [stand_alone(true), goal(main)],
     qsave_program(evostat, [emulator(Emulator)|Options]).
 
+% SIGNAL HANDLING
+% :- on_signal(int, _, cint).
+%
+% cint(_Signal) :- writeln('Caught a signal'),
+%                  thread_send_message(main, cinter).
+
+running   :- catch(thread_httpd:http_workers(21847,N),_,fail), N>0.
+
+reload    :- stophttp, reconsult(httpd), starthttp.
+
+stop_http  :- catch(http_stop_server(21847,[]),_,true).
+
+start_http :-
+    ( running
+     -> true
+     ;
+     process_files('web/*',        [] ),
+     process_files('web/*.html', [] ),
+     process_files('web/css/*',    [] ),
+     process_files('web/js/*',     [] ),
+     process_files('web/images/*', [] ),
+     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
+     http_server( http_dispatch, [ port(21847) ] )
+    ).
+
+% Given a Chdir path of depth N,
+% create a ladder back to original location
+
+return_path(Path,Return) :-
+    atom_chars(Path,PathChs),
+    findall('/..', member('/',PathChs), Levels),
+    concat_atom(['..'|Levels], Return).
+
+newpipe(Name) :-
+	concat_atom(['mkfifo ', Name], MakePipe),
+	system(MakePipe).
+
+% Run async command with stream output
+run_external(Cmd, Stream) :-
+	newpipe('/tmp/bpipe'),
+	concat_atom([Cmd,' >/tmp/bpipe &'], Redirected),
+	system(Redirected),
+	open('/tmp/bpipe', read, Stream, []),
+	system('rm /tmp/bpipe').
+
+message(F,L) :- format(user_error, F, L).

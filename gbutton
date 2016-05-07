@@ -124,7 +124,7 @@ initialise(Self, Label:[name]) :->
 
 shape(Self, W:[int], H:[int]) :->
 	window_percent(W,H,MyWidth,MyHeight),
-%	writeln(size(Self,MyWidth,MyHeight)),
+        writeln(size(Self,MyWidth,MyHeight)),
 	send(Self, size, size(MyWidth,MyHeight)).
 
 image(Self, File:[name])      :->
@@ -149,13 +149,14 @@ update(Self) :->
 
 :- pce_begin_class(ebutton, button).
 
+variable(myname,     name, get, "Component ID").
 variable(socket,      any, get, "Bluetooth/IP Socket"      ).
 variable(mac,        name, get, "Bluetooth/IP MAC Address" ).
 variable(reply,      name, get, "Last Message from Device" ).
 variable(levelUnits, name, get, "% or mL (usually)"        ).
 
 % Current Settings
-variable(turbidity,       int, get, "Optical Density (600nM)").
+variable(turbidity,    int, get, "Optical Density (600nM)").
 variable(temperature, real, get, "Temperature").
 
 % Target Settings
@@ -165,11 +166,12 @@ variable(ttemperature, real, get, "Target Temperature").
 initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
         send_super(Self, initialise(Label)),
+	send(Self, slot, myname, Label),
 	send(Self, slot, levelUnits, 'mL'),
-	send(Self, slot, ttemperature, 37.0),
+	send(Self, slot, ttemperature, 370),
 	send(Self, slot, tturbidity, 400),
-	send(Self, slot, temperature, 37.0),
-	send(Self, slot, turbidity, 0.0),
+	send(Self, slot, temperature, 370),
+	send(Self, slot, turbidity, 100),
 	send(Self, slot, socket, @nil),
 	( bt_device(Label,Mac),
 	  send(Self, slot, mac, Mac),
@@ -305,7 +307,22 @@ variable(leak,   int, get, "Leak Detector").
 initialise(Self, Label:[name]) :->
 	"Initialise the cellstat"::
         send_super(Self, initialise(Label)),
-	send(Self, slot, level, 85.0).
+	send(Self, slot, level, 85.0),
+	get_super(Self, slot, ttemperature, TargetTemp),
+	GuiTTemp is TargetTemp/10,
+	get_super(Self, slot, temperature, Temp),
+	GuiTemp is Temp/10,
+	get_super(Self, slot, tturbidity, ODTarget),
+	get_super(Self, slot, turbidity, Turb),
+
+% Default values: Web Interface must work before any updates
+        retractall(param(Label,cellstat,_,_)),
+	assert(param(Label,cellstat,level,85.0)),
+	assert(param(Label,cellstat,ttemperature,GuiTTemp)),
+	assert(param(Label,cellstat,temperature,GuiTemp)),
+	assert(param(Label,cellstat,tturbidity,ODTarget)),
+	assert(param(Label,cellstat,turbidity,Turb)),
+	writeln(cellstat(asserted)).
 
 check_leak(leak(N)) :- !, check_leak_value(N).
 check_leak(P)       :-    writeln(expected(leak/1,P)).
@@ -343,6 +360,7 @@ reportDeltaT(Who,Old,New) :-
 
 update(Self) :->
 	writeln(updating(cellstat)),
+	get_super(Self, slot, myname, MyName),
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
@@ -382,10 +400,20 @@ update(Self) :->
 	limit(TurbVal, 0, 999, TurbL),
 	format(atom(TempFmt), '~4g', [TempF]),
 	format(atom(TargFmt), '~4g', [TargetF]),
-        concat_atom(['\nCellStat  ',Level,'%\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
+        concat_atom(['\n',MyName,'  ',Level,'%\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
  		'Turbidity:  0.', ODTarget,' / 0.', TurbL, '\n'], Label)
 	),
 	send(Self, label, Label),
+
+% Default values: Web Interface must work before any updates
+        retractall(webok),
+        retractall(param(MyName,cellstat,_,_)),
+	assert(param(MyName,cellstat,level,Level)),
+	assert(param(MyName,cellstat,ttemperature,TargFmt)),
+	assert(param(MyName,cellstat,temperature,TempFmt)),
+	assert(param(MyName,cellstat,tturbidity,ODTarget)),
+	assert(param(MyName,cellstat,turbidity,TurbL)),
+        assert(webok),
         writeln(updated(cellstat,level(Level))).
 
 setLevel(Self,Level) :->
@@ -395,7 +423,6 @@ setLevel(Self,Level) :->
 
 :- pce_begin_class(lagoon, ebutton).
 
-variable(myname, name, get, "My real name").
 variable(fluorescence,real, get, "Fluorescence").
 variable(fluorescence_t, real, get, "Target Fluorescence").
 variable(level,     real, get, "Level").
@@ -414,13 +441,20 @@ variable(overflow,   int,   get, "Indication of Overflow").
 initialise(Self, Label:[name]) :->
 	"Initialise the lagoon"::
         send_super(Self, initialise(Label)),
-	send(Self, slot, myname, Label),
 	send(Self, slot, calibration, normal),
 	send(Self, slot, level, 33.0),
 	send(Self, slot, level_t, 36.0),
 	send(Self, slot, fluorescence_t, 0.2),
 	send(Self, slot, overflow, 0),
-	send(Self, slot, fluorescence, 0.0).
+	send(Self, slot, fluorescence, 0.0),
+
+	get_super(Self,slot,ttemperature,TargetTemp),
+	get_super(Self,slot,temperature,Temp),
+	retractall(param(Label,lagoon,_,_)),
+	assert(param(Label,lagoon,level,33.0)),
+	assert(param(Label,lagoon,ttemperature,37.0)),
+	assert(param(Label,lagoon,temperature,24.0)).
+
 
 update(Self) :->
         get(Self, slot, myname, MyName),
@@ -430,8 +464,7 @@ update(Self) :->
         get(Self,slot,reply,Reply),
 	(Reply = 'no_connection.' -> Label = 'No Bluetooth\nConnection'
 	;
-	parse_reply(Reply,temperature(TempInt),temperature(111)),
-	Temp is float(TempInt)/10.0,
+	parse_reply(Reply,temperature(Temp),temperature(111)),
         get(Self,slot,temperature,PreviousTemp),
 	DeltaT is integer(abs(PreviousTemp-Temp)),
 	retractall(err(MyName,deltaT(_))),
@@ -440,7 +473,9 @@ update(Self) :->
 	 ; true
 	),
         send(Self,slot,temperature,Temp),
+	TempDeg is float(Temp)/10.0,
         get(Self,slot,ttemperature,Target),
+	TargetDeg is float(Target)/10.0,
 	LowThresh is Target - 2,
 	HighThresh is Target + 2,
 	retractall(temperature(lagoon,_,_)),
@@ -454,16 +489,26 @@ update(Self) :->
         get(Self, slot, level, Level),
         get(Self, slot, fluorescence_t,LuxTarget),
         get(Self, slot, fluorescence,Lux),
+	format(atom(GuiTemp), '~4g', [TempDeg]),
+	format(atom(GuiTarget), '~4g', [TargetDeg]),
 	format(atom(Level2), '~4g', [Level]),
 	format(atom(Lux2), '~4g', [Lux]),
 	get(Self,slot,calibration,State),  % Calibration State is the Message
 	send(Self,State),
         concat_atom(['Level ', Level2, '%\n',
-	             'Temp  ', Target, 'C / ',Temp,' C\n',
+	             'Temp  ', GuiTarget, 'C / ',GuiTemp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lm' ], Label)
 	),
 	send(Self, label, Label),
-	writeln(updated(lagoon(MyName))).
+
+        retractall(webok),
+        retractall(param(MyName,lagoon,_,_)),
+	assert(param(MyName,lagoon,level,Level2)),
+	assert(param(MyName,lagoon,ttemperature,GuiTarget)),
+	assert(param(MyName,lagoon,temperature,GuiTemp)),
+        assert(webok),
+
+        writeln(updated(lagoon(MyName))).
 
 control_level(Self) :->                         % Level within range
 	get(Self,slot,level,Level),
@@ -567,16 +612,48 @@ outflow(Self) :->
 
 % Adjust valve times with the calculated Flow Rates
 done(Self) :->
-    get(self,slot,target_rate, TargetFlow),
-    get(self,slot,rate_input, RateInput),
+    get(Self,slot,target_rate, TargetFlow),
+    get(Self,slot,rate_input, RateInput),
     _DeltaInput is TargetFlow - RateInput,
 %    send(Self,command,[ai,DeltaInput]),
-    get(self,slot,rate_output, RateOutput),
+    get(Self,slot,rate_output, RateOutput),
     _DeltaOutput is TargetFlow - RateOutput,
 %    send(Self,command,[ao,DeltaOutput]),
     send(Self,slot,calibration,normal).
 
 :- pce_end_class.  % lagoon
+
+
+:- pce_begin_class(supply, ebutton).
+
+variable(level, real, get, "Percent Full").
+
+initialise(Self, Label:[name]) :->
+	"Initialise the autosampler"::
+        send_super(Self, initialise(Label)),
+	send(Self,slot,level,100),
+        retractall(param(Label,supply,_,_)),
+	assert(param(Label,supply,level,100)).
+
+update(Self) :->
+	send_super(Self, update),
+	get_super(Self, slot, myname, MyName),
+	writeln(updating(MyName)),
+	get(Self, slot, level, Level),
+        retractall(webok),
+	retractall(param(MyName,supply,_,_)),
+	assert(param(MyName,supply,level,Level)),
+        assert(webok).
+	
+:- pce_end_class.  % supply
+
+:- pce_begin_class(drainage, ebutton).
+initialise(Self, Label:[name]) :->
+	"Initialise the drain"::
+        send_super(Self, initialise(Label)).
+
+update(_Self) :-> true.
+:- pce_end_class.  % drainage
 
 
 :- pce_begin_class(sampler, ebutton).
