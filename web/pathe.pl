@@ -7,7 +7,8 @@
 % So the webpage will show stale values if Updates are off.
 %
 
-get_label(supply, Name, [Name,' ',Level,'%']) :- param(Name,supply,level,Level).
+get_label(supply, Name, [Name,' ',Level,'%']) :-
+    param(Name,supply,level,Level).
 
 get_label(cellstat,Name,[Name,' ',Level,'%',br([]),
 			 'Temperature ',TargetTemp,' / ',Temp,br([]),
@@ -25,8 +26,9 @@ get_label(lagoon,Lagoon,[Lagoon,' ',Level,'%',br([]),
     param(Lagoon,lagoon,ttemperature,TargetTemp),
     param(Lagoon,lagoon,temperature,Temp).
 
-get_label(sampler,autosampler,
-	  [ 'AutoSampler',br([]),'Next Level Reading in 10s',br([]),'Next Sample 00:20:15']).
+get_label(sampler,autosampler, [ 'AutoSampler',br([]),
+				 'Next Level Reading in 10s',br([]),
+				 'Next Sample 00:20:15']).
 
 get_label(drainage,waste,'Waste').
 
