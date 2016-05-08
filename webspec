@@ -7,9 +7,9 @@
 :- multifile user:head//2.
 
 user:head(_, Head) -->       % CSS: Add to every page
-    html(head([
-link([ type('text/css'), rel('stylesheet'), href('/web/css/content.css') ])
-	 | Head ])).
+    html(head([ link([ type('text/css'),
+    		rel('stylesheet'),
+		href('/web/css/content.css') ])|Head])).
 
 emit_file(Path,Options,Request) :-
         message('REQUEST: ~q~n', [Request]),
@@ -21,17 +21,14 @@ process_files(WildCard, Security) :-
 	expand_file_name(WildCard, Files),
 	add_handlers(Files, Security).
 
-png_handler(Path, Request):-
-        message('PNG Handler for ~q~n~n',[Path]),
-	http_reply_file(Path,[mime_type(image/png)],Request).
-
-gif_handler(Path, Request):-
-        message('GIF Handler for ~q~n~n',[Path]),
-	http_reply_file(Path,[mime_type(image/gif)],Request).
-
-jpg_handler(Path, Request):-
-        message('JPG Handler for ~q~n~n',[Path]),
-	http_reply_file(Path,[mime_type(image/jpg)],Request).
+suffix_mime( txt, [text/plain] ).
+suffix_mime(  js, [text/javascript] ).
+suffix_mime( css, [text/css] ).
+suffix_mime( png, [image/png] ).
+suffix_mime( gif, [image/gif] ).
+suffix_mime( jpg, [image/jpg] ).
+suffix_mime(jpeg, [image/jpg] ).
+suffix_mime(html, [] ).
 
 add_handlers([],_).
 add_handlers([Path|T],Options) :-
@@ -44,34 +41,25 @@ add_handlers([Path|T],Options) :-
 	),
 	add_handlers(T, Options).
 
+add_handler(Fmt, URL, _Root, Path, Options) :-
+	suffix_mime(Fmt, Mime),
+	http_handler(URL,http_reply_file(Path,Mime),Options).
+
 add_handler(pl, URL, Root, Path, Options) :-
 	ensure_loaded(Path),
         time_file(Path,Time),
         assert(load_time(Path,Time)),
 	http_handler(URL, Root, Options).
 
-add_handler(html, URL, _Root, Path, Options) :-
-	http_handler(URL, http_reply_file(Path,[]), Options).
 
-add_handler(txt, URL, _Root, Path, Options) :-
-	http_handler(URL,http_reply_file(Path,[mime_type(text/plain)]),Options).
-add_handler(png, URL, _Root, Path, Options) :-
-	http_handler(URL,png_handler(Path),Options).
-
-add_handler(gif, URL, _Root, Path, Options) :-
-	http_handler(URL,gif_handler(Path),Options).
-
-add_handler(jpg, URL, _Root, Path, Options) :-
-	http_handler(URL,jpg_handler(Path),Options).
-
-add_handler(jpeg, URL, _Root, Path, Options) :-
-	http_handler(URL,jpg_handler(Path),Options).
-
-add_handler(js, URL, _Root, Path, Options) :-
-	http_handler(URL,http_reply_file(Path,[mime_type(text/javascript)]),Options).
-
-add_handler(css, URL, _Root, Path, Options) :-
-	http_handler(URL,http_reply_file(Path,[mime_type(text/css)]),Options).
+check_web_files :- load_time(Path,Loaded),
+	       time_file(Path,FileTime),
+	       FileTime > Loaded,
+	       reconsult(Path),
+	       retract(load_time(Path,Loaded)),
+	       assert(load_time(Path,FileTime)),
+	       fail.
+check_web_files.
 
 %
 % CGI stuff to process parameter lists

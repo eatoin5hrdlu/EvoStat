@@ -10,7 +10,7 @@
 config( [
 	 textMessages(14400), % Twice Daily (10min=360 hour=3600 4-hour=14400)
 	 debugpause(10),      % Debug essentially off when pause is 10ms
-	 updateCycle(20),
+	 updateCycle(60),
 
 	 cellstatRegion(220,10,550,200),  % Location of the Cellstat
          cellstatContrast(2,1.4,-80),

@@ -419,7 +419,7 @@ initialise(W, Label:[name]) :->
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->
-       send(@ft,stop),  % Stop the GUI update timer as well
+%       send(@ft,stop),  % Stop the GUI update timer as well
        writeln('Stopping Level Detection (image processing)'),
        send(@ut, stop),
        send(@action?members, for_all,
@@ -591,8 +591,10 @@ readLevels(_) :->
 % Currently only the autosampler/next cycle time indication
 
 fastUpdate(Self) :->
+    writeln(fastupdate),
     send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))).
+	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
+    check_web_files.
 
 sendText(Self) :->
     send(Self,sendTexts),

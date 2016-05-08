@@ -113,6 +113,7 @@ variable(imageFile,      name, get, "Current Image Filename" ).
 initialise(Self, Label:[name]) :->
 	  "Initialise the image area"::
         send_super(Self, initialise(Label)),
+        send_super(Self, alignment, center),
 	snapshot('./',File),
 	send(Self, slot, imageFile, File),
 	send(Self, slot, imageDirectory, './'),
