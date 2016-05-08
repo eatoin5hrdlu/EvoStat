@@ -30,7 +30,7 @@
 %:- dynamic debug/0. % Removed by save_evostat when building binary
 %debug.
 
-message(A,B) :- (debug -> format(user_error,A,B) ; true).
+message(F,L) :- format(user_error, F, L).
 
 timestring(TString):- get_time(Now), convert_time(Now,TString).
 timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
@@ -107,25 +107,6 @@ evostat_directory('/home/peter/src/EvoStat/').
 python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
 python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
 python('/usr/bin/python').
-
-% :- [webspec]. % HTTP Server  (start_http/0, stop_http/0)
-
-running :- catch(thread_httpd:http_workers(8080,N),_,fail), N>0.
-
-stop_http    :- catch(http_stop_server(8080,[]),_,true).
-
-start_http   :-(running -> true
-	     ;
-		process_files('web/*.pl',        [] ),
-	     process_files('web/*.html', [] ),
-	     process_files('web/css/*',    [] ),
-	     process_files('web/images/*', [] ),
-	     writeln(starting('HTTPD[21847]')),
-	     http_server( http_dispatch, [ port(21847) ] ), % Run Web Server
-	     writeln(started('HTTPD'))
-         ).
-
-reload :- stop_http, reconsult(webspec), start_http.
 
 :- [gbutton]. % Micro-controllers as PCE objects
 :- [dialin].  % Pop up Aduino dialog interface
@@ -873,4 +854,3 @@ run_external(Cmd, Stream) :-
 	open('/tmp/bpipe', read, Stream, []),
 	system('rm /tmp/bpipe').
 
-message(F,L) :- format(user_error, F, L).

@@ -454,8 +454,8 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, overflow, 0),
 	send(Self, slot, fluorescence, 0.0),
 
-	get_super(Self,slot,ttemperature,TargetTemp),
-	get_super(Self,slot,temperature,Temp),
+%	get_super(Self,slot,ttemperature,TargetTemp),
+%	get_super(Self,slot,temperature,Temp),
 	retractall(param(Label,lagoon,_,_)),
 	assert(param(Label,lagoon,level,33.0)),
 	assert(param(Label,lagoon,ttemperature,37.0)),
