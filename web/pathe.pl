@@ -7,7 +7,7 @@
 % So the webpage will show stale values if Updates are off.
 %
 
-get_label(supply, Name, [Name,' ',Level,'%']) :-
+get_label(supply, Name, [Name,br([]),Level,'%']) :-
     param(Name,supply,level,Level).
 
 get_label(cellstat,Name,[Name,' ',Level,'%',br([]),
@@ -37,9 +37,9 @@ pathe(_Request) :-
  Name = 'darwin',
  concat_atom(['./images/',Name,'plate.png'],NamePlate),
  ( webok->true; (sleep(0.2), (webok->true;sleep(5)) ) ),
- findall(label([],Supply),get_label(supply,_S,Supply),Nutrient_Inducers),
+ findall(label([id=S],Supply),get_label(supply,S,Supply),Nutrient_Inducers),
  get_label(cellstat,_,Cellstat),
- findall(label([],Lagoon),get_label(lagoon,_L,Lagoon),LagoonLabels),
+ bagof(label(id=L,Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
  get_label(sampler,autosampler,AutoSampler),
  get_label(drainage,waste,Waste),
  reply_html_page(default,
@@ -48,9 +48,9 @@ pathe(_Request) :-
    script([ language(javascript) ],[])],
    body([background('./images/platebglong.png')],
 	[ center(img(src(NamePlate),[])),
-	  center(div(class=supply,Nutrient_Inducers)),
+	  div(class=supply,Nutrient_Inducers),
 	  div(class=cellstat, label([],Cellstat)),
-	  div(class=lagoon,LagoonLabels),br([clear=both]),
+	  div([class=lagoon,width('100%')],LagoonLabels),
 	  div(class=autosampler,label([],AutoSampler)),
           div(class=drainage,label([],Waste)),
 	  div(class=phagestat,img(src('./images/opencvlevel.png')))]

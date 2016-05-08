@@ -372,8 +372,8 @@ reportTemp(Who,Target,Temp) :-  % Temperatures are 10th degrees
 	).
 
 update(Self) :->
-	writeln(updating(cellstat)),
 	get_super(Self, slot, myname, MyName),
+	writeln(updating(MyName)),
 	send_super(Self, update),
 	send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
@@ -412,16 +412,20 @@ update(Self) :->
 	), % Else for 'no connection'
 	send(Self, label, Label),
 
-% Default values: Web Interface must work before any updates
-        retractall(webok),
-        retractall(param(MyName,cellstat,_,_)),
-	assert(param(MyName,cellstat,level,Level)),
-	assert(param(MyName,cellstat,ttemperature,TargFmt)),
-	assert(param(MyName,cellstat,temperature,TempFmt)),
-	assert(param(MyName,cellstat,tturbidity,ODTarget)),
-	assert(param(MyName,cellstat,turbidity,TurbL)),
-        assert(webok),
-        writeln(updated(cellstat,level(Level))).
+        repeat,	sleep(0.1), retract(webok), % SEMAPHORE
+	NewValues = [
+	param(MyName,cellstat,level,Level),
+	param(MyName,cellstat,ttemperature,TargFmt),
+	param(MyName,cellstat,temperature,TempFmt),
+	param(MyName,cellstat,tturbidity,ODTarget),
+	param(MyName,cellstat,turbidity,TurbL)],
+	(ground(NewValues) ->
+             retractall(param(MyName,cellstat,_,_)),
+	     maplist(assert,NewValues),
+             write(user_error,updated(cellstat,level(Level))),nl(user_error)
+	 ;   write(user_error,failed_update(MyName)),nl(user_error)
+	),
+        assert(webok).
 
 setLevel(Self,Level) :->
        send(Self, slot, level, Level).
@@ -504,15 +508,17 @@ update(Self) :->
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
 	),
 	send(Self, label, Label),
-
-        retractall(webok),
-        retractall(param(MyName,lagoon,_,_)),
-	assert(param(MyName,lagoon,level,Level2)),
-	assert(param(MyName,lagoon,ttemperature,GuiTarget)),
-	assert(param(MyName,lagoon,temperature,GuiTemp)),
-        assert(webok),
-
-        writeln(updated(lagoon(MyName))).
+        repeat,	sleep(0.1), retract(webok), % SEMAPHORE
+	NewValues = [param(MyName,lagoon,level,Level2),
+		     param(MyName,lagoon,ttemperature,GuiTarget),
+		     param(MyName,lagoon,temperature,GuiTemp)],
+	(ground(NewValues) ->
+             retractall(param(MyName,lagoon,_,_)),
+	     maplist(assert,NewValues),
+             write(user_error,updated(MyName,level(Level))),nl(user_error)
+	 ;   write(user_error,failed_update(MyName)),nl(user_error)
+	),
+        assert(webok).
 
 control_level(Self) :->                         % Level within range
 	get(Self,slot,level,Level),

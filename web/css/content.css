@@ -42,6 +42,10 @@
 */
 /* Random HTML Styles */
 
+        body {
+              padding : 0;
+              margin : 0;
+        }
 	dt {
 		font-weight: bold;
 	}
@@ -54,11 +58,6 @@
 		margin: 0;
 		display: inline;
 	}
-
-    div {
-    padding-bottom: 10px;
-    margin: 10px 10px 10px 10px;
-    }
 
     label {
     font-weight: bold;
@@ -73,27 +72,45 @@
 	position: absolute;
 	top: 180px;
 	left: 140px;
-	opacity: 0.4;
-	filter: alpha(opacity=40); /* For IE8 and earlier */
+	opacity: 0.1;
+	filter: alpha(opacity=10); /* For IE8 and earlier */
     }
 
     .phagestat img:hover {
-	opacity: 0.8;
-	filter: alpha(opacity=80); /* For IE8 and earlier */
+	opacity: 1.0;
+	filter: alpha(opacity=100); /* For IE8 and earlier */
     }
-    
+
+    div    {
+	width : 100%;
+	margin-top: 1%;
+	margin-left: 1%;
+	margin-right: 1%;
+	margin-bottom: 1%;
+    }
+
+    div.supply    {
+	position: absolute;
+	top: 20px;
+	left : 0;
+    }
+
+    div.lagoon    {
+	display: inline-flex;
+    }
+
     .supply label {
-    color: #553344;
-    background-color: rgba(150,150,110,0.5);
-    display: block;
-    float: left;
-    width: 16%;
-    height : 30px;
-    font-size: 90%;
-    margin-left: 1%;
-    margin-right: 1%;
-    margin-bottom: 1%;
-}
+	color: #553344;
+	position: relative;
+	background-color: rgba(210,210,110,0.5);
+	display: block;
+	width: 10%;
+	height : 90px;
+	font-size: 120%;
+	margin-left: 1%;
+	margin-right: 1%;
+	margin-bottom: 1%;
+    }
 
 .cellstat label {
     color: #442233;
@@ -104,24 +121,12 @@
     display: block;
     width: 40%;
 }
-   .cellstat label:hover {
-	opacity: 1.0;
-	filter: alpha(opacity=100);
-    }
-    
-
-.lagoon label:hover {
-	opacity: 1.0;
-	filter: alpha(opacity=100);
-}
 
 .lagoon label {
     color: #223344;
     background-color: rgba(80,170,120,0.5);
-    display: block;
-    float: left;
-    width: 20%;
     height : 100px;
+    width : 28%;
     font-size: 120%;
     margin-left: 1%;
     margin-right: 1%;
@@ -148,6 +153,19 @@
     font-size: 120%;
     margin-left: 30%;
 }
+
+#nutrient  { float : left;
+	background-color: rgba(200,200,110,0.5);
+	   }
+#arabinose { float : left; 
+	background-color: rgba(215,215,110,0.5);
+	   }
+#inducer2  { float : right;
+	background-color: rgba(230,230,200,0.5);
+	   }
+#inducer3  { float : right;
+	background-color: rgba(245,245,180,0.5);
+	   }
 
 /* General Structure */
 

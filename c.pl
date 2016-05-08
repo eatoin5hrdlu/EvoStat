@@ -419,7 +419,7 @@ initialise(W, Label:[name]) :->
 drain(_W, What) :->  writeln(draining(What)).
 
 stopped(_W) :->
-%       send(@ft,stop),  % Stop the GUI update timer as well
+       send(@ft,stop),  % Stop the GUI update timer as well
        writeln('Stopping Level Detection (image processing)'),
        send(@ut, stop),
        send(@action?members, for_all,
