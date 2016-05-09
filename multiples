@@ -1,0 +1,6 @@
+#!/bin/bash
+LINES=`ps -C evostat | wc -l`
+echo "LINES = " $LINES
+if [ $LINES -gt 2 ]; then
+   exit 1;
+fi
