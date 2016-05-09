@@ -32,24 +32,49 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 
 get_label(drainage,waste,'Waste').
 
+tracing(Req) :- 
+	memberchk(search(Search),Req),
+	memberchk(trace=1,Search),
+	!,
+	trace.
+tracing(_).
+
+evostatName(Req, Name) :- 
+    nonvar(Req),
+    memberchk(search(Search),Req),
+    memberchk(evostat=Name,Search).
+
+evostatName(Req, Name) :-
+    gethostname(Fullname),
+    atom_codes(Fullname,Codes),
+    ( append(Root,[0'.|_],Codes) -> atom_codes(Name,Root)
+    ; Name = Fullname
+    ),
+    write(user_error,evostat(Name)),nl(user_error).
+
+namePlate(Name, NamePlate) :-
+    concat_atom(['./images/',Name,'plate.png'],NamePlate).
+
+semaphore :- ( webok
+              -> true
+              ; ( sleep(0.2), ( webok -> true ; sleep(5) )
+                )
+             ).
+
 pathe(Req) :-
-  (nonvar(Req),
-   memberchk(search(S),Req),
-   memberchk(evostat=Name,S) -> true
-  ; gethostname(Name)
-  ),
-  write(user_error,nameis(Name)),nl(user_error),
+  tracing(Req),
+  evostatName(Req,Name),
+  namePlate(Name,NamePlate),
   Title = 'Pathe Control Panel',
-  concat_atom(['./images/',Name,'plate.png'],NamePlate),
- ( webok->true; (sleep(0.2), (webok->true;sleep(5)) ) ),
- findall(label([id=S],Supply),get_label(supply,S,Supply),Nutrient_Inducers),
- get_label(cellstat,_,Cellstat),
- bagof(label(id=L,Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
- get_label(sampler,autosampler,AutoSampler),
- get_label(drainage,waste,Waste),
- reply_html_page(default,
+  semaphore,
+  findall(label([id=S],Supply),get_label(supply,S,Supply),Nutrient_Inducers),
+  get_label(cellstat,_,Cellstat),
+  bagof(label(id=L,Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
+  get_label(sampler,autosampler,AutoSampler),
+  get_label(drainage,waste,Waste),
+  reply_html_page(default,
   [title(Title),
-%   meta(['http-equiv'(refresh),content(5)],[]),
+%   meta(['http-equiv'(refresh),content(5)],[]), % Make it an active page
    script([ language(javascript) ],[])],
    body([background('./images/platebglong.png')],
 	[ center(img(src(NamePlate),[])),

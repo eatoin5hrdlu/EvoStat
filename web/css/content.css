@@ -99,6 +99,8 @@
 	display: inline-flex;
     }
 
+
+
     .supply label {
 	color: #553344;
 	position: relative;
@@ -121,16 +123,20 @@
     display: block;
     width: 40%;
 }
+.cellstat label {
+    color: #442233;
+    clear: both;
+    background-color: rgba(110,110,90,0.5);
+    margin-top: 10px;
+    margin-left: 23%;
+    display: block;
+    width: 40%;
+}
 
-.lagoon label {
-    color: #223344;
-    background-color: rgba(80,170,120,0.5);
-    height : 100px;
-    width : 28%;
-    font-size: 120%;
-    margin-left: 1%;
-    margin-right: 1%;
-    margin-bottom: 1%;
+
+.snapshot label {
+    height : 50%;
+    width : 40%;
    }
 
 .autosampler label {

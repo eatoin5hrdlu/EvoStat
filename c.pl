@@ -705,7 +705,8 @@ c(Name) :-
     (Reply = quit ->
          send(@ft, stop),
          send(@ut, stop),
-         send(@gui, destroy)
+         send(@gui, destroy),
+         stop_httpd
      ;   writeln(Reply)
     ).
 
@@ -819,7 +820,7 @@ save_evostat :-
 
 running   :- catch(thread_httpd:http_workers(21847,N),_,fail), N>0.
 
-reload    :- stophttp, reconsult(httpd), starthttp.
+reload    :- stop_http, reconsult(webspec), start_http.
 
 stop_http  :- catch(http_stop_server(21847,[]),_,true).
 
