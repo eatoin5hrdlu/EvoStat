@@ -32,11 +32,15 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 
 get_label(drainage,waste,'Waste').
 
-pathe(_Request) :-
-write(user_error,_Request),nl(user_error),
- Title = 'Pathe Control Panel',
- Name = 'darwin',
- concat_atom(['./images/',Name,'plate.png'],NamePlate),
+pathe(Req) :-
+  (nonvar(Req),
+   memberchk(search(S),Req),
+   memberchk(evostat=Name,S) -> true
+  ; gethostname(Name)
+  ),
+  write(user_error,nameis(Name)),nl(user_error),
+  Title = 'Pathe Control Panel',
+  concat_atom(['./images/',Name,'plate.png'],NamePlate),
  ( webok->true; (sleep(0.2), (webok->true;sleep(5)) ) ),
  findall(label([id=S],Supply),get_label(supply,S,Supply),Nutrient_Inducers),
  get_label(cellstat,_,Cellstat),
