@@ -832,6 +832,7 @@ start_http :-
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
      process_files('web/images/*', [] ),
+%     process_files('web/*', [] ),
      process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
      http_server( http_dispatch, [ port(21847) ] )
     ).
@@ -856,3 +857,5 @@ run_external(Cmd, Stream) :-
 	open('/tmp/bpipe', read, Stream, []),
 	system('rm /tmp/bpipe').
 
+%http_read_passwd_file(+Path, -Data)
+%http_write_passwd_file(pws,"$1$jVPltO5Q$$1$jVPltO5Q$t9a46Bb18vp/BMoco70u21")

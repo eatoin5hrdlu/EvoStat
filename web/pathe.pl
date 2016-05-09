@@ -33,6 +33,7 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 get_label(drainage,waste,'Waste').
 
 pathe(_Request) :-
+write(user_error,_Request),nl(user_error),
  Title = 'Pathe Control Panel',
  Name = 'darwin',
  concat_atom(['./images/',Name,'plate.png'],NamePlate),
@@ -53,7 +54,7 @@ pathe(_Request) :-
 	  div([class=lagoon,width('100%')],LagoonLabels),
 	  div(class=autosampler,label([],AutoSampler)),
           div(class=drainage,label([],Waste)),
-	  div(class=phagestat,img(src('./images/opencvlevel.png')))]
+	  div(class=phagestat,img(src('./mypic1.png')))]
     )% body
   ),
   write(user_error,return(pathe)),nl(user_error).

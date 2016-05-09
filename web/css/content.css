@@ -72,8 +72,8 @@
 	position: absolute;
 	top: 180px;
 	left: 140px;
-	opacity: 0.1;
-	filter: alpha(opacity=10); /* For IE8 and earlier */
+	opacity: 0.15;
+	filter: alpha(opacity=15); /* For IE8 and earlier */
     }
 
     .phagestat img:hover {
