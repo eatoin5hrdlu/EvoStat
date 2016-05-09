@@ -32,12 +32,12 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 
 get_label(drainage,waste,'Waste').
 
-tracing(Req) :- 
+web_debug(Req) :- 
 	memberchk(search(Search),Req),
 	memberchk(trace=1,Search),
 	!,
 	trace.
-tracing(_).
+web_debug(_).
 
 evostatName(Req, Name) :- 
     nonvar(Req),
@@ -62,7 +62,8 @@ semaphore :- ( webok
              ).
 
 pathe(Req) :-
-  tracing(Req),
+trace,
+  web_debug(Req),
   evostatName(Req,Name),
   namePlate(Name,NamePlate),
   Title = 'Pathe Control Panel',

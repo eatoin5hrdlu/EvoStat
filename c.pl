@@ -706,7 +706,7 @@ c(Name) :-
          send(@ft, stop),
          send(@ut, stop),
          send(@gui, destroy),
-         stop_httpd
+         stop_http
      ;   writeln(Reply)
     ).
 
