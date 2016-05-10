@@ -1,4 +1,4 @@
-:- use_module(library(guitracer)).
+:- use_module(library(gui_tracer)).
 
 :- dynamic param/4.  % param(?Name, ?Type, +Slot, -Value)
 :- multifile param/4.
@@ -34,17 +34,18 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 
 get_label(drainage,waste,'Waste').
 
+web_debug(Req) :-
+    windows,
+    !,
+    write(user_error,
+     'Tracing in Web page generators broken in windows'),
+    nl(user_error).
+    
 web_debug(Req) :- 
-        write(user_error,web_debug),nl(user_error),
-        write(user_output,web_user),nl(user_output),
 	memberchk(search(Search),Req),
-        write(user_error,search(Search)), nl(user_error),
 	memberchk(trace='1',Search),
-        write(user_error,trace(1)),nl(user_error),
 	!,
-        write(user_error,calling(trace)),nl(user_error),
-	guitracer,
-        write(user_error,called(trace)),nl(user_error).
+	trace.
 web_debug(_).
 
 evostatName(Req, Name) :- 
@@ -94,9 +95,9 @@ pathe(Req) :-
           div(class=drainage,label([],Waste)),
 	  div(class=phagestat,img(src('./mypic1.png')))]
     )% body
-  ),
-  write(user_error,return(pathe)),nl(user_error).
+  ).
 
-pathe(Request) :- errorPage(Request, 'Error creating PACE control page').
+pathe(Request) :-
+ errorPage(Request, 'Error creating EvoStat control page').
 
 
