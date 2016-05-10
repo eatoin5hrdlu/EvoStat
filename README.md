@@ -16,7 +16,7 @@ Running EvoStat on a Linux or Windows machine provides an interface for multiple
 It also contains a web server to provide essentially the same
 interface via the URL:  
 
-    http://&lt;machine-name&gt;:8080/evostat.pl    
+    http://&lt;machine-name&gt;:8080/web/pathe.pl    
 
 
 Prerequisite Software
@@ -25,6 +25,10 @@ Prerequisite Software
 - OpenCV (plus: "apt-get install python-opencv")
 - SWI-Prolog with Xpce
 - Arduino IDE (Processing)
+-
+- On Linux add : imagemagick (for conversion of image files)
+- apache2-utils: for Authentication (encrypted password) Files
+- 
 
 Getting Started
 ====
@@ -32,49 +36,38 @@ Clone the repo:
 
     git clone https://github.com/eatoin5hrdlu/EvoStat.git
 
-Run the app:
+--- Level detection Python/OpenCV
 
-    cd app
-    python levelapp.py
+A python program (ipcam.py) uses OpenCV to read the liquid levels of the vessels.
+Windows and linux versions of #! in ipcam.py appear at the top of the file
+It may be necessary to move the correct one to the top. Or call python:
 
-Using the controls, line up the lagoons and turbidostat in the camera frame
-with the corresponding lines being  (blob detection being added to automate this)
+$ python ipcam.py lagoon (read the lagoon liquid levels)
+$ python ipcam.py cellstat (cellstat level)
+$ python ipcam.py locate  (show image and write bbox from mouse area selection)
 
-Controls
-====
-* z  - read one frame and find levels and display
-* r - read, find levels and display for 20 seconds.
-* 0<nl>   Select the turbidostat as current vessel
-* {1,2,3,4 for lagoons)
-* <arrow keys> to move up/down/left/right, or:
-* h  - move to the left
-* j  - move down
-* k  - move up
-* l  - move right
-* t -make region taller
-* s - make region shorter
-* f - make region fatter
-* d - diminish (make region thinner)
-* x - exits the program
----
-Making a Prolog executable (saved-state)
+------------------
+Create stand-alone executable "evostat" (Prolog saved-state)
+$ swipl (linux) or swipl-win
+:- [c].
+:- save_evostat.
 
-:- [load].
+Or to do debugging, start the program by typing:
 
-main :-      pce_main_loop(main).
+$ swipl(-win)
+:- [c].
+:- c.
 
-main(Argv) :-  start application here, using passed arguments from Argv
+Then when the interface comes up, you can:
+turn off the automatic level sensing with Action->Stop
+turn off the PID volume/flow controllers  Action->PIDstop
 
-save_evostat :-
-        pce_autoload_all,
-        pce_autoload_all,
-        qsave_program(evostat,
-                      [ emulator(swi('bin/xpce-stub.exe')),
-                        stand_alone(true),
-                        goal(main)
-                      ]).
+View the Web Interface with the URL  http://localhost:21847/web/pathe.pl
 
--------
+The unusual port number is from the NetSpeak (WebPhone) Connection Server (no longer in use).
+Change it in c.pl to 80 or 8080 for normal web service.
+
+--------------
 Changing the Icon on a Prolog saved-state:
 
              chicon.exe saved.exe myapp.ico myapp.exe
