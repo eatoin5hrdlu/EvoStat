@@ -62,7 +62,6 @@ semaphore :- ( webok
              ).
 
 pathe(Req) :-
-trace,
   web_debug(Req),
   evostatName(Req,Name),
   namePlate(Name,NamePlate),
