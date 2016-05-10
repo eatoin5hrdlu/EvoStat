@@ -13,10 +13,9 @@ portable serial interface to Arduino) and HTML. Bluetooth interface added as for
 
 Running EvoStat on a Linux or Windows machine provides an interface for multiple phageStats with using Bluetooth connected Arduino running host.ino for the Host Cellstat, multiple Bluetooth connected Arduinos for Lagoons (lagoon.ino), and a sample collector: Bluetooth connected Arduino running collector.ino. (Using a WiFi camera and bluetooth modules has reduced apparatus wiring by 90%)
 
-It also contains a web server to provide essentially the same
-interface via the URL:  
+A web interface provides a similar interface via the URL:  
 
-    http://&lt;machine-name&gt;:8080/web/pathe.pl    
+    http://<host>:21847/web/pathe.pl
 
 
 Prerequisite Software
