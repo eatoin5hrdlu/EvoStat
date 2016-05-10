@@ -1,3 +1,5 @@
+:- use_module(library(guitracer)).
+
 :- dynamic param/4.  % param(?Name, ?Type, +Slot, -Value)
 :- multifile param/4.
 :- dynamic webok/0.
@@ -33,18 +35,25 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 get_label(drainage,waste,'Waste').
 
 web_debug(Req) :- 
+        write(user_error,web_debug),nl(user_error),
+        write(user_output,web_user),nl(user_output),
 	memberchk(search(Search),Req),
-	memberchk(trace=1,Search),
+        write(user_error,search(Search)), nl(user_error),
+	memberchk(trace='1',Search),
+        write(user_error,trace(1)),nl(user_error),
 	!,
-	trace.
+        write(user_error,calling(trace)),nl(user_error),
+	guitracer,
+        write(user_error,called(trace)),nl(user_error).
 web_debug(_).
 
 evostatName(Req, Name) :- 
     nonvar(Req),
     memberchk(search(Search),Req),
-    memberchk(evostat=Name,Search).
+    memberchk(evostat=Name,Search),
+    !.
 
-evostatName(Req, Name) :-
+evostatName(_Req, Name) :-
     gethostname(Fullname),
     atom_codes(Fullname,Codes),
     ( append(Root,[0'.|_],Codes) -> atom_codes(Name,Root)
