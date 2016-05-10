@@ -1,9 +1,10 @@
 #!/bin/bash
+lab=$1
+labu=${lab^}
 if [ -e $1.png ]; then
 echo $1.png " already created";
 else
-convert -size 540x170 canvas:none -font Bookman-DemiItalic -pointsize 128 -draw "text 80,140 $1" -channel RGBA -blur 0x6 -fill \#99AADD -stroke \#4444FF -draw "text 90,130 $1" outA.png
-echo "after Buffon"
+convert -size 540x170 canvas:none -font Bookman-DemiItalic -pointsize 128 -draw "text 80,140 $labu" -channel RGBA -blur 0x6 -fill \#99AADD -stroke \#4444FF -draw "text 90,130 $labu" outA.png
 /usr/bin/composite -compose Dst_In outA.png smallbluebrush.jpg -matte $1.png
 fi
 
