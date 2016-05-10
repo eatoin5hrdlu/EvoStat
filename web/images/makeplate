@@ -1,11 +1,18 @@
 #!/bin/bash
-lab=$1
-labu=${lab^}
-if [ -e $1.png ]; then
-echo $1.png " already created";
+if [ -z "$1" ]; then
+    label='darwin'
 else
-convert -size 540x170 canvas:none -font Bookman-DemiItalic -pointsize 128 -draw "text 80,140 $labu" -channel RGBA -blur 0x6 -fill \#99AADD -stroke \#4444FF -draw "text 90,130 $labu" outA.png
-/usr/bin/composite -compose Dst_In outA.png smallbluebrush.jpg -matte $1.png
+    label=$1
 fi
+if [ -z "$2" ]; then
+    fsize=128;
+else fsize=$2;
+fi
+yoff=140
+yoff2=130
+       
+labu=${label^}
+convert -size 580x170 canvas:none -font Bookman-DemiItalic -pointsize ${fsize} -draw "text 80,$yoff $labu" -channel RGBA -blur 0x6 -fill \#99AADD -stroke \#4444FF -draw "text 90,$yoff2 $labu" outA.png
+/usr/bin/composite -compose Dst_In outA.png smallbluebrush.jpg -matte $1.png
 
 
