@@ -116,16 +116,16 @@
 	height : 90px;
 	font-size: 120%;
 	margin-left: 1%;
-	margin-right: 1%;
+	margin-right: 2%;
 	margin-bottom: 1%;
     }
 
 .cellstat label {
     color: #442233;
     clear: both;
-    background-color: rgba(110,110,90,0.5);
+    background-color: rgba(190,190,170,0.5);
     margin-top: 120px;
-    margin-left: 23%;
+    margin-left: 29%;
     display: block;
     width: 40%;
 }
@@ -137,6 +137,7 @@
     background-color: rgba(120,210,180,0.5);
     margin-top: 1%;
     margin-left: 1%;
+    margin-right: 2%;
 }
 
 
@@ -148,7 +149,7 @@
 .autosampler label {
     color: #445566;
     clear: both;
-    margin-left: 20%;
+    margin-left: 29%;
     background-color: rgba(200,170,120,0.5);
     display: block;
     height: 90px;
