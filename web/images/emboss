@@ -5,9 +5,11 @@ else
     label=$1
 fi
 if [ -z "$2" ]; then
-    fsize=100;
-else fsize=$2;
+    fsize=100
+else
+    fsize=$2
 fi
+
 xoff=250
 yoff=100
 xoff2=140
@@ -18,12 +20,12 @@ font=Bookman-DemiItalic
 #distance=Chebyshev       
 #font=ArielBk
 labu=${label^}
+
 convert -size 1172x758 xc:black -font $font -pointsize ${fsize} \
-           -fill "#7788DD" -annotate +$xoff+$yoff $labu \
+           -fill \#7788DD -annotate +$xoff+$yoff $labu \
           -gamma 2  +level 0,1000 -white-threshold 999 \
           -morphology Distance $distance:4,1000 -auto-level \
           -shade 135x30 -auto-level +level 10,90% outA.png
 
 composite -compose Plus outA.png platebg2.png $1.png
-
 
