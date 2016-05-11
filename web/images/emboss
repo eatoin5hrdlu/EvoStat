@@ -1,0 +1,25 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+    label='haldane'
+else
+    label=$1
+fi
+if [ -z "$2" ]; then
+    fsize=100;
+else fsize=$2;
+fi
+xoff=250
+yoff=100
+xoff2=140
+yoff2=130
+       
+labu=${label^}
+convert -size 1172x758 xc:black -font Bookman-DemiItalic -pointsize ${fsize} \
+           -fill "#7788DD" -annotate +$xoff+$yoff $labu \
+          -gamma 2  +level 0,1000 -white-threshold 999 \
+          -morphology Distance Euclidean:4,1000 -auto-level \
+          -shade 135x30 -auto-level +level 10,90% outA.png
+
+composite -compose Plus outA.png platebg2.png $1.png
+
+
