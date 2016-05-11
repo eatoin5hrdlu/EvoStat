@@ -62,8 +62,8 @@ evostatName(_Req, Name) :-
     ),
     write(user_error,evostat(Name)),nl(user_error).
 
-namePlate(Name, NamePlate) :-
-    concat_atom(['./images/',Name,'plate.png'],NamePlate).
+backPlate(Name, NamePlate) :-
+    concat_atom(['./images/',Name,'.png'],NamePlate).
 
 semaphore :- ( webok
               -> true
@@ -74,7 +74,7 @@ semaphore :- ( webok
 pathe(Req) :-
   web_debug(Req),
   evostatName(Req,Name),
-  namePlate(Name,NamePlate),
+  backPlate(Name,BackPlate),
   Title = 'Pathe Control Panel',
   semaphore,
   findall(label([id=S],Supply),get_label(supply,S,Supply),Nutrient_Inducers),
@@ -86,8 +86,8 @@ pathe(Req) :-
   [title(Title),
 %   meta(['http-equiv'(refresh),content(5)],[]), % Make it an active page
    script([ language(javascript) ],[])],
-   body([background('./images/platebglong.png')],
-	[ center(img(src(NamePlate),[])),
+   body([background(BackPlate)],
+	[ 
 	  div(class=supply,Nutrient_Inducers),
 	  div(class=cellstat, label([],Cellstat)),
 	  div([class=lagoon,width('100%')],LagoonLabels),
