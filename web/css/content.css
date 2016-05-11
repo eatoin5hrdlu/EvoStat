@@ -68,6 +68,12 @@
     border-radius: 1em ;
     }
 
+    img.plate {
+	position: absolute;
+	top: 0;
+	left: 200px;
+    }
+
     .phagestat img {
 	position: absolute;
 	top: 180px;
@@ -118,19 +124,19 @@
     color: #442233;
     clear: both;
     background-color: rgba(110,110,90,0.5);
-    margin-top: 10px;
+    margin-top: 120px;
     margin-left: 23%;
     display: block;
     width: 40%;
 }
-.cellstat label {
-    color: #442233;
+
+.lagoon label {
+    color: #335544;
     clear: both;
-    background-color: rgba(110,110,90,0.5);
-    margin-top: 10px;
-    margin-left: 23%;
-    display: block;
-    width: 40%;
+    float: left;
+    background-color: rgba(120,210,180,0.5);
+    margin-top: 1%;
+    margin-left: 1%;
 }
 
 
@@ -147,7 +153,7 @@
     display: block;
     height: 90px;
     width: 40%;
-    font-size: 110%;
+    font-size: 160%;
     }
 
 .drainage label {
@@ -156,7 +162,7 @@
     display: block;
     width: 20%;
     height : 30px;
-    font-size: 120%;
+    font-size: 140%;
     margin-left: 30%;
 }
 
