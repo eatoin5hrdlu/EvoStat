@@ -1,12 +1,24 @@
-#!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
+#!/usr/bin/python -u
 import smtplib, os, sys, time
 from email.mime.image      import MIMEImage
 from email.mime.multipart  import MIMEMultipart
 from email.mime.text       import MIMEText
 COMMASPACE = ', '
 
+import subprocess
+getip = "bash -c \"ipconfig | grep -Eo 'IPv4.*: ?([0-9]*\.){3}[0-9]*' | sed -E \\\"s/IPv4[^0-9]*(([0-9]+\.){3}[0-9]*).*/\\\\1/\\\""
+
+
+proc = subprocess.Popen(getip, stdout=subprocess.PIPE)
+myip = proc.stdout.read()
+url="http://"+str(myip[:-1])+":21847:/web/pathe.pl"
+print "URL["+url+"]"
 secrets = eval(open('secrets.py').read())
+
+# fake it
+# secrets = { 'login':'8wan5hrdlu', 'password': '<passwd>' }
+
 carriers = { 'a' : '@mms.att.net',
              't' : '@tmomail.net',
              'v' : '@vtext.com',
@@ -26,10 +38,10 @@ carriers = { 'a' : '@mms.att.net',
 'Cingular' : '@cingularme.com', #not sure
 'Boost Mobile' : '@myboostmobile.com',
 'Einstein PCS' : '@einsteinmms.com' }
- 
+
 car = 'vp'
 num = '9194525098'
-mess = os.popen('tail -9 /home/peter/src/EvoStat/evostat.report').read()
+mess = url +"\n" + os.popen('tail -9 /home/peter/src/EvoStat/evostat.report').read()
              
 if (len(sys.argv) < 2) :
     print 'smstext [atvs] NNNNNNNNNN "message"';
