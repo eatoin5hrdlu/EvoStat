@@ -22,11 +22,12 @@ font=Bookman-DemiItalic
 #font=Courier
 labu=${label^}
 
-convert -size 1172x758 xc:black -font $font -pointsize ${fsize} \
+# Must duplicate size of platebglong.png (1172x1757) to combine images
+convert -size 1172x1757 xc:black -font $font -pointsize ${fsize} \
            -fill \#7788DD -annotate +$xoff+$yoff $labu \
           -gamma 2  +level 0,1000 -white-threshold 999 \
           -morphology Distance $distance:4,3000 -auto-level \
           -shade 135x30 -auto-level +level 10,90% outA.png
-composite -compose Multiply outA.png platebg3.png $1_x.png
+composite -compose Multiply outA.png platebglong.png $1_x.png
 convert -level 0,50% $1_x.png $1.png
 
