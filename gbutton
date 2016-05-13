@@ -380,6 +380,7 @@ update(Self) :->
 	(Reply='no_connection.'
 	-> concat_atom([MyName,'\nNo Bluetooth\nConnection'],Label)
 	;
+% TEMPERATURE	
 	parse_reply(Reply, temperature(Temp), temperature(111)),
 	get(Self, slot, temperature, PreviousTemp),
 	reportDeltaT(MyName, PreviousTemp, Temp),
@@ -389,10 +390,12 @@ update(Self) :->
 	writeln(update(cellstat,aftertemp)),
 	range_color(Target, Temp, Tc),
         get(Self, slot, tturbidity, ODTarget),
+% LEAK
 	send_super(Self,converse,'w'),
         get(Self, slot, reply, LeakReply),
 	parse_reply(LeakReply,Leak,leak(666)),
 	check_leak(Leak),
+% TURBIDITY
 	send_super(Self,converse,'b'),
         get(Self, slot, reply, TurbReply),
         atom_to_term(TurbReply,TbTerm,_TBBindings),
@@ -500,9 +503,8 @@ update(Self) :->
 	format(atom(GuiTarget), '~4g', [TargetDeg]),
 	format(atom(Level2), '~4g', [Level]),
 	format(atom(Lux2), '~4g', [Lux]),
-	get(Self,slot,calibration,State),  % Calibration State is the Message
-	send(Self,State),
-	TargetDeg is integer(Target/10),
+%	get(Self,slot,calibration,State),  % Calibration State is the Message
+%	send(Self,State),
         concat_atom(['Level ', Level2, '%\n',
 	             'Temp  ', GuiTarget, 'C / ',GuiTemp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)

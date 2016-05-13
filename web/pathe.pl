@@ -1,4 +1,3 @@
-:- use_module(library(gui_tracer)).
 
 :- dynamic param/4.  % param(?Name, ?Type, +Slot, -Value)
 :- multifile param/4.
@@ -34,18 +33,19 @@ get_label(sampler,autosampler, [ 'AutoSampler',br([]),
 
 get_label(drainage,waste,'Waste').
 
-web_debug(Req) :-
+web_debug(_) :-
     windows,
     !,
     write(user_error,
      'Tracing in Web page generators broken in windows'),
     nl(user_error).
     
-web_debug(Req) :- 
-	memberchk(search(Search),Req),
-	memberchk(trace='1',Search),
-	!,
-	trace.
+web_debug(Req) :-
+    nonvar(Req),
+    memberchk(search(Search),Req),
+    memberchk(trace='1',Search),
+    !,
+    trace.
 web_debug(_).
 
 evostatName(Req, Name) :- 
@@ -88,12 +88,14 @@ pathe(Req) :-
    script([ language(javascript) ],[])],
    body([background(BackPlate)],
 	[ 
+          center(a([id=logozone,href('./phagestat.pl')],i(Name))), % click
+%	  div(class=phagestat,img(src('./phagestat.png'))),         % hover
 	  div(class=supply,Nutrient_Inducers),
 	  div(class=cellstat, label([],Cellstat)),
 	  div([class=lagoon,width('100%')],LagoonLabels),
-	  div(class=autosampler,label([],AutoSampler)),
-          div(class=drainage,label([],Waste)),
-	  div(class=phagestat,img(src('./mypic1.png')))]
+	  center(div(class=autosampler,label([],AutoSampler))),
+          center(div(class=drainage,label([],Waste)))
+        ]
     )% body
   ).
 

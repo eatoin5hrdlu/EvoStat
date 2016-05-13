@@ -429,7 +429,7 @@ stopped(_W) :->
        writeln(stopped).
 
 started(_W) :->
-       writeln(starting),
+       writeln('                      STARTING Level Detection'),
        send(@ut, start),
        send(@action?members, for_all,
 	    if(@arg1?value==start,message(@arg1, active, @off))),
