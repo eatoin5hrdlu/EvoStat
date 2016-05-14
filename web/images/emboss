@@ -1,4 +1,6 @@
 #!/bin/bash
+template="platebglong.png"
+
 if [ -z "$1" ]; then
     label='haldane'
 else
@@ -10,20 +12,17 @@ else
     fsize=$2
 fi
 
-xoff=280
-yoff=100
-xoff2=140
-yoff2=130
 
+twidth=`identify -format "%[fx:w]" $template`
+theight=`identify -format "%[fx:h]" $template`
+xoff=$(($twidth/2-200))
+yoff=100
 distance=Euclidean
-#font=RocketScript
 font=Bookman-DemiItalic
-#distance=Chebyshev       
-#font=Courier
 labu=${label^}
 
 # Must duplicate size of platebglong.png (1172x1757) to combine images
-convert -size 1172x1757 xc:black -font $font -pointsize ${fsize} \
+convert -size $twidth"x"$theight xc:black -font $font -pointsize ${fsize} \
            -fill \#7788DD -annotate +$xoff+$yoff $labu \
           -gamma 2  +level 0,1000 -white-threshold 999 \
           -morphology Distance $distance:4,3000 -auto-level \
