@@ -643,9 +643,9 @@ variable(level, real, get, "Percent Full").
 initialise(Self, Label:[name]) :->
 	"Initialise the autosampler"::
         send_super(Self, initialise(Label)),
-	send(Self,slot,level,100),
+	send(Self,slot,level,0),
         retractall(param(Label,supply,_,_)),
-	assert(param(Label,supply,level,100)).
+	assert(param(Label,supply,level,0)).
 
 update(Self) :->
 	send_super(Self, update),
@@ -675,6 +675,7 @@ variable(remaining,   int,   get, "Seconds until next Sample").
 initialise(Self, Label:[name]) :->
 	"Initialise the autosampler"::
         send_super(Self, initialise(Label)),
+	send(Self, slot, myname, Label),
 	send(Self,slot,remaining,3600).
 
 update(Self) :->
@@ -690,6 +691,7 @@ update(Self) :->
 	send(Self,fast_update).
 	  
 fast_update(Self) :->
+	get_super(Self, slot, myname, MyName),
 	get(Self,slot,remaining,Time),
 	Hours is floor(Time/3600),
 	Minutes is floor(mod(Time,3600)/60),
@@ -707,7 +709,17 @@ fast_update(Self) :->
 		      ShowTime,' seconds to level reading\n',
 		      TimeAtom,' to next sample\n'],Label)
         ),
-	send(Self, label, Label).
+	send(Self, label, Label),
+        repeat,	sleep(0.1), retract(webok), % SEMAPHORE
+	NewValues = [param(MyName,sampler,timeleft,ShowTime),
+		     param(MyName,sampler,nextsample,TimeAtom)],
+	(ground(NewValues) ->
+             retractall(param(MyName,sampler,_,_)),
+	     maplist(assert,NewValues),
+             write(user_error,updated(MyName,timeleft(ShowTime))),nl(user_error)
+	 ;   write(user_error,failed_update(MyName)),nl(user_error)
+	),
+        assert(webok).
 
 :- pce_end_class.  % autosampler
 

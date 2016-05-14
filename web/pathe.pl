@@ -27,9 +27,11 @@ get_label(lagoon,Lagoon,[Lagoon,' ',Level,'%',br([]),
     param(Lagoon,lagoon,ttemperature,TargetTemp),
     param(Lagoon,lagoon,temperature,Temp).
 
-get_label(sampler,autosampler, [ 'AutoSampler',br([]),
-				 'Next Level Reading in 10s',br([]),
-				 'Next Sample 00:20:15']).
+get_label(sampler,AutoSampler, [ AutoSampler,br([]),
+				 'Next Level Reading in ',TimeLeft,'s',br([]),
+				 'Next Sample ',TimeAtom]) :-
+    param(AutoSampler,sampler,timeleft,TimeLeft),
+    param(AutoSampler,sampler,nextsample,TimeAtom).
 
 get_label(drainage,waste,'Waste').
 
@@ -79,8 +81,8 @@ pathe(Req) :-
   semaphore,
   findall(label([id=S],Supply),get_label(supply,S,Supply),Nutrient_Inducers),
   get_label(cellstat,_,Cellstat),
-  bagof(label(id=L,Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
-  get_label(sampler,autosampler,AutoSampler),
+  setof(label(id=L,Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
+  get_label(sampler,autosampler,AutoSamplerLabel),
   get_label(drainage,waste,Waste),
   reply_html_page(default,
   [title(Title),
@@ -89,12 +91,12 @@ pathe(Req) :-
    body([background(BackPlate)],
 	[ 
           center(a([id=logozone,href('./phagestat.pl')],i(Name))), % click
-%	  div(class=phagestat,img(src('./phagestat.png'))),         % hover
+%	  div(class=phagestat,img(src('./phagestat.png'))),        % hover
 	  div(class=supply,Nutrient_Inducers),
 	  div(class=cellstat, label([],Cellstat)),
 	  div([class=lagoon,width('100%')],LagoonLabels),
-	  center(div(class=autosampler,label([],AutoSampler))),
-          center(div(class=drainage,label([],Waste)))
+	  div(class=autosampler,label([],AutoSamplerLabel)),
+          div(class=drainage,label([],Waste))
         ]
     )% body
   ).
