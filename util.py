@@ -19,17 +19,15 @@ def termIntList(f,l) :
     return f+"("+", ".join([str(i) for i in l])+")."
 
 def plog(str) :
-    print(str, file=sys.stderr)
+    print("      --"+str, file=sys.stderr)
 
 def settings() :
     for root in sys.argv:  # See if anything on the command-line matches a .setting file
         file = root + ".settings"
-        plog(file)
         if os.path.isfile(file) :
             return(eval(open(file,'r').read()))
 
     file = socket.gethostname() + ".settings"
-    plog(file)
     if os.path.isfile(file) :
         return(eval(open(file, 'r').read()))
 

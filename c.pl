@@ -319,7 +319,7 @@ get_level(Type) :-
 	       (writeln(caught(Ex,CmdLine)),sleep(3),fail)),
         check_error(Info),
 	send_info(Info, Previous),
-	close(Previous)
+	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
      ; true
     ),
     evostat_directory(Dir),
@@ -592,6 +592,7 @@ readLevels(_) :->
 
 fastUpdate(Self) :->
     writeln(fastupdate),
+    change_request,
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
     check_web_files.
@@ -860,3 +861,31 @@ run_external(Cmd, Stream) :-
 
 %http_read_passwd_file(+Path, -Data)
 %http_write_passwd_file(pws,"$1$jVPltO5Q$$1$jVPltO5Q$t9a46Bb18vp/BMoco70u21")
+
+change_request :-
+  ( retract(changeRequest(List))
+    -> maplist(new_value,List)
+    ;  plog(no_changes)
+  ).
+
+% Make sure it is a number, remove leading decimal
+ensure_value(Atom, Number) :-
+        atom_codes(  Atom,   ACodes),
+        ( ACodes = [0'.|Codes] -> true ; Codes=ACodes),
+        number_codes(Number, Codes),
+        !.
+ensure_value(Atom, Atom).
+
+% Send send <cmd><value> to object <compname>
+ % when Attr has the form  <compname>_<cmd>
+
+new_value(Attr=Value) :-
+  atomic_list_concat([Name,Cmd],'_',Attr),
+  component(Name, _Type, Obj),
+  ensure_value(Value,EValue),
+  send(Obj,converse,[Cmd,EValue]),
+  plog(sent(Obj,converse,[Cmd,EValue])),
+  !.
+new_value(I) :-  plog(failed(I)).
+ 
+

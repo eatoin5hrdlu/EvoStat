@@ -1,4 +1,3 @@
-
 :- dynamic param/4.  % param(?Name, ?Type, +Slot, -Value)
 :- multifile param/4.
 :- dynamic webok/0.
@@ -41,7 +40,7 @@ web_debug(_) :-
     write(user_error,
      'Tracing in Web page generators broken in windows'),
     nl(user_error).
-    
+
 web_debug(Req) :-
     nonvar(Req),
     memberchk(search(Search),Req),
@@ -73,6 +72,8 @@ semaphore :- ( webok
                 )
              ).
 
+plog(Term) :- write(user_error,Term),nl(user_error).
+
 pathe(Req) :-
   web_debug(Req),
   evostatName(Req,Name),
@@ -84,19 +85,24 @@ pathe(Req) :-
   setof(label(id=L,Lagoon),get_label(lagoon,L,Lagoon),LagoonLabels),
   get_label(sampler,autosampler,AutoSamplerLabel),
   get_label(drainage,waste,Waste),
-  reply_html_page(default,
+  reply_html_page(
   [title(Title),
 %   meta(['http-equiv'(refresh),content(5)],[]), % Make it an active page
    script([ language(javascript) ],[])],
+% ['location.reload(true)'])],
    body([background(BackPlate)],
-	[ 
+	[
           center(a([id=logozone,href('./phagestat.pl')],i(Name))), % click
 %	  div(class=phagestat,img(src('./phagestat.png'))),        % hover
 	  div(class=supply,Nutrient_Inducers),
+
 	  div(class=cellstat, label([],Cellstat)),
 	  div([class=lagoon,width('100%')],LagoonLabels),
 	  div(class=autosampler,label([],AutoSamplerLabel)),
-          div(class=drainage,label([],Waste))
+          div(class=drainage,label([],Waste)),
+          form([class=mod,
+                action='./ipathe.pl'],
+                input([type=submit,name=submit,value=change]))
         ]
     )% body
   ).

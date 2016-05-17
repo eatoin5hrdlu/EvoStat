@@ -217,6 +217,7 @@ od(Self, OD600:[real]) :->
 	 send(Self, slot, tturbidity, Turb).
 
 temp(Self, Temp:[real]) :->
+         plog(tempsetting(Self,Temp)),
 	 Temp10 is integer(Temp*10),
 	 send(Self, slot, ttemperature, Temp10).
 
@@ -671,10 +672,13 @@ update(_Self) :-> true.
 :- pce_begin_class(sampler, ebutton).
 
 variable(remaining,   int,   get, "Seconds until next Sample").
+variable(flowrate,   real,   get, "Flow Rate in Volumes/Hour").
 
 initialise(Self, Label:[name]) :->
 	"Initialise the autosampler"::
         send_super(Self, initialise(Label)),
+	assert(param(Label,sampler,flowrate,3.5)),
+	send(Self, slot, flowrate, 3.5),
 	send(Self, slot, myname, Label),
 	send(Self,slot,remaining,3600).
 
@@ -711,7 +715,9 @@ fast_update(Self) :->
         ),
 	send(Self, label, Label),
         repeat,	sleep(0.1), retract(webok), % SEMAPHORE
-	NewValues = [param(MyName,sampler,timeleft,ShowTime),
+	param(MyName,sampler,flowrate,FlowRate),
+	NewValues = [param(MyName,sampler,flowrate,FlowRate),
+		     param(MyName,sampler,timeleft,ShowTime),
 		     param(MyName,sampler,nextsample,TimeAtom)],
 	(ground(NewValues) ->
              retractall(param(MyName,sampler,_,_)),
@@ -720,6 +726,12 @@ fast_update(Self) :->
 	 ;   write(user_error,failed_update(MyName)),nl(user_error)
 	),
         assert(webok).
+
+flow(Self, Rate:[real]) :-> 
+	send(Self, slot, flowrate, Rate),
+	get(Self,slot,myname, MyName),
+	retractall(param(MyName,sampler,flowrate,_)),
+	assert(param(MyName, sampler,flowrate,Rate)).
 
 :- pce_end_class.  % autosampler
 
