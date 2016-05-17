@@ -62,9 +62,15 @@ body {
                 margin-top: 10%;
 		display: inline-block;
                 font-weight: bold;
-                font-size: 170%;
+                font-size: 130%;
                 margin-left: 20%
 	}
+
+        form.mod {
+               margin-top: 1%;
+               margin-right: 20%;
+	       float: right;		            
+        }
 
 
     input { 
