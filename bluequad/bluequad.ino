@@ -7,11 +7,17 @@
 #include "MLX90614.h"
 MLX90614 mlx;
 
+
 void saveRestore(int inout) { return; }
 
 int valveTime[5] = { 3000, 4000, 5000, 6000, 7000 };
 
 int who;
+int turbidity;
+int tturbidity;
+int temperature;
+int ttemperature;
+int flowrate;
 
 #define CELLSTAT    (who == 0)
 #define LAGOON      (who >0 && who < 4)
@@ -58,6 +64,12 @@ void printHelp(void)
 void setup()
 {
 	who = -1;
+	turbidity = 200;
+	tturbidity = 400;
+	temperature = 310;
+	ttemperature = 370;
+        flowrate = 350;
+
 	Serial.begin(9600);
 	Serial1.begin(9600);
 	Serial2.begin(9600);
@@ -211,6 +223,15 @@ int i;
 			break;
 		case 'e':
 			break;
+		case 'f':
+	                switch(c2) {
+		         case 'r':
+		          if (value == 0) printTermInt("flowrate",flowrate);
+			  else flowrate = value;
+			  break;
+			}
+			break;
+
 		case 'g':
 			break;
 		case 'h':
@@ -229,14 +250,38 @@ int i;
 			else 		valveTime[2] = value;
 			break;
 		case 'l': 
-			if (value == 0) printTerm2Int("valve",3,valveTime[3]);
-			else 		valveTime[3] = value;
+	                switch(c2) }
+		           case 'v':
+                              break;
+			   default :
+		               if (value == 0) printTerm2Int("valve",3,valveTime[3]);
+                               else 		valveTime[3] = value;
+			       break;
+			}
 			break;
 		case 'm': 
 			if (value == 0) printTerm2Int("valve",4,valveTime[4]);
 			else 		valveTime[4] = value;
 			break;
 		case 'n':
+			break;
+		case 'o':
+                       switch(c2) {
+                        case '0':
+                        case '-':
+				break;
+ 			case '1':
+ 			case '2':
+				break;
+
+			case 'd':
+				if (value == 0)
+					printTermInt("turbidity",turbidity);
+				else
+					tturbidity = value;
+				break;
+
+			}
 			break;
 		case 'r' :
 			saveRestore(RESTORE);
@@ -247,9 +292,21 @@ int i;
 			saveRestore(SAVE);
 			break;
 		case 't' :
-		       printTermFloat("temperature",
-                          (float) mlx.readObjectTempC());
+                       switch(c2) {
+                        case 't':
+		           if (value == 0)
+		             printTermInt("ttemperature",ttemperature);
+			   else
+		             ttemperature = value;
+			   break;
+			default:
+                          temperature = (int)(10.0*(float) mlx.readObjectTempC());
+			  printTermInt("temperature",temperature);
+			}
 			break;
+		case 'w' :
+                         printTermInt("leak",600);
+                         break;
 		default :
 			printTermChar("ignored",c);
 	}

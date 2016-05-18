@@ -154,6 +154,8 @@ variable(myname,     name, get, "Component ID").
 variable(socket,      any, get, "Bluetooth/IP Socket"      ).
 variable(mac,        name, get, "Bluetooth/IP MAC Address" ).
 variable(reply,      name, get, "Last Message from Device" ).
+variable(level,        int, get, "Percent Full").
+variable(level_t,      int, get, "Target Level").
 variable(levelUnits, name, get, "% or mL (usually)"        ).
 
 % Current Settings
@@ -162,7 +164,7 @@ variable(temperature, real, get, "Temperature").
 
 % Target Settings
 variable(tturbidity,   int, get, "Target Optical Density (600nM)").
-variable(ttemperature, real, get, "Target Temperature").
+variable(ttemperature, int, get, "Target Temperature").
 
 initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
@@ -194,8 +196,27 @@ show_conversation(Self) :->
         get(Self, socket, Socket),
 	new(_, dialin(Name,Socket)).
 	
-levelUnits(Self,Units) :->
-       send(Self, slot, levelUnits, Units).
+targetLevel(Self, Level) :->
+       send(Self, slot, level_t, Level),
+       component(Name,Type,Self),
+       retract(webok),
+       retractall(param(Name,Type,level_t,_)),
+       assert(param(Name,Type,level_t,Level)),
+       assert(webok).
+
+level(@Name, Level) :->
+       send(@Name, slot, level, Level),
+       retract(webok),
+       retractall(param(Name,_,level,_)),
+       assert(param(Name,_,level,Level)),
+       assert(webok).
+
+levelUnits(@Name, Units) :->
+       send(@Name, slot, levelUnits, Units),
+       retract(webok),
+       retractall(param(Name,_,levelUnits,_)),
+       assert(param(Name,_,levelUnits,Units)),
+       assert(webok).
 
 mix_colors(   C,   C,      C) :- !.
 mix_colors(   _,blue, purple) :- !.
@@ -217,9 +238,9 @@ od(Self, OD600:[real]) :->
 	 send(Self, slot, tturbidity, Turb).
 
 temp(Self, Temp:[real]) :->
-         plog(tempsetting(Self,Temp)),
-	 Temp10 is integer(Temp*10),
-	 send(Self, slot, ttemperature, Temp10).
+	 Temp10 is integer(Temp*10.0),
+	 send(Self, slot, ttemperature, Temp10),
+         plog(tempsetting(Self,Temp10)).
 
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
 %
@@ -305,25 +326,26 @@ mac(Self, MAC:[name]) :->
 
 :- pce_begin_class(cellstat, ebutton).
 
-variable(level, real, get, "Percent Full").
 variable(leak,   int, get, "Leak Detector").
 
 initialise(Self, Label:[name]) :->
 	"Initialise the cellstat"::
         send_super(Self, initialise(Label)),
-	send(Self, slot, level, 85.0),
-	get_super(Self, slot, ttemperature, TargetTemp),
-	GuiTTemp is TargetTemp/10,
+	send_super(Self, slot, level, 85),
+	send_super(Self, slot, level_t, 85),
+	send_super(Self, slot, levelUnits, '%'),
+	get_super(Self, slot, ttemperature, Target),
 	get_super(Self, slot, temperature, Temp),
-	GuiTemp is Temp/10,
 	get_super(Self, slot, tturbidity, ODTarget),
 	get_super(Self, slot, turbidity, Turb),
 
 % Default values: Web Interface must work before any updates
         retractall(param(Label,cellstat,_,_)),
-	assert(param(Label,cellstat,level,85.0)),
-	assert(param(Label,cellstat,ttemperature,GuiTTemp)),
-	assert(param(Label,cellstat,temperature,GuiTemp)),
+	assert(param(Label,cellstat,level,85)),
+	assert(param(Label,cellstat,level_t,85)),
+	assert(param(Label,cellstat,levelUnits,'%')),
+	assert(param(Label,cellstat,ttemperature,Target)),
+	assert(param(Label,cellstat,temperature,Temp)),
 	assert(param(Label,cellstat,tturbidity,ODTarget)),
 	assert(param(Label,cellstat,turbidity,Turb)),
 	writeln(cellstat(asserted)).
@@ -405,13 +427,17 @@ update(Self) :->
 	range_color(ODTarget, TurbVal, ODc),
 	mix_colors(Tc,ODc,Color),
 	send(Self, colour(Color)),
+
 	get(Self, slot, level, Level),
+	get(Self, slot, level_t, TLevel),
+	get(Self, slot, levelUnits, LevelUnits),
+
 	TempF is float(Temp)/10.0,
 	TargetF is float(Target)/10.0,
 	limit(TurbVal, 0, 999, TurbL),
 	format(atom(TempFmt), '~4g', [TempF]),
 	format(atom(TargFmt), '~4g', [TargetF]),
-        concat_atom(['\n',MyName,'  ',Level,'%\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
+        concat_atom(['\n',MyName,'  ',TLevel,' / ', Level, LevelUnits, '\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
  		'Turbidity:  0.', ODTarget,' / 0.', TurbL, '\n'], Label)
 	), % Else for 'no connection'
 	send(Self, label, Label),
@@ -419,8 +445,9 @@ update(Self) :->
         repeat,	sleep(0.1), retract(webok), % SEMAPHORE
 	NewValues = [
 	param(MyName,cellstat,level,Level),
-	param(MyName,cellstat,ttemperature,TargFmt),
-	param(MyName,cellstat,temperature,TempFmt),
+	param(MyName,cellstat,level_t,TLevel),
+	param(MyName,cellstat,ttemperature,Target),
+	param(MyName,cellstat,temperature,Temp),
 	param(MyName,cellstat,tturbidity,ODTarget),
 	param(MyName,cellstat,turbidity,TurbL)],
 	(ground(NewValues) ->
@@ -431,17 +458,12 @@ update(Self) :->
 	),
         assert(webok).
 
-setLevel(Self,Level) :->
-       send(Self, slot, level, Level).
-
 :- pce_end_class.  % cellstat
 
 :- pce_begin_class(lagoon, ebutton).
 
 variable(fluorescence,real, get, "Fluorescence").
 variable(fluorescence_t, real, get, "Target Fluorescence").
-variable(level,     real, get, "Level").
-variable(level_t,   real, get, "Target Level").
 variable(level_max, real, get, "Max Allowed Level").
 variable(calibrate_level, real, get, "Calibration Level").
 
@@ -457,18 +479,16 @@ initialise(Self, Label:[name]) :->
 	"Initialise the lagoon"::
         send_super(Self, initialise(Label)),
 	send(Self, slot, calibration, normal),
-	send(Self, slot, level, 33.0),
-	send(Self, slot, level_t, 36.0),
+	send_super(Self, slot, level, 30),
+	send_super(Self, slot, level_t, 33),
 	send(Self, slot, fluorescence_t, 0.2),
 	send(Self, slot, overflow, 0),
 	send(Self, slot, fluorescence, 0.0),
-
-%	get_super(Self,slot,ttemperature,TargetTemp),
-%	get_super(Self,slot,temperature,Temp),
 	retractall(param(Label,lagoon,_,_)),
-	assert(param(Label,lagoon,level,33.0)),
-	assert(param(Label,lagoon,ttemperature,37.0)),
-	assert(param(Label,lagoon,temperature,24.0)).
+	assert(param(Label,lagoon,level,33)),
+	assert(param(Label,lagoon,level_t,33)),
+	assert(param(Label,lagoon,ttemperature,370)),
+	assert(param(Label,lagoon,temperature,240)).
 
 
 update(Self) :->
@@ -498,21 +518,24 @@ update(Self) :->
 	range_color(Target, Temp, Color),
 	send(Self, colour(Color)),
         get(Self, slot, level, Level),
+        get(Self, slot, level_t, TLevel),
+        get(Self, slot, levelUnits, LevelUnits),
         get(Self, slot, fluorescence_t,LuxTarget),
         get(Self, slot, fluorescence,Lux),
 	format(atom(GuiTemp), '~4g', [TempDeg]),
 	format(atom(GuiTarget), '~4g', [TargetDeg]),
-	format(atom(Level2), '~4g', [Level]),
 	format(atom(Lux2), '~4g', [Lux]),
 %	get(Self,slot,calibration,State),  % Calibration State is the Message
 %	send(Self,State),
-        concat_atom(['Level ', Level2, '%\n',
+        concat_atom(['Level ', TLevel, ' / ', Level, LevelUnits, '\n',
 	             'Temp  ', GuiTarget, 'C / ',GuiTemp,' C\n',
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
 	),
 	send(Self, label, Label),
         repeat,	sleep(0.1), retract(webok), % SEMAPHORE
-	NewValues = [param(MyName,lagoon,level,Level2),
+	NewValues = [
+		     param(MyName,lagoon,level_t,TLevel),
+		     param(MyName,lagoon,level,Level),
 		     param(MyName,lagoon,ttemperature,GuiTarget),
 		     param(MyName,lagoon,temperature,GuiTemp)],
 	(ground(NewValues) ->
@@ -571,9 +594,6 @@ calibrate(Self) :->
     send(Self,slot,calibrate_level,CLevel).
 %    send(Self,command, do).  % Disable Output Flow(s)
 
-
-setLevel(Self,Level) :->
-       send(Self, slot, level, Level).
 
 setFlux(Self,Level) :->
        send(Self, slot, fluorescence, Level).
@@ -639,13 +659,18 @@ done(Self) :->
 
 :- pce_begin_class(supply, ebutton).
 
-variable(level, real, get, "Percent Full").
+% "Target Level" is used differently in a Supply.  Since we can't
+% "maintain" a level in a supply container, but we can alert someone
+% when it gets too low.  The Target Level is that level (of depletion).
 
 initialise(Self, Label:[name]) :->
 	"Initialise the autosampler"::
         send_super(Self, initialise(Label)),
 	send(Self,slot,level,0),
+	send(Self,slot,level_t,10),
+	send(Self,slot,levelUnits,'L'),
         retractall(param(Label,supply,_,_)),
+	assert(param(Label,supply,levelUnits,'L')),
 	assert(param(Label,supply,level,0)).
 
 update(Self) :->
@@ -653,10 +678,19 @@ update(Self) :->
 	get_super(Self, slot, myname, MyName),
 	writeln(updating(MyName)),
 	get(Self, slot, level, Level),
+	get(Self, slot, levelUnits, Units),
+	concat_atom([MyName,' \n',Level,Units],Label),
+	send(Self, label, Label),
         retractall(webok),
 	retractall(param(MyName,supply,_,_)),
 	assert(param(MyName,supply,level,Level)),
-        assert(webok).
+	assert(param(MyName,supply,levelUnits,Units)),
+        assert(webok),
+	get(Self, slot, level_t, Target),
+	(Level < Target
+	 -> send(Self, colour, colour(red))
+         ;  send(Self, colour, colour(black))
+        ).
 	
 :- pce_end_class.  % supply
 

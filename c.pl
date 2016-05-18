@@ -74,14 +74,14 @@ camera_device(Device) :-
     !,
     concat_atom(['/dev/video',Num],Device).
 
-camera_device(_) :- writeln('No Camera Device'),fail.
+camera_device(_) :- write(user_error,'No Camera Device'),nl(user_error),fail.
 
 camera_reset :- windows, !.   % No camera reset on Windows
 
 camera_reset :-               % No camera to reset
     camera_device(Device),
     \+ access_file(Device,exist),
-    writeln(no_camera),
+    write(user_error,no_camera),nl(user_error),
     !.
 
 camera_reset :-
@@ -291,13 +291,13 @@ send_info(end_of_file,_) :-
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 send_info(level(Level),_) :-  % Single value is Cellstat level/1
     component(_, cellstat, Cellstat),
-    send(Cellstat, setLevel, Level).
+    send(Cellstat, level, Level).
 
 send_info(Term,_) :-  % levels/N: arity equal to the number of lagoons
     functor(Term,levels,_),
     arg(N, Term, Level),
     lagoon_number(Object, N),   % position correspnds to lagoon
-    send(Object, setLevel, Level),
+    send(Object, level, Level),
     fail.
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
@@ -405,8 +405,8 @@ initialise(W, Label:[name]) :->
 					message(@prolog, manpce))]),
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
-	 maplist(create(@gui), Components),
 	 assert(webok),
+	 maplist(create(@gui), Components),
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
@@ -595,7 +595,8 @@ fastUpdate(Self) :->
     change_request,
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
-    check_web_files.
+    check_web_files,
+    writeln(completed(fastupdate)).
 
 sendText(Self) :->
     send(Self,sendTexts),
@@ -878,6 +879,16 @@ ensure_value(Atom, Atom).
 
 % Send send <cmd><value> to object <compname>
  % when Attr has the form  <compname>_<cmd>
+
+new_value(submit=_).
+
+% Target Level settings for containers
+new_value(Attr=Value) :-
+  atomic_list_concat([Name,'lv'],'_',Attr), % Level setting command
+  !,
+  ensure_value(Value,EValue),
+  send(@Name, targetLevel, EValue),
+  plog(sent(@Name,targetLevel,EValue)).
 
 new_value(Attr=Value) :-
   atomic_list_concat([Name,Cmd],'_',Attr),

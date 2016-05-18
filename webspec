@@ -36,7 +36,7 @@ add_handlers([Path|T],Options) :-
 	file_base_name(Path, Base),
 	file_name_extension(Root, Ext, Base),
 	( add_handler(Ext, URL, Root, Path, Options)
-	  -> message('Created a handler for ~w~n',[URL])
+	  -> true % message('Created a handler for ~w~n',[URL])
 	  ; message('Did not create a handler for ~w~n',[URL])
 	),
 	add_handlers(T, Options).
@@ -52,13 +52,15 @@ add_handler(pl, URL, Root, Path, Options) :-
 	http_handler(URL, Root, Options).
 
 
-check_web_files :- load_time(Path,Loaded),
-	       time_file(Path,FileTime),
-	       FileTime > Loaded,
-	       reconsult(Path),
-	       retract(load_time(Path,Loaded)),
-	       assert(load_time(Path,FileTime)),
-	       fail.
+check_web_files :-
+	load_time(Path,Loaded),
+	time_file(Path,FileTime),
+	FileTime > Loaded,
+	reconsult(Path),
+	retract(load_time(Path,Loaded)),
+	assert(load_time(Path,FileTime)),
+	write(user_error,'RELOADED'(Path)),nl(user_error),
+	fail.
 check_web_files.
 
 %

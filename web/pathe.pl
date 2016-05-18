@@ -7,24 +7,37 @@
 % So the webpage will show stale values if Updates are off.
 %
 
-get_label(supply, Name, [Name,br([]),Level,'%']) :-
+get_label(supply, Name, [Name,br([]),Level,Units]) :-
+    param(Name,supply,levelUnits,Units),
     param(Name,supply,level,Level).
 
-get_label(cellstat,Name,[Name,' ',Level,'%',br([]),
-			 'Temperature ',TargetTemp,' / ',Temp,br([]),
+get_label(cellstat,Name,[Name,' ',TLevel,' / ',Level,Units,br([]),
+			 'Temperature ',TargetFmt,' / ',TempFmt,br([]),
 			 'OD',sub(600),'  .',ODTarget,'/.',Turbidity]) :-
     param(Name,cellstat,level,Level),
-    param(Name,cellstat,ttemperature,TargetTemp),
-    param(Name,cellstat,temperature,Temp),
+    param(Name,cellstat,level_t,TLevel),
+    param(Name,cellstat,levelUnits,Units),
     param(Name,cellstat,tturbidity,ODTarget),
-    param(Name,cellstat,turbidity,Turbidity).
+    param(Name,cellstat,turbidity,Turbidity),
+    param(Name,cellstat,temperature,Temp),
+    DispTemp is float(Temp)/10.0,
+    format(atom(TempFmt), '~4g', [DispTemp]),
+    param(Name,cellstat,ttemperature,TargetTemp),
+    DispTarget is float(TargetTemp)/10.0,
+    format(atom(TargetFmt), '~4g', [DispTarget]).
 
-get_label(lagoon,Lagoon,[Lagoon,' ',Level,'%',br([]),
-			 'Temperature ',TargetTemp,' / ',Temp,
+get_label(lagoon,Lagoon,[Lagoon,' ',TLevel,' / ',Level,Units,br([]),
+			 'Temperature ',TargFmt,' / ',TempFmt,
 			 br([]), 'Rate 3.5/3.2']) :-
     param(Lagoon,lagoon,level,Level),
+    param(Lagoon,lagoon,level_t,TLevel),
+    param(Lagoon,lagoon,levelUnits,Units),
     param(Lagoon,lagoon,ttemperature,TargetTemp),
-    param(Lagoon,lagoon,temperature,Temp).
+    param(Lagoon,lagoon,temperature,Temp),
+    DispTemp is float(Temp/10.0),
+    format(atom(TempFmt), '~4g', [DispTemp]),
+    DispTarget is float(TargetTemp/10.0),
+    format(atom(TargFmt), '~4g', [DispTarget]).
 
 get_label(sampler,AutoSampler, [ AutoSampler,br([]),
 				 'Next Level Reading in ',TimeLeft,'s',br([]),
@@ -34,19 +47,15 @@ get_label(sampler,AutoSampler, [ AutoSampler,br([]),
 
 get_label(drainage,waste,'Waste').
 
-web_debug(_) :-
-    windows,
-    !,
-    write(user_error,
-     'Tracing in Web page generators broken in windows'),
-    nl(user_error).
-
 web_debug(Req) :-
     nonvar(Req),
     memberchk(search(Search),Req),
     memberchk(trace='1',Search),
     !,
-    trace.
+    ( windows -> 
+      write(user_error,'Tracing in Web page generators broken in windows'),nl(user_error)
+    ; trace
+    ).
 web_debug(_).
 
 evostatName(Req, Name) :- 
