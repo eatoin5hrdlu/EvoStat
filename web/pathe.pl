@@ -64,13 +64,13 @@ evostatName(Req, Name) :-
     memberchk(evostat=Name,Search),
     !.
 
-evostatName(_Req, Name) :-
+evostatName(Req, Name) :-
     gethostname(Fullname),
     atom_codes(Fullname,Codes),
     ( append(Root,[0'.|_],Codes) -> atom_codes(Name,Root)
     ; Name = Fullname
     ),
-    write(user_error,evostat(Name)),nl(user_error).
+    plog(webhit(Name,Req)).
 
 backPlate(Name, NamePlate) :-
     concat_atom(['./images/',Name,'.png'],NamePlate).
