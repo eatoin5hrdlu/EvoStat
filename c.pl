@@ -316,28 +316,28 @@ get_level(Type) :-
     ( retract(levelStream(Type,Previous)) ->
 	catch( read(Previous, Info),
 	       Ex,
-	       (writeln(caught(Ex,CmdLine)),sleep(3),fail)),
+	       (plog(caught(Ex,CmdLine)),sleep(3),fail)),
         check_error(Info),
 	send_info(Info, Previous),
 	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
      ; true
     ),
     evostat_directory(Dir),
-    writeln(launching(Python,CmdLine)),
+    plog(launching(Python,CmdLine)),
     process_create(Python,CmdLine,
 		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
     assert(levelStream(Type,Out)),
-    writeln(launched),
+    plog(launched),
     !.
 
 get_level(Type) :- 
-    writeln(failed(levelUpdate(Type))).
+    plog(failed(levelUpdate(Type))).
 
 newFlux(end_of_file,_) :- !.
 newFlux(FluxTerm, Stream) :-
 	FluxTerm =.. [Lagoon,FluxValue],
 	send(@Lagoon, setFlux, FluxValue),
-	catch(read(Stream, NextTerm),Ex,(writeln(caught(Ex)),fail)),
+	catch(read(Stream, NextTerm),Ex,(plog(caught(Ex)),fail)),
 	newFlux(NextTerm, Stream).
 
 :- pce_begin_class(evostat, dialog, "PATHE Control Panel").
@@ -349,7 +349,7 @@ initialise(W, Label:[name]) :->
 	  EWidth is WW*DW/100,
 	  EHeight is WH*DH/100,
           send(W, size, size(EWidth, EHeight)),
-	  writeln(evostat(width(EWidth),height(EHeight))),
+	  plog(evostat(width(EWidth),height(EHeight))),
 
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
@@ -366,7 +366,7 @@ initialise(W, Label:[name]) :->
 	  free(@ft),
 	  param(updateCycle(Seconds)),
           Frequent is integer(Seconds/10),
-	  writeln(frequentTimer(Frequent)),
+	  plog(frequentTimer(Frequent)),
 	  send(W, attribute, attribute(timer, new(@ft, timer(Frequent, Msg2)))),
 	
 	  % Status updates via Text Messaging
@@ -416,20 +416,20 @@ initialise(W, Label:[name]) :->
          send(W,started),
          send_super(W, open, Location).
 
-drain(_W, What) :->  writeln(draining(What)).
+drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
        send(@ft,stop),  % Stop the GUI update timer as well
-       writeln('Stopping Level Detection (image processing)'),
+       plog('Stopping Level Detection (image processing)'),
        send(@ut, stop),
        send(@action?members, for_all,
 	    if(@arg1?value==stop,message(@arg1, active, @off))),
        send(@action?members, for_all,
 	    if(@arg1?value==start,message(@arg1, active, @on))),
-       writeln(stopped).
+       plog(stopped).
 
 started(_W) :->
-       writeln('                      STARTING Level Detection'),
+       plog('                      STARTING Level Detection'),
        send(@ut, start),
        send(@action?members, for_all,
 	    if(@arg1?value==start,message(@arg1, active, @off))),
@@ -440,7 +440,7 @@ started(_W) :->
        retractall(timer_time(_)),
        assert(timer_time(INow)),
        send(@ft,start),       % Now restart the fast GUI update timer
-       writeln('Starting Level Detection (Image processing)').
+       plog('Starting Level Detection (Image processing)').
 
 stopPID(_W) :-> 
     pidstop,
@@ -458,7 +458,7 @@ startPID(_W) :->
 
 cellstat(Self) :-> "User pressed the CellStat button"::
                    send(Self,stopped),
-		   ( simulator -> writeln(simulator)
+		   ( simulator -> plog(simulator)
                    ;              send(Self,manualUpdate)
                    ).
 
@@ -531,9 +531,9 @@ range_color(Target, Current, Color) :-
 autoUpdate(Self) :->
     send(@gui, stopped),
     update_config(_),          % Re-load if change
-    send(Self,quiet),      writeln(sent(quiet)),
-    send(Self,readLevels), writeln(sent(readlevels)),
-    send(Self,mixon),      writeln(sent(mixon)),
+    send(Self,quiet),      plog(sent(quiet)),
+    send(Self,readLevels), plog(sent(readlevels)),
+    send(Self,mixon),      plog(sent(mixon)),
     send(@gui, started),
     report.
 
@@ -559,44 +559,44 @@ new_snapshot(Self) :->
 	     message(Graphicals,append,@Name,Position),
 	     message(Graphicals,append,@arg1))),
     send(Self, slot, graphicals, Graphicals),
-    writeln(update(snapShot)).
+    plog(update(snapShot)).
 
 mixon(Self) :->
-    writeln('Updating ebuttons'),
+    plog('Updating ebuttons'),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
-    writeln('Updating snapshot'),
+    plog('Updating snapshot'),
 %    send(Self,new_snapshot),
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
     
-    writeln('Turning noisy stuff back on'),
+    plog('Turning noisy stuff back on'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
     component(_,cellstat,CellStat),
     send(CellStat,converse,'m1'),
     send(CellStat,converse,'o2'),
-    writeln('Updated:Air and Mixers On').
+    plog('Updated:Air and Mixers On').
     
 readLevels(_) :->
-    writeln(read_lagoon_levels),
-    get_level(lagoons), writeln(after(get_level(lagoons))),
+    plog(read_lagoon_levels),
+    get_level(lagoons), plog(after(get_level(lagoons))),
     sleep(10),
-    writeln(read_cellstat_level),
-    get_level(cellstat), writeln(after(get_level(cellstat))),
-    writeln(read_levels(finished)).
+    plog(read_cellstat_level),
+    get_level(cellstat), plog(after(get_level(cellstat))),
+    plog(read_levels(finished)).
 
 % Put things to be refreshed more often here:
 % Image update, time to next level detection, etc.
 % Currently only the autosampler/next cycle time indication
 
 fastUpdate(Self) :->
-    writeln(fastupdate),
+    plog(fastupdate),
     change_request,
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
     check_web_files,
-    writeln(completed(fastupdate)).
+    plog(completed(fastupdate)).
 
 sendText(Self) :->
     send(Self,sendTexts),
@@ -623,7 +623,7 @@ sendTexts(_Self) :->
       MyTime =:= 0,
       concat_atom(['./smstext.py ',Where],Cmd),
       shell(Cmd),
-      writeln('                             TEXTING'(Who)),
+      plog('                             TEXTING'(Who)),
       fail
     ; true
     ).
@@ -648,10 +648,10 @@ new_component(@Name, Type, Data) :-
 
 add_reset(Dialog,@Name) :-
     ( send(@Name,instance_of,ebutton) ->
-	  writeln(itsanebutton(@Name)),
+	  plog(itsanebutton(@Name)),
 	  new(Anon,reset('R',@Name)),
 	  send(Dialog,append(Anon,right))
-     ; writeln(notsomuch(@Name))
+     ; plog(notsomuch(@Name))
      ).
 
 about_atom(About) :-
@@ -690,9 +690,9 @@ load_newest(_,File) :-
     !.
 
 load_newest(Config,File) :-
-    writeln(consulting(File)),
+    plog(consulting(File)),
     consult(Config),
-    writeln(consulted(Config)),
+    plog(consulted(Config)),
     source_file_property(File,modified(Time)),
     retractall(file_modtime(File,_)),
     assert(file_modtime(File, Time)).
@@ -709,7 +709,7 @@ c(Name) :-
          send(@ut, stop),
          send(@gui, destroy),
          stop_http
-     ;   writeln(Reply)
+     ;   plog(Reply)
     ).
 
 report :-
@@ -742,7 +742,7 @@ main :-
 
 main(_Argv) :-
     ( shell('./multiples',1)
-     -> writeln('EvoStat is already running'), halt
+     -> plog('EvoStat is already running'), halt
      ; assert(cycle(0))
     ),
 
@@ -899,4 +899,14 @@ new_value(Attr=Value) :-
   !.
 new_value(I) :-  plog(failed(I)).
  
+semaphore :- repeat(5),
+               ( webok ; sleep(0.2),fail ).
+
+plog(Term) :- write(user_error,Term),nl(user_error).
+
+logIP(Req) :-    
+    memberchk(peer(IP),Req),
+    open('ip.log', append, S),
+    write(S,IP),nl(S),
+    close(S).
 

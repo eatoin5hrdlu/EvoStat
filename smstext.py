@@ -1,5 +1,5 @@
-#!C:/cygwin/Python27/python -u
 #!/usr/bin/python -u
+#!C:/cygwin/Python27/python -u
 import smtplib, os, sys, time
 from email.mime.image      import MIMEImage
 from email.mime.multipart  import MIMEMultipart
@@ -7,14 +7,17 @@ from email.mime.text       import MIMEText
 COMMASPACE = ', '
 
 import subprocess
-getip = "bash -c \"ipconfig | grep -Eo 'IPv4.*: ?([0-9]*\.){3}[0-9]*' | sed -E \\\"s/IPv4[^0-9]*(([0-9]+\.){3}[0-9]*).*/\\\\1/\\\""
+wgetip = "bash -c \"ipconfig | grep -Eo 'IPv4.*: ?([0-9]*\.){3}[0-9]*' | sed -E \\\"s/IPv4[^0-9]*(([0-9]+\.){3}[0-9]*).*/\\\\1/\\\""
+getip = ['hostname','-I']
 
 
 proc = subprocess.Popen(getip, stdout=subprocess.PIPE)
-myip = proc.stdout.read()
-url="http://"+str(myip[:-1])+":21847:/web/pathe.pl"
+myip = proc.stdout.read().strip().split()
+print "[", myip, "]"
+url="http://"+myip+":21847/web/pathe.pl"
 print "URL["+url+"]"
 secrets = eval(open('secrets.py').read())
+print str(secrets)
 
 # fake it
 # secrets = { 'login':'8wan5hrdlu', 'password': '<passwd>' }
@@ -59,7 +62,7 @@ server.login( secrets['login'], secrets['password'] )
 # Create the container (outer) email message.
 if (car == 'vp' or car == 'a') :
     msg = MIMEMultipart()   #   MIMEText(mess, 'plain')
-    msg.attach(MIMEImage(open("phagestat1.png", 'rb').read()))
+    msg.attach(MIMEImage(open("opencvlevel.jpg", 'rb').read()))
     msg.attach(MIMEText(mess,'plain'))
 else :
     msg = MIMEText(mess,'plain')

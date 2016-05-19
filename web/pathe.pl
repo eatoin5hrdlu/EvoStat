@@ -49,6 +49,7 @@ get_label(drainage,waste,'Waste').
 
 web_debug(Req) :-
     nonvar(Req),
+    logIP(Req),				
     memberchk(search(Search),Req),
     memberchk(trace='1',Search),
     !,
@@ -74,14 +75,6 @@ evostatName(Req, Name) :-
 
 backPlate(Name, NamePlate) :-
     concat_atom(['./images/',Name,'.png'],NamePlate).
-
-semaphore :- ( webok
-              -> true
-              ; ( sleep(0.2), ( webok -> true ; sleep(5) )
-                )
-             ).
-
-plog(Term) :- write(user_error,Term),nl(user_error).
 
 pathe(Req) :-
   web_debug(Req),

@@ -446,6 +446,7 @@ update(Self) :->
 	NewValues = [
 	param(MyName,cellstat,level,Level),
 	param(MyName,cellstat,level_t,TLevel),
+	param(MyName,cellstat,levelUnits,LevelUnits),
 	param(MyName,cellstat,ttemperature,Target),
 	param(MyName,cellstat,temperature,Temp),
 	param(MyName,cellstat,tturbidity,ODTarget),
