@@ -95,7 +95,7 @@ repeat(N) :-
              N>0,        % value check 
              repeat1(N).
 
-repeat1(1) :- !.
+repeat1(1) :- !,plog(repeatN_exhausted).
 repeat1(_).
 repeat1(N) :- M is N-1, repeat1(M).
 
@@ -442,7 +442,7 @@ update(Self) :->
 	), % Else for 'no connection'
 	send(Self, label, Label),
 
-        repeat,	sleep(0.1), retract(webok), % SEMAPHORE
+        repeat(20),sleep(0.1),retract(webok), % SEMAPHORE
 	NewValues = [
 	param(MyName,cellstat,level,Level),
 	param(MyName,cellstat,level_t,TLevel),
@@ -532,7 +532,7 @@ update(Self) :->
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
 	),
 	send(Self, label, Label),
-        repeat,	sleep(0.1), retract(webok), % SEMAPHORE
+        repeat(20),sleep(0.1),retract(webok), % SEMAPHORE
 	NewValues = [
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
@@ -748,7 +748,7 @@ fast_update(Self) :->
 		      TimeAtom,' to next sample\n'],Label)
         ),
 	send(Self, label, Label),
-        repeat,	sleep(0.1), retract(webok), % SEMAPHORE
+        repeat(20),sleep(0.1),retract(webok), % SEMAPHORE
 	param(MyName,sampler,flowrate,FlowRate),
 	NewValues = [param(MyName,sampler,flowrate,FlowRate),
 		     param(MyName,sampler,timeleft,ShowTime),
