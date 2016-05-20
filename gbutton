@@ -489,6 +489,7 @@ initialise(Self, Label:[name]) :->
 	retractall(param(Label,lagoon,_,_)),
 	assert(param(Label,lagoon,level,33)),
 	assert(param(Label,lagoon,level_t,33)),
+	assert(param(Label,lagoon,levelUnits,mL)),
 	assert(param(Label,lagoon,ttemperature,370)),
 	assert(param(Label,lagoon,temperature,240)).
 
@@ -500,7 +501,7 @@ update(Self) :->
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
 	(Reply = 'no_connection.'
-	-> trace, Label = 'No Bluetooth\nConnection'
+	-> Label = 'No Bluetooth\nConnection'
 	;
 	parse_reply(Reply,temperature(Temp),temperature(111)),
         get(Self,slot,temperature,PreviousTemp),
