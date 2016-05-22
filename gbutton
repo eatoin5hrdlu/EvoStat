@@ -160,7 +160,7 @@ variable(levelUnits, name, get, "% or mL (usually)"        ).
 
 % Current Settings
 variable(turbidity,    int, get, "Optical Density (600nM)").
-variable(temperature, real, get, "Temperature").
+variable(temperature,  int, get, "Temperature").
 
 % Target Settings
 variable(tturbidity,   int, get, "Target Optical Density (600nM)").
@@ -432,6 +432,7 @@ update(Self) :->
 	get(Self, slot, level_t, TLevel),
 	get(Self, slot, levelUnits, LevelUnits),
 
+        writeq(user_error, arithmetic(Temp)),
 	TempF is float(Temp)/10.0,
 	TargetF is float(Target)/10.0,
 	limit(TurbVal, 0, 999, TurbL),
@@ -498,12 +499,14 @@ update(Self) :->
         send_super(Self, update),
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
-	(Reply = 'no_connection.' -> Label = 'No Bluetooth\nConnection'
+	(Reply = 'no_connection.'
+	-> trace, Label = 'No Bluetooth\nConnection'
 	;
 	parse_reply(Reply,temperature(Temp),temperature(111)),
         get(Self,slot,temperature,PreviousTemp),
 	reportDeltaT(MyName, PreviousTemp, Temp),
         send(Self,slot,temperature,Temp),
+        writeq(user_error, arithmetic2(Temp)),
 	TempDeg is float(Temp)/10.0,
         get(Self,slot,ttemperature,Target),
 	TargetDeg is float(Target)/10.0,
@@ -537,8 +540,9 @@ update(Self) :->
 	NewValues = [
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
-		     param(MyName,lagoon,ttemperature,GuiTarget),
-		     param(MyName,lagoon,temperature,GuiTemp)],
+		     param(MyName,lagoon,levelUnits,LevelUnits),
+		     param(MyName,lagoon,ttemperature,Temp),
+		     param(MyName,lagoon,temperature,Target)],
 	(ground(NewValues) ->
              retractall(param(MyName,lagoon,_,_)),
 	     maplist(assert,NewValues),
