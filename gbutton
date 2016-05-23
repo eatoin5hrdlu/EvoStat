@@ -490,6 +490,7 @@ initialise(Self, Label:[name]) :->
 	assert(param(Label,lagoon,level,33)),
 	assert(param(Label,lagoon,level_t,33)),
 	assert(param(Label,lagoon,ttemperature,370)),
+	assert(param(Label,lagoon,levelUnits,mL)),
 	assert(param(Label,lagoon,temperature,240)).
 
 
