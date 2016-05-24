@@ -237,7 +237,7 @@ od(Self, OD600:[real]) :->
 	 Turb is integer(OD600*1000),
 	 send(Self, slot, tturbidity, Turb).
 
-temp(Self, Temp:[real]) :->
+temp(Self, Temp:[int]) :->
 	 send(Self, slot, ttemperature, Temp),
          plog(tempsetting(Self,Temp)).
 

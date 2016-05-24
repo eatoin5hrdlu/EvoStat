@@ -897,8 +897,19 @@ new_value(Attr=Value) :-
   concat_atom([Cmd,EValue],Command),
   send(Obj,converse,Command),
   plog(sent(Obj,converse,Command)),
+  change_value(Cmd, Name, EValue),  % Change the param and object value
   !.
 new_value(I) :-  plog(failed(I)).
+
+
+change_value('tt',Name,Value) :-
+   !,
+   component(Name, Type, Obj),
+   retract(param(Name, Type, ttemperature, _)),
+   assert(param(Name, Type, ttemperature, Value)),
+   send(Obj, slot, ttemperature, Value).
+change_value(_,_,_).
+
  
 semaphore :- repeat(5),
                ( webok ; sleep(0.2),fail ).
