@@ -895,7 +895,6 @@ new_value(Attr=Value) :-
   component(Name, _Type, Obj),
   ensure_value(Value,EValue),
   concat_atom([Cmd,EValue],Command),
-  (Cmd = 'tt' -> trace ; true ),
   send(Obj,converse,Command),
   plog(sent(Obj,converse,Command)),
   !.
