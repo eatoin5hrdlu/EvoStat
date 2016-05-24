@@ -238,9 +238,8 @@ od(Self, OD600:[real]) :->
 	 send(Self, slot, tturbidity, Turb).
 
 temp(Self, Temp:[real]) :->
-	 Temp10 is integer(Temp*10.0),
-	 send(Self, slot, ttemperature, Temp10),
-         plog(tempsetting(Self,Temp10)).
+	 send(Self, slot, ttemperature, Temp),
+         plog(tempsetting(Self,Temp)).
 
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
 %
@@ -542,8 +541,8 @@ update(Self) :->
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
 		     param(MyName,lagoon,levelUnits,LevelUnits),
-		     param(MyName,lagoon,ttemperature,Temp),
-		     param(MyName,lagoon,temperature,Target)],
+		     param(MyName,lagoon,ttemperature,Target),
+		     param(MyName,lagoon,temperature,Temp)],
 	(ground(NewValues) ->
              retractall(param(MyName,lagoon,_,_)),
 	     maplist(assert,NewValues),
