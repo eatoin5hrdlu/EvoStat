@@ -20,17 +20,17 @@ config( [
 	 rotate(90),
 	 screen(46,48,point(720,1)),
 	 layout([
-		 supply( nutrient, below,  [Supply]),
-		 supply( arabinose, right, [Supply]),
-		 supply( inducer2,  right, [Supply]),
-		 supply( inducer3,  right, [Supply]),
+		 supply( nutrient, below,  [Supply,levelUnits('L')]),
+		 supply( arabinose, right, [Supply,levelUnits(mL)]),
+		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
+		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
 		 cellstat(cellstat,below, [od(0.4),temp(37.0),shape(36,12),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ image('mypic1.jpg'),shape(42,42)]),
 		 spacer(      x2, next_row, []),
-		 lagoon( lagoon1, next_row, [temp(35.0), LS, LF]),
-		 lagoon( lagoon2, right,    [temp(35.0), LS, LF]),
-		 lagoon( lagoon3, right,   [temp(34.5) ,LS, LF]),
+		 lagoon( lagoon1, next_row, [temp(35.0), TL, LS, LF]),
+		 lagoon( lagoon2, right,    [temp(35.0), TL, LS, LF]),
+		 lagoon( lagoon3, right,   [temp(34.5) , TL, LS, LF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
 		 sampler(autosampler, next_row, [shape(40,12),SF]),
 		 drainage(waste, next_row, [shape(20,9),SF])
@@ -38,6 +38,7 @@ config( [
 	 ]) :-
  Supply = shape(10,5),
  LS = shape(31,12),
+ TL = targetLevel(31),
  LF = font(font(times,roman,20)),
  CF = font(font(times,roman,18)),
  SF = font(font(times,roman,20)).
@@ -74,8 +75,8 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
-watcher(reintjes,'vp 9194525098', 2).  % Peter Reintjes
-%watcher(pc,      'a 9193083839', 2).  % The Other Peter
+watcher(reintjes,'vp 9194525098', 4).  % Peter Reintjes
+watcher(pc,      'a 9193083839', 4).  % The Other Peter
 %watcher(marshall,'a 5056037415', 4). % Marshall
 %watcher(martha, 'vp 9196024293', 23). % Martha Collier
 %watcher(lea,    'vp 9194525097', 4).  % Lea

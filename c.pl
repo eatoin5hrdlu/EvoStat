@@ -405,7 +405,7 @@ initialise(W, Label:[name]) :->
 					message(@prolog, manpce))]),
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
-	 assert(webok),
+         assert(webok),
 	 maplist(create(@gui), Components),
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
@@ -894,8 +894,10 @@ new_value(Attr=Value) :-
   atomic_list_concat([Name,Cmd],'_',Attr),
   component(Name, _Type, Obj),
   ensure_value(Value,EValue),
-  send(Obj,converse,[Cmd,EValue]),
-  plog(sent(Obj,converse,[Cmd,EValue])),
+  concat_atom([Cmd,EValue],Command),
+  (Cmd = 'tt' -> trace ; true ),
+  send(Obj,converse,Command),
+  plog(sent(Obj,converse,Command)),
   !.
 new_value(I) :-  plog(failed(I)).
  

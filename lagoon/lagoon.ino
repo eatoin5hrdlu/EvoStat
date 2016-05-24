@@ -52,7 +52,7 @@ int RomAddress  = 0;
 
 int mixerspeed;
 byte id = 'z'; // Zeno = unassigned, by default
-float target_temperature;
+int target_temperature;
 
 int interval;   // Variable to keep track of the time
 int reading[10];
@@ -61,9 +61,9 @@ int reading[10];
 
 void checkTemperature()
 {
-float t = temp.celcius()/10.0;
-	if (t < target_temperature)        digitalWrite(HEATER,1);
-	if (t > target_temperature + 0.5)  digitalWrite(HEATER,0);
+int t = temp.celcius();
+	if (t < target_temperature)      digitalWrite(HEATER,1);
+	if (t > target_temperature + 5)  digitalWrite(HEATER,0);
 }
 
 // 'RomAddress' global will be bumped by successive
@@ -82,7 +82,7 @@ char *saveRestore(int op)
 {
 	RomAddress = 0;
 	moveData(op, 1, &id);
-	moveData(op, sizeof(float),      (byte *) &target_temperature);
+	moveData(op, sizeof(int),        (byte *) &target_temperature);
 	moveData(op, sizeof(int),        (byte *) &mixerspeed);
 	moveData(op, (NUM_VALVES+1)*sizeof(int), valve.getTimesbp());
 	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getAngles());
@@ -140,16 +140,12 @@ int  *ip = valve.getTimes();
 	Serial.println("cmd(s,'Save settings in EEPROM').");
 
 	Serial.print("cmd(t,[");
-	  Serial.print((int) temp.celcius());
+	  Serial.print(temp.celcius());
 	  Serial.println("],'Get temperature in tenth degrees C').");
 
-	Serial.print("cmd(ts,[");
-	  Serial.print((int) (target_temperature*10.0));
-	  Serial.println("],'Set target temperature in tenth degrees C').");
-
 	Serial.print("cmd(tt,[");
-	  Serial.print((int) (target_temperature*10.0));
-	  Serial.println("],'Get target temperature').");
+	  Serial.print(target_temperature);
+	  Serial.println("],'Get/Set target temperature in tenth degrees C').");
 
 	Serial.print("cmd(v,[1,2,3,4],[");
 	 for(i=1;i<5;i++) {
@@ -161,16 +157,17 @@ int  *ip = valve.getTimes();
 
 void mixer(byte v)
 {
-	if (v == 0)
+	if (v == 0) {
 		analogWrite(MIXER,0);
-	else 
-	{
+		auto_mixer = false;
+	} else {
 	    for(int i=3; i<15; i++) {
 		analogWrite(MIXER, i*mixerspeed/13);
 		if (auto_valve) valve.checkValve();
 		delay(400);
  	    }
 	    analogWrite(MIXER, mixerspeed-(mixerspeed/10));
+	    auto_mixer = true;
 	}
 }
 
@@ -267,13 +264,16 @@ int tmp;
 		case 'm':
 		        if (c2 == 's') {
 				if (value == 0)
-				   printTermInt("mixer", mixerspeed);
+				   printTermInt("mixerspeed", mixerspeed);
 				else {
 				   mixerspeed = value;
 				   analogWrite(MIXER, mixerspeed );
 				}
 			}
-			else mixer(d);
+			else if (d == 9)
+			  printTermInt("mixer",auto_mixer);
+			else
+			  mixer(d);
 			break;
 		case 'n':
 		        valve.enable(1);
@@ -291,8 +291,6 @@ int tmp;
 			switch(c2) {
 				case 'v': valve.report(reply);
 				     	  break;
-				case 't': printTermFloat("temperature", temp.celcius());
-				     	  break;
 				default:  strcpy(reply,saveRestore(RESTORE));
 					  break;
 			}
@@ -301,18 +299,14 @@ int tmp;
 			strcpy(reply,saveRestore(SAVE));
 			break;
 		case 't': // set target(ts), get target(tt) or get current temp (t)
-		        if (c2 == 's')
-			   target_temperature = ((float)value)/10.0;
+		        if (c2 == 't') {
+			   if (value == 0)
+			      printTermInt("ttemperature",target_temperature);
+			   else
+			     target_temperature = value;
+			}
 		        else {
-			     if (c2 == 't') {
-			     	    tmp = (int) (target_temperature*10.0);
-				    Serial.print("target_");
-			     }
-			     else
-				tmp = (int)temp.celcius();
-			     Serial.print("temperature(");
-			     Serial.print(tmp);
-			     Serial.println(").");
+			    printTermInt("temperature",temp.celcius());
 			}
 			break;
 		case 'v':
@@ -396,7 +390,7 @@ void setup()
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = '2';	// Default Lagoon ID 
-		target_temperature = 37.0;
+		target_temperature = 370;
 		mixerspeed = MIXERSPEED;
 		valve.setAngle(0,0);
 		valve.setAngle(1,50);

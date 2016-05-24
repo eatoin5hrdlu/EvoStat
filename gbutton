@@ -198,10 +198,10 @@ show_conversation(Self) :->
 	
 targetLevel(Self, Level) :->
        send(Self, slot, level_t, Level),
-       component(Name,Type,Self),
+       get(Self, slot, myname, Name),
        retract(webok),
-       retractall(param(Name,Type,level_t,_)),
-       assert(param(Name,Type,level_t,Level)),
+       retractall(param(Name,_,level_t,_)),
+       assert(param(Name,_,level_t,Level)),
        assert(webok).
 
 level(@Name, Level) :->
@@ -501,7 +501,7 @@ update(Self) :->
         send_super(Self,converse,'t'),
         get(Self,slot,reply,Reply),
 	(Reply = 'no_connection.'
-	-> trace, Label = 'No Bluetooth\nConnection'
+	-> Label = 'No Bluetooth\nConnection'
 	;
 	parse_reply(Reply,temperature(Temp),temperature(111)),
         get(Self,slot,temperature,PreviousTemp),
