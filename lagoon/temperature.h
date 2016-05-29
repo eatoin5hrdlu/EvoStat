@@ -11,20 +11,20 @@
 #endif
 // Conversions between Analog In(A), Celcius (C), Farenheit (F)
 
-#define F_OFFSET 32.0
-#define F_SCALE_MULT 9.0
-#define F_SCALE_DIV 5.0
+#define F_OFFSET 320
+#define F_SCALE_MULT 9
+#define F_SCALE_DIV 5
 #define C_TO_F(c) (F_OFFSET+(F_SCALE_MULT*c)/F_SCALE_DIV)
-#define F_TO_C(f) (F_SCALE_DIV*((f-F_OFFSET)/F_SCALE_MULT))
-#define A_TO_C(a) ((float) (a*multiply/divide))
+#define F_TO_C(f) ((F_SCALE_DIV*((f-F_OFFSET))/F_SCALE_MULT)
+#define A_TO_C(a) (a*multiply/divide)
 #define A_TO_F(a) C_TO_F(A_TO_C(a))
 
 // Constructors:
 // TEMPERATURE(A)       LM35-DZ analog temperature IC 10mV/C on pin A
 // TEMPERATURE(SCL,SDA) MELEXIS digital PIR, non-contact thermometer
 // Methods:
-// float c  = celcius()
-// float f  = farenheit()
+// int c  = celcius()   in tenths of degree
+// int f  = farenheit()
 //
 
 class TEMPERATURE
@@ -43,8 +43,8 @@ class TEMPERATURE
 
   TEMPERATURE(int scl, int sda) { aIn = -1; sCL = scl; sDA = sda; }
 
-  float farenheit(void)     { return C_TO_F(celcius()); }
-  float celcius(void)
+  int farenheit(void)     { return C_TO_F(celcius()); }
+  int celcius(void)
   {
     sum = 0;
     for(int i=0; i < SAMPLES; i++) {

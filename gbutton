@@ -198,10 +198,10 @@ show_conversation(Self) :->
 	
 targetLevel(Self, Level) :->
        send(Self, slot, level_t, Level),
-       component(Name,Type,Self),
+       get(Self, slot, myname, Name),
        retract(webok),
-       retractall(param(Name,Type,level_t,_)),
-       assert(param(Name,Type,level_t,Level)),
+       retractall(param(Name,_,level_t,_)),
+       assert(param(Name,_,level_t,Level)),
        assert(webok).
 
 level(@Name, Level) :->
@@ -237,10 +237,9 @@ od(Self, OD600:[real]) :->
 	 Turb is integer(OD600*1000),
 	 send(Self, slot, tturbidity, Turb).
 
-temp(Self, Temp:[real]) :->
-	 Temp10 is integer(Temp*10.0),
-	 send(Self, slot, ttemperature, Temp10),
-         plog(tempsetting(Self,Temp10)).
+temp(Self, Temp:[int]) :->
+	 send(Self, slot, ttemperature, Temp),
+         plog(tempsetting(Self,Temp)).
 
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
 %
@@ -491,6 +490,7 @@ initialise(Self, Label:[name]) :->
 	assert(param(Label,lagoon,level_t,33)),
 	assert(param(Label,lagoon,levelUnits,mL)),
 	assert(param(Label,lagoon,ttemperature,370)),
+	assert(param(Label,lagoon,levelUnits,mL)),
 	assert(param(Label,lagoon,temperature,240)).
 
 
@@ -542,8 +542,8 @@ update(Self) :->
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
 		     param(MyName,lagoon,levelUnits,LevelUnits),
-		     param(MyName,lagoon,ttemperature,Temp),
-		     param(MyName,lagoon,temperature,Target)],
+		     param(MyName,lagoon,ttemperature,Target),
+		     param(MyName,lagoon,temperature,Temp)],
 	(ground(NewValues) ->
              retractall(param(MyName,lagoon,_,_)),
 	     maplist(assert,NewValues),

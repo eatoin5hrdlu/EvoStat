@@ -405,7 +405,7 @@ initialise(W, Label:[name]) :->
 					message(@prolog, manpce))]),
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
-	 assert(webok),
+         assert(webok),
 	 maplist(create(@gui), Components),
 	 initPID,                     % Start PID controllers
          send(@action?members, for_all,
@@ -894,10 +894,22 @@ new_value(Attr=Value) :-
   atomic_list_concat([Name,Cmd],'_',Attr),
   component(Name, _Type, Obj),
   ensure_value(Value,EValue),
-  send(Obj,converse,[Cmd,EValue]),
-  plog(sent(Obj,converse,[Cmd,EValue])),
+  concat_atom([Cmd,EValue],Command),
+  send(Obj,converse,Command),
+  plog(sent(Obj,converse,Command)),
+  change_value(Cmd, Name, EValue),  % Change the param and object value
   !.
 new_value(I) :-  plog(failed(I)).
+
+
+change_value('tt',Name,Value) :-
+   !,
+   component(Name, Type, Obj),
+   retract(param(Name, Type, ttemperature, _)),
+   assert(param(Name, Type, ttemperature, Value)),
+   send(Obj, slot, ttemperature, Value).
+change_value(_,_,_).
+
  
 semaphore :- repeat(5),
                ( webok ; sleep(0.2),fail ).
