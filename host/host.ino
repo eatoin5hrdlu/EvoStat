@@ -33,6 +33,7 @@ int target_temperature;
 int target_turbidity;
 int gtscale;
 int gtoffset;  // Offset and scale for Turbidity calculation
+int OD;
 
 int interval;   // Variable to keep track of the time
 int mixerspeed;
@@ -273,12 +274,8 @@ int ODhindex = 0;
 int turbdelay = 0;
 
 int turbidity() {
-int i;
-long int total = 0;
-	for (i=0;i<10;i++) {
-		total += ODhist[i];
-	}
-	return total/10;
+//	return analogRead(ANALOG_TURBIDITY);
+	return OD;
 }
 
 /* Assumes constant offset for turbidity calculation */
@@ -302,12 +299,11 @@ void forceTurbidity(int currentTurbidity)
 int checkTurbidity() {
 int highlow = 0;
 int i, t, avg;
-int OD;
 	digitalWrite(LASER,1);
-	delay(200);
+	delay(300);
 // Read Turbidity and bump the ReadArray index
 	turbread[turbindex] = analogRead(ANALOG_TURBIDITY);
-	digitalWrite(LASER,0);
+//	digitalWrite(LASER,0);
 	turbindex = (turbindex+1)%10;
 
 // Average the last ten values and bump the delay index
@@ -374,7 +370,7 @@ byte d;
 			}
 			break;
 		case 'b':
-		        sprintf(reply,"turbidity(%d).",turbidity());
+			sprintf(reply,"turbidity(%d).",turbidity());
 			soutln(reply);
 			break;
 		case 'c':
@@ -427,13 +423,28 @@ byte d;
 			forceTurbidity(value);
 			break;
 		case 'o':
-		     if      (c2 == '2'|| c2 == '1') digitalWrite(AIR,1);
-		     else if (c2 == '-'|| c2 == '0') digitalWrite(AIR,0);
-		     else {
+			switch(c2)
+			{
+			 case '1':
+			 case '2':
+				digitalWrite(AIR,1);
+				break;
+			 case '-':
+			 case '0':
+				digitalWrite(AIR,0);
+				break;
+                         case 'd':
+				if (value == 0) {
+					sprintf(reply,"turbidity(%d).",turbidity());
+					soutln(reply);
+				} else 
+					target_turbidity = value;
+				break;
+			default: 
 		     	  sprintf(reply,"air(%d,%d).",auto_air,digitalRead(AIR));
 			  soutln(reply);
-		     }
-		     break;
+			}
+			break;
 		case 'p':
 			auto_valve = false;
 			valves.openValve((int)c2-'0');
@@ -646,14 +657,14 @@ int tb_thresh;
 
 while(1) {
 	respondToRequest();     // Check for command
-	delay(1000);
+	delay(500);
 	if (auto_temp)		// Check and update heater(s)
 		checkTemperature();
 	if (auto_valve)		// Check and update nutrient valve
 		valves.checkValves();
 	if (auto_mixer)		// Restart the motor
 		mixer(1);
-	delay(1000);
+	delay(500);
 	tb_thresh = checkTurbidity();
 	if (tb_thresh > 0) {
 #ifdef DEBUG
