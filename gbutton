@@ -544,10 +544,10 @@ update(Self) :->
 		     param(MyName,lagoon,levelUnits,LevelUnits),
 		     param(MyName,lagoon,ttemperature,Target),
 		     param(MyName,lagoon,temperature,Temp)],
-	(ground(NewValues) ->
-             retractall(param(MyName,lagoon,_,_)),
-	     maplist(assert,NewValues),
-             write(user_error,updated(MyName,level(Level))),nl(user_error)
+        retractall(param(MyName,lagoon,_,_)),
+	(ground(NewValues)
+	 -> maplist(assert,NewValues),
+	    write(user_error,updated(MyName,level(Level))),nl(user_error)
 	 ;   write(user_error,failed_update(MyName)),nl(user_error)
 	),
         assert(webok).

@@ -533,7 +533,7 @@ autoUpdate(Self) :->
     update_config(_),          % Re-load if change
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
-    send(Self,mixon),      plog(sent(mixon)),
+    send(Self,mixon),      plog(sent(mixon)),  % Sends 'update'
     send(@gui, started),
     report.
 
