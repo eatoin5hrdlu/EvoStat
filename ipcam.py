@@ -200,7 +200,7 @@ class ipCamera(object):
         (x1,y1,x2,y2) = self.params['lagoonRegion']
         (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
         filename = "mypic"+str(levelPhase)+".jpg"
-        file2 = "phagestat"+str(levelPhase)+".png"
+        file2 = "./web/phagestat.png"
         if (image != None ) :
             cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
@@ -408,6 +408,10 @@ if __name__ == "__main__" :
         exit(0)
     if ('contrast' in sys.argv) :   # Interactive tool to find contrast settings
         makeTkSliders(ipcam.params['lagoonContrast'])
+        exit(0)
+    if ('snapshot' in sys.argv) :
+        img = ipcam.evocv.grab()
+        cv2.imwrite('phagestat.jpg',img)
         exit(0)
     if ('locate' in sys.argv):      # Help user find lagoon and cellstat regions
         cv.SetMouseCallback('camera', on_mouse, 0) # Set mouse handler

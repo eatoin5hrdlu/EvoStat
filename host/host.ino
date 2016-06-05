@@ -299,11 +299,12 @@ void forceTurbidity(int currentTurbidity)
 int checkTurbidity() {
 int highlow = 0;
 int i, t, avg;
-	digitalWrite(LASER,1);
-	delay(300);
+        if (digitalRead(LASER) != 1) {
+	   digitalWrite(LASER,1);
+	   delay(300);
+	}
 // Read Turbidity and bump the ReadArray index
 	turbread[turbindex] = analogRead(ANALOG_TURBIDITY);
-//	digitalWrite(LASER,0);
 	turbindex = (turbindex+1)%10;
 
 // Average the last ten values and bump the delay index
@@ -326,18 +327,20 @@ int i, t, avg;
 	return (t/10);  // -1, 0, +1 
 }
 
+// Make sure to check on things while motor is spinning up
+// Valve timings are precise and user will time-out if we don't respond.
 void mixer(byte v)
 {
 	if (v == 0) {
 		analogWrite(MIXER,0);
 		mixer_state = false;
-	} else { 
+	} else {
 	    if (!mixer_state) {
-		delay(1000);
 	    	for(int i=3; i<11; i++) {
 			analogWrite(MIXER, i*mixerspeed/10);
+			respondToRequest();
 			if (auto_valve) valves.checkValves();
-				delay(600);
+			delay(400);
 		}
 		mixer_state = true;
 	    }
@@ -403,6 +406,7 @@ byte d;
 			break;
 		case 'l':
 			digitalWrite(JARLIGHT, d);
+			digitalWrite(LASER,    d);
 			break;
 		case 'm':
 		     if (c2 == 's') {
@@ -654,17 +658,15 @@ int cnt_mixer = 0;
 void loop()
 {
 int tb_thresh;
-
-while(1) {
 	respondToRequest();     // Check for command
-	delay(500);
+	delay(100);
 	if (auto_temp)		// Check and update heater(s)
 		checkTemperature();
 	if (auto_valve)		// Check and update nutrient valve
 		valves.checkValves();
 	if (auto_mixer)		// Restart the motor
 		mixer(1);
-	delay(500);
+	delay(100);
 	tb_thresh = checkTurbidity();
 	if (tb_thresh > 0) {
 #ifdef DEBUG
@@ -682,5 +684,4 @@ while(1) {
 		Serial.println("Turbidity is okay");
 #endif
 	}
-    } /* end while(1) */
 }

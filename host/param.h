@@ -9,8 +9,8 @@
 
 #define AIR            10     // Control solid-state relay (~120VAC)
 #define HEATER          9     // Control solid-state relay (~40VAC)
-#define LED             13     // Turbidity light
-#define LASER           8     // Meniscus light
+#define LED             13    // Arduino LED
+#define LASER           11    // Turbidity LASER (PWM on Nano or Mega)
 #define JARLIGHT        7     // Meniscus light
 #define NUTRIENT        4     // Only one valve for Cellstat
 #define HOSTOUT         5     // Output to Waste
