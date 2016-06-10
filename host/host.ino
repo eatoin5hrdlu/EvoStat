@@ -134,16 +134,19 @@ void soutln(const char *str) {
 
 int get_temperature()  // Temperature in tenths of degrees C
 {
-int tries = 10;
-int resets = 3;
+int tries = 4;
+int resets = 2;
 int tmp;
 
       while(tries-- > 0)
       {
 	    tmp = objTC();
 	    if (tmp>100  && tmp<800) return tmp;
-	    delay(100);
-	    if ( tries == 0 && resets-- > 0 ) { Wire.begin(); delay(200); tries=10; }
+	    delayMicroseconds(5000);
+	    if ( tries == 0 && resets-- > 0 )
+	    {
+	       Wire.begin(); delayMicroseconds(5000); tries=4;
+	    }
       }
       return 888;
 }
@@ -215,7 +218,7 @@ bool wfProcess_command(char c1, char c2, int value)
   if (c1 == 'x' && c2 == 'x' && value == -1)
   {
     w.mysend("closed(x,x,-1).");
-    delay(1000);
+    delayMicroseconds(10000);
     w.reboot(3); // Nothing short of a full restart will work
   }
   else
@@ -301,7 +304,7 @@ int highlow = 0;
 int i, t, avg;
         if (digitalRead(LASER) != 1) {
 	   digitalWrite(LASER,1);
-	   delay(300);
+	   delayMicroseconds(10000);
 	}
 // Read Turbidity and bump the ReadArray index
 	turbread[turbindex] = analogRead(ANALOG_TURBIDITY);
@@ -340,12 +343,14 @@ void mixer(byte v)
 			analogWrite(MIXER, i*mixerspeed/10);
 			respondToRequest();
 			if (auto_valve) valves.checkValves();
-			delay(400);
+			for(int j=0;j<100;j++)
+				delayMicroseconds(4000);
 		}
 		mixer_state = true;
 	    }
 	}
 }
+
 
 boolean cellstat_command(char c1, char c2, int value)
 {
@@ -526,7 +531,7 @@ void btRespondToRequest(void)
 		if ( c < 32 ) break;
 		is += (char)c;
 		if (Serial.available() == 0) // It is possible we're too fast
-			delay(100);
+			delayMicroseconds(10000);
 	}
 	if ( is.length() > 0 )  {   // process the command
 		int value = 0;
@@ -637,7 +642,8 @@ int i;
 	}
         valves.setCycletime(gcycletime);
 	once = true;
-	for (i=0;i<10;i++) checkTurbidity(); // Fill averaging vector
+	for (i=0;i<10;i++) // Fill averaging vector
+	    turbread[i] = analogRead(ANALOG_TURBIDITY);
 	mixer_state = false;
 	mixer(1);
 }
@@ -654,34 +660,19 @@ int leakage = analogRead(ANALOG_LEAK);
 
 int cnt_light = 0;
 int cnt_mixer = 0;
+int looponce = 1;
 
 void loop()
 {
 int tb_thresh;
 	respondToRequest();     // Check for command
-	delay(100);
+	delayMicroseconds(5000);
 	if (auto_temp)		// Check and update heater(s)
 		checkTemperature();
 	if (auto_valve)		// Check and update nutrient valve
 		valves.checkValves();
 	if (auto_mixer)		// Restart the motor
 		mixer(1);
-	delay(100);
+	delayMicroseconds(5000);
 	tb_thresh = checkTurbidity();
-	if (tb_thresh > 0) {
-#ifdef DEBUG
-		Serial.println("Turbidity is defintely too high");
-		valves.adjust('1', +100);
-#endif
-	}
-	else if (tb_thresh < 0) {
-#ifdef DEBUG
-		Serial.println("Turbidity is defintely too low");
-		valves.adjust('1', -100);
-#endif
-	} else {
-#ifdef DEBUG
-		Serial.println("Turbidity is okay");
-#endif
-	}
 }

@@ -95,7 +95,7 @@ boolean checkValves(void) {
 	      closeValve(i);
 	    }
 	}
-      return true;
+	return true;
   }
 
 // Valve will never open if it's "open time" is zero
