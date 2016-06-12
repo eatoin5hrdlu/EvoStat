@@ -30,7 +30,7 @@ class EvoCv(object):
         self.maxWidth = 60   # All blobs are reduced to a strip this wide
 	self.minDim = minsize
 	self.maxDim = maxsize
-        self.kernal = np.ones((5,5),np.uint8)
+        self.kernal = np.ones((2,2),np.uint8)
         self.alpha   = np.array([  1.2 ])
         self.beta    = np.array([ -60 ])
 	self.theta = 1
@@ -75,6 +75,7 @@ class EvoCv(object):
                 image = cv2.add(cv2.multiply(image,scale),offset)
                 if (image == None) :
                     plog( "image(None) after add/mulitply in contrast!")
+            image = self.erodeDilate(image, 1, 1, 1)
         self.showUser(image,label= ("cdone",image.shape[0]/2,image.shape[1]/2) )
         (ret,img) = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
         if (ret == False) :
@@ -219,17 +220,21 @@ class EvoCv(object):
         plog("Evocv cropping "+str(brect))
         (y1,x1,y2,x2) = brect
         image = self.grab()
+        plog(str(image.shape))
+        self.showUser(image)
         if (image == None) :
             plog("camera(fail).")
             exit(0)
         cimg = image[y1:y2,x1:x2,:]
+        plog(str(cimg.shape))
+        self.showUser(cimg)
         return cv2.copyMakeBorder(cimg, 2,2,2,2, cv2.BORDER_CONSTANT,(0,0,0))
 
-# BB (bounding box) is (y1, x1, height, width) ??    
+# BB (bounding box) is (y1, x1, y2, x2)
 # Color  is one of [0,1,2] [Blue, Green, Red]
 # Contrast = (#Iterations, Multiply, Offset(usually negative)) try (3, 1.35, -70)
 
-    def getLevel(bb, color, contrast) :
+    def getLevel(self, bb, color, contrast) :
         """Level value is a percentage of the region height"""
         badRead = True
         percentage = 0
@@ -240,7 +245,8 @@ class EvoCv(object):
             self.showUser(mono)
             (it, sc, off) = contrast
             mono = self.contrast(mono,iter=it,scale=sc,offset=off)
-            plog("Image is None after contrast in getLevel")
+            if (mono == None) :
+               plog("Image is None after contrast in getLevel")
             self.showUser(mono)
             lvl = self.level(mono)
             plog("evocv.getLevel() "+str(lvl))

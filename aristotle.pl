@@ -1,16 +1,16 @@
 config( [
 	 textMessages(3600),  % Twice Daily (6min=360 hour=3600 4-hour=14400)
-	 updateCycle(90),     % In seconds
+	 updateCycle(120),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(100,270,330,320),
-         cellstatContrast(1, 2.0, -40), % Iterations, Multiply, Subtract
+         cellstatRegion(100,240,330,300),
+         cellstatContrast(1, 1.5, -50), % Iterations, Multiply, Subtract
 	 cellstatHeight(300),  % same as 100% of cellstat volume
 
-         lagoonRegion(390,10,630,460),
-         lagoonContrast(  2, 1.9, -69),
+         lagoonRegion(480,10,630,460),
+         lagoonContrast(  1, 1.4, -60),
 	 lagoonHeight(120),             % same as 100% of lagoon volume
 	 lagoonWidth(60),
 
@@ -46,6 +46,7 @@ config( [
 % When testing with no devices, uncomment next line for fast startup.
 % bt_address(Name, Addr) :- !, fail.
 
+%bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
 bt_device(cellstat,    '98:D3:31:90:29:0E').
 bt_device( lagoon1,    '98:D3:31:80:34:39'). % was d3
 bt_device(autosampler, '98:D3:31:40:1D:D4').

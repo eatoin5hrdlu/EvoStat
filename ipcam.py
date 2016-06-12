@@ -436,29 +436,32 @@ if __name__ == "__main__" :
         bbfp.close()
         bbfp = None   # END OF LOCATE/BBOX HELPER
         exit(0)
+    blue = 0
+    green = 1
+    red = 2
     if (('lagoon' in sys.argv) or ('lagoons' in sys.argv)) : # Read lagoon levels
-        print("levels(30).")
-        exit(0)
-        levelPhase = 1
-        height = ipcam.params['lagoonHeight']
         brect = ipcam.params['lagoonRegion']
-        num =  ipcam.params['numLagoons']
-        contrast = ipcam.params['lagoonContrast']
-        print(termIntList('levels',
-                ipcam.updateLevels(height, brect,
-                    ipcam.updateLagoons(brect,num),contrast)))
+        quarterWidth = (brect[3]-brect[1])/4
+        print("QUARTER width " + str(quarterWidth))
+        llist = []
+        for i in range(ipcam.params['numLagoons']) :
+            x1 = brect[1] + i * quarterWidth
+            x2 = brect[1] + (i+1)*quarterWidth
+            lbb = (brect[0], x1, brect[2], x2)
+            print("LBB " + str(lbb))
+            llev = ipcam.evocv.getLevel( lbb,
+                                         green,
+                                         ipcam.params['lagoonContrast'])
+            llist.append(llev)
+        print(termIntList('levels',llist))
     if ('cellstat' in sys.argv) :        # Just the CellStat level
         levelPhase = 1
         height = ipcam.params['cellstatHeight']
         brect = ipcam.params['cellstatRegion']
         num = 1
-        red = 2
         contrast = ipcam.params['cellstatContrast']
-        plog("Minsize for cellstat = " + str((brect[3]-brect[1])/2))
-        ipcam.evocv.set_minsize((brect[3]-brect[1])/2)
-        plog("Maxsize for cellstat = "+str(height))
-        ipcam.evocv.set_maxsize(height)
-        print(termIntList('level',ipcam.updateLevels(height,brect,[(brect[0],brect[1],brect[2]-brect[0],brect[3]-brect[1])],contrast,red)))
+        lev = ipcam.evocv.getLevel(brect, red, contrast)
+        print(termInt('level',lev))
     ipcam.release()
 
 #                                   ipcam.updateLagoons(brect,num,red),contrast,red)))

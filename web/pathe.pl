@@ -59,19 +59,13 @@ web_debug(Req) :-
     ).
 web_debug(_).
 
-evostatName(Req, Name) :- 
-    nonvar(Req),
-    memberchk(search(Search),Req),
-    memberchk(evostat=Name,Search),
+evostatName(Req,Name) :-
+    memberchk(search(List),Req),
+    memberchk(evostat(Name),List),
     !.
-
-evostatName(Req, Name) :-
-    gethostname(Fullname),
-    atom_codes(Fullname,Codes),
-    ( append(Root,[0'.|_],Codes) -> atom_codes(Name,Root)
-    ; Name = Fullname
-    ),
-    plog(webhit(Name,Req)).
+evostatName(_,Name) :-
+     gethostname(Fullname),
+     atomic_list_concat([Name|_],'.',Fullname).
 
 backPlate(Name, NamePlate) :-
     concat_atom(['./images/',Name,'.png'],NamePlate).
@@ -89,7 +83,7 @@ pathe(Req) :-
   get_label(drainage,waste,Waste),
   reply_html_page(
   [title(Title),
-%   meta(['http-equiv'(refresh),content(5)],[]), % Make it an active page
+   meta(['http-equiv'(refresh),content(5)],[]), % Make it an active page
    script([ language(javascript) ],[])],
 % ['location.reload(true)'])],
    body([background(BackPlate)],

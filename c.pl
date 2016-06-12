@@ -65,7 +65,7 @@ logging :- ( logfile(File)
 	       set_stream(S,buffer(line)),
 	       set_stream(user_error,buffer(line)),
 	       set_stream(S,alias(user_error))
-	    ; true
+	    ; write(user_error,'No Logging at this time'),nl(user_error)
 	   ).
 
 camera_device(Device) :-
@@ -581,7 +581,7 @@ mixon(Self) :->
 readLevels(_) :->
     plog(read_lagoon_levels),
     get_level(lagoons), plog(after(get_level(lagoons))),
-    sleep(10),
+    sleep(3),
     plog(read_cellstat_level),
     get_level(cellstat), plog(after(get_level(cellstat))),
     plog(read_levels(finished)).
@@ -713,6 +713,9 @@ c(Name) :-
     ).
 
 report :-
+%    config_name(Root,_),
+%    concat_atom([Root,'.report'], EvostatReportFile),
+%    open(EvoStatReportFile, append, S),
     open('evostat.report', append, S),
     nl(S), timeline(S),
     ( leak(Type)  -> write(S,'leak '),write(S,Type),nl(S) ; true ),

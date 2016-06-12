@@ -19,7 +19,13 @@
 % 
 % Send 'b' to a cellstat to get turbidity(T)
 % Store T in turbidity term
-% and
+%
+filldigits(N,In,Out) :-
+    number_codes(In,Chs),
+    length(Chs,Len),
+    (Len = N -> In = Out
+    ; (Len is N-1 -> atom_codes(Out,[0'0|Chs])
+      ; (Len is N-2 -> atom_codes(Out, [0'0,0'0|Chs]) ; true))).
 
 interrogation(cellstat,[t:temperature,b:turbidity]).
 interrogation(lagoon, [t:temperature]).
@@ -434,11 +440,12 @@ update(Self) :->
         writeq(user_error, arithmetic(Temp)),
 	TempF is float(Temp)/10.0,
 	TargetF is float(Target)/10.0,
-	limit(TurbVal, 0, 999, TurbL),
+	limit(TurbVal, 0, 999, TurbLimit),
+	filldigits(3,TurbLimit,TurbLabel),
 	format(atom(TempFmt), '~4g', [TempF]),
 	format(atom(TargFmt), '~4g', [TargetF]),
         concat_atom(['\n',MyName,'  ',TLevel,' / ', Level, LevelUnits, '\nTemperature: ', TargFmt, ' / ',TempFmt,'\n',
- 		'Turbidity:  0.', ODTarget,' / 0.', TurbL, '\n'], Label)
+ 		'Turbidity:  0.', ODTarget,' / 0.', TurbLabel, '\n'], Label)
 	), % Else for 'no connection'
 	send(Self, label, Label),
 
@@ -450,7 +457,7 @@ update(Self) :->
 	param(MyName,cellstat,ttemperature,Target),
 	param(MyName,cellstat,temperature,Temp),
 	param(MyName,cellstat,tturbidity,ODTarget),
-	param(MyName,cellstat,turbidity,TurbL)],
+	param(MyName,cellstat,turbidity,TurbLabel)],
 	(ground(NewValues) ->
              retractall(param(MyName,cellstat,_,_)),
 	     maplist(assert,NewValues),
