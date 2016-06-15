@@ -5,7 +5,7 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(100,240,330,300),
+         cellstatRegion(100,280,330,340),
          cellstatContrast(1, 1.5, -50), % Iterations, Multiply, Subtract
 	 cellstatHeight(300),  % same as 100% of cellstat volume
 

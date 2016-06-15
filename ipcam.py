@@ -400,6 +400,7 @@ if __name__ == "__main__" :
     plog("openCV('" + str(cv2.__version__) + "').")
     ipcam = setupCamera()
     if ('gen' in sys.argv) :        # Just update the Python .settings file from config
+        ipcam.exportImage(ipcam.usbcam.grab())
         exit(0)
     # EvoStat removes temporary pics at the beginning of the run
     # Here we toggle the two files between runs of this program
