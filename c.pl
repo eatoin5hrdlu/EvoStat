@@ -2,14 +2,19 @@
 %:- use_module(library(semweb/rdf_db)).
 %:- use_foreign_library(dlltest). 
 %:- rlc_color(window, 150,150,200).
+
 :- set_prolog_flag(double_quotes,codes).
 :- use_module(library(time)).
 :- use_module(library(pce)).
+
+%%%%%%%%%%% INTERNAL WEB SERVER 
 :- use_module(library(http/thread_httpd)).   % Server loop
 :- use_module(library(http/http_dispatch)).  % dispatch table
 :- use_module(library(http/http_header)).    % Terms -> HTML conversion
 :- use_module(library(http/html_write)).     % Terms -> HTML conversion
 :- use_module(library(http/html_head)).      % html_requires//1
+
+%%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
 :- use_module(library(charsio)).
 :- use_module(library(helpidx)).
@@ -123,7 +128,7 @@ python('/usr/bin/python').
 % Copy and edit template.pl to create a configuration <hostname>.pl
 % (or <evostatname>.pl if more than one on the same computer).
 % 'evostat' reads this file and creates <hostname>.settings
-% for Python programs (ipcam.py, level.py, fluor.py, pH.py)
+% for Python programs (levels.py, level.py, fluor.py, pH.py)
 %
 % You can edit the .settings file to test/debug the Python
 % programs, but it will be overwritten when 'evostat' runs.
@@ -283,21 +288,31 @@ lagoons(_).
 % Many responses from the micro-controllers contain
 % data to be stored in corresponding PCE (GUI) objects.
 
+sendLevel(1,Level) :-
+    Level > 0,
+    !,
+    component(_, cellstat, Cellstat),
+    send(Cellstat, level, Level),
+    writeln(sentCellstatLevel(Level)).
+sendLevel(Num,Level) :-
+    Num > 1,
+    Level > 0,
+    LNum is Num-1,
+    lagoon_number(Object, LNum),
+    send(Object, level, Level),
+    writeln(sentLagoonLevel(LNum, Level)).
+
 send_info(end_of_file,_) :-
    write('Is debugging on? Possibly calling Cellstat '),
    writeln('level detection while working on Lagoons'),
    fail.
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
-send_info(level(Level),_) :-  % Single value is Cellstat level/1
-    component(_, cellstat, Cellstat),
-    send(Cellstat, level, Level).
 
-send_info(Term,_) :-  % levels/N: arity equal to the number of lagoons
-    functor(Term,levels,_),
-    arg(N, Term, Level),
-    lagoon_number(Object, N),   % position correspnds to lagoon
-    send(Object, level, Level),
+send_info(Levels,_) :-  % levels(Cellstat,L1,L2..)
+    functor(Levels,levels,_),
+    arg(Num,Levels,Level),
+    sendLevel(Num,Level),
     fail.
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
@@ -311,12 +326,12 @@ check_error(_).               % Everything else is not an error
 get_level(Type) :-
     python(Python),
     evostat_directory(Dir),
-    concat_atom([Dir,'ipcam.py'],IPCAM),
-    CmdLine = [IPCAM,Type],
+    concat_atom([Dir,'levels.py'],LEVELS),
+    CmdLine = [LEVELS,Type],
     ( retract(levelStream(Type,Previous)) ->
 	catch( read(Previous, Info),
 	       Ex,
-	       (plog(caught(Ex,CmdLine)),sleep(3),fail)),
+	       (plog(caught(Ex,CmdLine)),sleep(1),fail)),
         check_error(Info),
 	send_info(Info, Previous),
 	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
@@ -533,7 +548,7 @@ autoUpdate(Self) :->
     update_config(_),          % Re-load if change
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
-    send(Self,mixon),      plog(sent(mixon)),  % Sends 'update'
+    send(Self,mixon),      plog(sent(mixon)),  % Send update
     send(@gui, started),
     report.
 
@@ -573,17 +588,16 @@ mixon(Self) :->
     plog('Turning noisy stuff back on'),
     send(Self?graphicals, for_all,  % Lagoon mixers OFF
 	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
+    plog('Lagoon mixers on'),
     component(_,cellstat,CellStat),
     send(CellStat,converse,'m1'),
+    plog('CellStat mixer on'),
     send(CellStat,converse,'o2'),
-    plog('Updated:Air and Mixers On').
+    plog('Air on').
     
 readLevels(_) :->
     plog(read_lagoon_levels),
-    get_level(lagoons), plog(after(get_level(lagoons))),
-    sleep(3),
-    plog(read_cellstat_level),
-    get_level(cellstat), plog(after(get_level(cellstat))),
+    get_level(alllevels),
     plog(read_levels(finished)).
 
 % Put things to be refreshed more often here:
@@ -591,12 +605,10 @@ readLevels(_) :->
 % Currently only the autosampler/next cycle time indication
 
 fastUpdate(Self) :->
-    plog(fastupdate),
     change_request,
     send(Self?graphicals, for_all,
 	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
-    check_web_files,
-    plog(completed(fastupdate)).
+    check_web_files.
 
 sendText(Self) :->
     send(Self,sendTexts),
@@ -869,7 +881,7 @@ run_external(Cmd, Stream) :-
 change_request :-
   ( retract(changeRequest(List))
     -> maplist(new_value,List)
-    ;  plog(no_changes)
+    ;  true % plog(no_changes)
   ).
 
 % Make sure it is a number, remove leading decimal

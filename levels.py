@@ -189,13 +189,12 @@ class ipCamera(object):
         global levelPhase
         (x1,y1,x2,y2) = self.params['lagoonRegion']
         (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
-        filename = "mypic"+str(levelPhase)+".jpg"
-        file2 = "./web/phagestat.png"
+        filename = "./web/phagestat.jpg"
         if (image != None ) :
             cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
             cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
+#            image = cv2.add(cv2.multiply(image,1.3),-30)
             cv2.imwrite(filename,cv2.resize(image,self.params['imageSize']))
-            os.system("convert "+filename+" "+file2)
             newSnapshot = None
                     
     def drawLagoons(self, image) :

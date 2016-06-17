@@ -1,24 +1,24 @@
 config( [
 	 textMessages(3600),  % Twice Daily (6min=360 hour=3600 4-hour=14400)
-	 updateCycle(120),    % In seconds
+	 updateCycle(50),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
 
          cellstatRegion(100,280,330,340),
-         cellstatContrast(1, 1.5, -50), % Iterations, Multiply, Subtract
-	 cellstatHeight(300),  % same as 100% of cellstat volume
+         cellstatContrast(1, 1.9, -50), % Iterations, Multiply, Subtract
+	 cellstatHeight(230),  % same as 100% of cellstat volume
 
-         lagoonRegion(480,10,630,460),
-         lagoonContrast(  1, 1.4, -60),
-	 lagoonHeight(120),             % same as 100% of lagoon volume
+         lagoonRegion(490,10,620,460),
+         lagoonContrast(  1, 1.2, -70),
+	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(60),
 
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
 	 camera(0),
 	 rotate(90),
-	 screen(46,48,point(720,1)),
+	 screen(40,48,point(720,1)),
 	 layout([
 		 supply( nutrient, below,  [Supply,levelUnits('L')]),
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
@@ -26,7 +26,7 @@ config( [
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
 		 cellstat(cellstat,below, [od(0.4),temp(370),shape(36,12),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
-		 snapshot(  cam, next_row, [ image('mypic1.jpg'),shape(42,42)]),
+		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
 		 lagoon( lagoon1, next_row, [temp(350), TL, LS, LF]),
 		 lagoon( lagoon2, right,    [temp(350), TL, LS, LF]),
@@ -97,6 +97,8 @@ pid_controllers([
    pid(cellstat,0.4, 0.3, 0.3, 85, 10, 100, 30),
    pid(lagoon1, 0.4, 0.3, 0.3, 30, 10, 100, 30)]).
 
-%control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
-control(cellstat, level, 'v0', autosampler, 'm').
+% control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
+% For example:    
+%  control(Component, level, InflowTime, Alt-Component, OutflowTime)
+control( cellstat, level, 'v0', autosampler, 'm').
 control(  lagoon1, level, 'v1', autosampler, 'i').

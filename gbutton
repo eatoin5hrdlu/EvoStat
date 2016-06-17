@@ -99,6 +99,7 @@ wget( OtherFile,
 repeat(N) :-
              integer(N), % type check
              N>0,        % value check 
+%	     write(user_error,repeat(N)), nl(user_error),
              repeat1(N).
 
 repeat1(1) :- !,plog(repeatN_exhausted).
@@ -111,45 +112,23 @@ repeat1(N) :- M is N-1, repeat1(M).
    ),
    writeln('plblue (BLUETOOTH) loaded').
 
-:- pce_begin_class(snapshot, label).
-
-variable(imageDirectory, name, get, "Current Image Path" ).
-variable(imageFile,      name, get, "Current Image Filename" ).
+:- pce_begin_class(snapshot, window).
 
 initialise(Self, Label:[name]) :->
 	  "Initialise the image area"::
         send_super(Self, initialise(Label)),
         send_super(Self, alignment, center),
-	snapshot('./',File),
-	send(Self, slot, imageFile, File),
-	send(Self, slot, imageDirectory, './'),
-	new(I, image(File)),
-	new(B, bitmap(I)),
-	send(B, size, size(200,100)),
-	send(Self, selection, B),
-	assert(tog(1)).
-
-shape(Self, W:[int], H:[int]) :->
-	window_percent(W,H,MyWidth,MyHeight),
-        writeln(size(Self,MyWidth,MyHeight)),
-	send(Self, size, size(MyWidth,MyHeight)).
-
-image(Self, File:[name])      :->
-	send(Self,slot,imageFile, File).
-
-imageDirectory(Self, Path:[name]) :-> send(Self,slot,imageDirectory, Path).
+	send(Self, size, size(580,440)),
+	send(Self, display, new(_, bitmap('./web/phagestat.jpg'))).
 
 update(Self) :->
       writeln(updating(snapshot)),
-      send(Self, selection, 'Refresh Image'),
-      send(Self, flush),
-      get(Self, imageDirectory, Path),
-      snapshot(Path, NewFile),
-      new(I, image(NewFile)),
-      send(Self, slot, imageFile, NewFile),
-      send(Self,selection, I),
-      send(Self, flush),
-      writeln(updated(snapshot)).
+      R is random(100),
+      concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
+      copy_file('./web/phagestat.jpg',NewFile),
+      send(Self, display, new(_, bitmap(NewFile))),
+      delete_file(NewFile),
+      write(user_error, updated(snapshot)), nl(user_error).
 
 :- pce_end_class.
 
@@ -258,7 +237,7 @@ nullreply(['']) :- !,writeln(reply(emptyatominalist)).
 nullreply('') :- !,writeln(reply(emptyatom)).
 nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
-nullreply(NR) :- !,writeq(reply(good,NR)),fail.
+%nullreply(NR) :- writeq(reply(good,NR)),fail.
 
 converse(Self, Cmd) :->
 	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
@@ -437,7 +416,6 @@ update(Self) :->
 	get(Self, slot, level_t, TLevel),
 	get(Self, slot, levelUnits, LevelUnits),
 
-        writeq(user_error, arithmetic(Temp)),
 	TempF is float(Temp)/10.0,
 	TargetF is float(Target)/10.0,
 	limit(TurbVal, 0, 999, TurbLimit),
@@ -462,7 +440,7 @@ update(Self) :->
              retractall(param(MyName,cellstat,_,_)),
 	     maplist(assert,NewValues),
              write(user_error,updated(cellstat,level(Level))),nl(user_error)
-	 ;   write(user_error,failed_update(MyName)),nl(user_error)
+	 ;   write(user_error,'   FAILED_update'(MyName)),nl(user_error)
 	),
         assert(webok).
 
@@ -501,6 +479,8 @@ initialise(Self, Label:[name]) :->
 	assert(param(Label,lagoon,temperature,240)).
 
 
+% update(Self) :-> get_super(Self, socket, @nil),!,fail. % Don't even try
+
 update(Self) :->
         get(Self, slot, myname, MyName),
 	writeln(updating(lagoon(MyName))),
@@ -514,7 +494,6 @@ update(Self) :->
         get(Self,slot,temperature,PreviousTemp),
 	reportDeltaT(MyName, PreviousTemp, Temp),
         send(Self,slot,temperature,Temp),
-        writeq(user_error, arithmetic2(Temp)),
 	TempDeg is float(Temp)/10.0,
         get(Self,slot,ttemperature,Target),
 	TargetDeg is float(Target)/10.0,
@@ -544,7 +523,7 @@ update(Self) :->
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
 	),
 	send(Self, label, Label),
-        repeat(20),sleep(0.1),retract(webok), % SEMAPHORE
+        repeat(21),sleep(0.1),retract(webok), % SEMAPHORE
 	NewValues = [
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
@@ -555,7 +534,7 @@ update(Self) :->
 	(ground(NewValues)
 	 -> maplist(assert,NewValues),
 	    write(user_error,updated(MyName,level(Level))),nl(user_error)
-	 ;   write(user_error,failed_update(MyName)),nl(user_error)
+	 ;   write(user_error,'  FAILED_update'(MyName)),nl(user_error)
 	),
         assert(webok).
 
@@ -761,7 +740,7 @@ fast_update(Self) :->
 		      TimeAtom,' to next sample\n'],Label)
         ),
 	send(Self, label, Label),
-        repeat(20),sleep(0.1),retract(webok), % SEMAPHORE
+        repeat(19),sleep(0.1),retract(webok), % SEMAPHORE
 	param(MyName,sampler,flowrate,FlowRate),
 	NewValues = [param(MyName,sampler,flowrate,FlowRate),
 		     param(MyName,sampler,timeleft,ShowTime),
@@ -769,8 +748,8 @@ fast_update(Self) :->
 	(ground(NewValues) ->
              retractall(param(MyName,sampler,_,_)),
 	     maplist(assert,NewValues),
-             write(user_error,updated(MyName,timeleft(ShowTime))),nl(user_error)
-	 ;   write(user_error,failed_update(MyName)),nl(user_error)
+             write(user_error,' t'(ShowTime))
+	 ;   write(user_error,'   FAILED_update'(MyName)),nl(user_error)
 	),
         assert(webok).
 
