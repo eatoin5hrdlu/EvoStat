@@ -1,0 +1,24 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+allow-hotplug eth0
+iface eth0 inet dhcp
+
+auto wlan0
+iface wlan0 inet dhcp
+        wireless-essid Museum-Business
+        wireless-mode Managed
+
+wpa-driver wext
+wpa-ssid Museum-Business
+wpa-ap-scan 1
+wpa-proto WPA
+wpa-key-mgmt WPA-PSK
+wpa-psk 2815f633def14efaa0344e6c1d2920e22b56edface602b1c7ddd96c91004c717
