@@ -79,16 +79,18 @@ camera_device(Device) :-
     !,
     concat_atom(['/dev/video',Num],Device).
 
-camera_device(_) :- write(user_error,'No Camera Device'),nl(user_error),fail.
+camera_device(_) :-
+    write(user_error,'No Camera Device'),nl(user_error),
+    fail.
 
-camera_reset :- windows, !.   % No camera reset on Windows
-
-camera_reset :-               % No camera to reset
+camera_exists :-
     camera_device(Device),
-    \+ access_file(Device,exist),
-    write(user_error,no_camera),nl(user_error),
-    !.
-
+    access_file(Device,exist).
+    
+camera_reset :- windows, !.   % Null camera reset on Windows
+camera_reset :- \+ camera_exists,  % No camera to reset
+		write(user_error,no_camera),nl(user_error),
+		!.
 camera_reset :-
     evostat_directory(Dir),
     Cmd = '/usr/bin/uvcdynctrl',
@@ -356,6 +358,7 @@ newFlux(FluxTerm, Stream) :-
 	newFlux(NextTerm, Stream).
 
 :- pce_begin_class(evostat, dialog, "PATHE Control Panel").
+% Among other things, initializing this class asserts 'webok' semaphore    
 
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
@@ -549,8 +552,8 @@ autoUpdate(Self) :->
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     send(Self,mixon),      plog(sent(mixon)),  % Send update
-    send(@gui, started),
-    report.
+    report,
+    send(@gui, started).
 
 quiet(Self) :->
     simulator -> true ;
@@ -726,24 +729,28 @@ c(Name) :-
 
 report :-
 %    config_name(Root,_),
-%    concat_atom([Root,'.report'], EvostatReportFile),
-%    open(EvoStatReportFile, append, S),
     open('evostat.report', append, S),
     nl(S), timeline(S),
-    ( leak(Type)  -> write(S,'leak '),write(S,Type),nl(S) ; true ),
-    ( temperature(cellstat,_,Val) ->
-        HiC is integer(Val/10), LoC is integer(Val) mod 10,
-        write(S,'Host at '),
-        write(S,HiC),write(S,'.'),write(S,LoC),write(S,'C'),nl(S),
-        write(S,'OD600 '),write(S,'N/A'),nl(S)
-    ; true
-    ),
-    ( temperature(lagoon,_,LVal) ->
-        write(S,'Lagoon Tm '),write(S,LVal),write(S,'C'),nl(S)
-    ; true
-    ),
-    (err(Who,Err),write(S,error(Who,Err)),nl(S),fail ;true),
+    ( camera_exists -> true ; write(S,'NO CAMERA!'),nl(S) ),
+    ( leak(Type)    -> write(S,'leak '),write(S,Type),nl(S) ; true ),
+    reportTemperature(cellstat,S),
+    reportTurbidity(cellstat,S),
+    reportTemperature(lagoon,S),
+    (err(Who,Err), write(S,error(Who,Err)),nl(S),fail ; true),
     close(S).
+
+reportTemperature(What,S) :-
+    temperature(Who,What,_,Val),
+    HiC is integer(Val/10), LoC is integer(Val) mod 10,
+    format(S, '~s Temp    ~d.~dC~n', [Who, HiC, LoC]),
+    fail.
+reportTemperature(_,_).
+
+reportTurbidity(What,S) :-
+    turbidity(Who, What, _, ODVal),
+    format(S, '~s OD600  .~d~n',[Who,ODVal]),
+    fail.
+reportTurbidity(_,_).
 
 count(ErrorType, Who) :-
     Prev =.. [ErrorType, _When, HowMany],
@@ -926,9 +933,6 @@ change_value('tt',Name,Value) :-
 change_value(_,_,_).
 
  
-semaphore :- repeat(5),
-               ( webok ; sleep(0.2),fail ).
-
 plog(Term) :- write(user_error,Term),nl(user_error).
 
 logIP(Req) :-    

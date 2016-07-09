@@ -100,11 +100,21 @@ repeat(N) :-
              integer(N), % type check
              N>0,        % value check 
 %	     write(user_error,repeat(N)), nl(user_error),
-             repeat1(N).
+             repeatN(N).
 
-repeat1(1) :- !,plog(repeatN_exhausted).
-repeat1(_).
-repeat1(N) :- M is N-1, repeat1(M).
+repeatN(1) :- !,plog(repeatN_exhausted),fail.
+repeatN(_).
+repeatN(N) :- M is N-1, repeatN(M).
+
+semaphore(N,Atom) :-
+   repeat(N),
+   ( retract(Atom) -> true ; sleep(0.2), fail ).
+
+semaphore(N,Atom) :-
+    plog(failed(semaphore(N,Atom)),
+    assert(webok),
+    plog(asserting(webok)),
+    fail.
 
 :- ( current_prolog_flag(arch,'i386-win32')
      -> load_foreign_library(foreign(plblue))
@@ -184,21 +194,21 @@ show_conversation(Self) :->
 targetLevel(Self, Level) :->
        send(Self, slot, level_t, Level),
        get(Self, slot, myname, Name),
-       retract(webok),
+       semaphore(4,webok),
        retractall(param(Name,_,level_t,_)),
        assert(param(Name,_,level_t,Level)),
        assert(webok).
 
 level(@Name, Level) :->
        send(@Name, slot, level, Level),
-       retract(webok),
+       semaphore(4,webok),
        retractall(param(Name,_,level,_)),
        assert(param(Name,_,level,Level)),
        assert(webok).
 
 levelUnits(@Name, Units) :->
        send(@Name, slot, levelUnits, Units),
-       retract(webok),
+       semaphore(4,webok),
        retractall(param(Name,_,levelUnits,_)),
        assert(param(Name,_,levelUnits,Units)),
        assert(webok).
@@ -368,13 +378,23 @@ reportDeltaT(Who, Old, New) :-
 	retractall(err(Who,deltaT(_))),
 	(DeltaT > 5 -> assert(err(Who,deltaT(DeltaT))) ; true).
 
-reportTemp(Who,Target,Temp) :-  % Temperatures are 10th degrees
+reportTemp(Who, What,Target,Temp) :-  % Temperatures are 10th degrees
 	LowThresh is Target - 20, % +- 2 degrees
 	HighThresh is Target + 20,
-	retractall(temperature(Who,_,_)),
-	( Temp < LowThresh -> assert(temperature(Who,low,Temp))
-	; ( Temp > HighThresh -> assert(temperature(Who,high,Temp))
-	  ; assert(temperature(Who,okay,Temp))
+	retractall(temperature(Who,_,_,_)),
+	( Temp < LowThresh -> assert(temperature(Who,What,low,Temp))
+	; ( Temp > HighThresh -> assert(temperature(Who,What,high,Temp))
+	  ; assert(temperature(Who,What,okay,Temp))
+	  )
+	).
+
+reportTurb(Who,What,Target,Turb) :- 
+	LowThresh is Target - 50, % +- .05 units
+	HighThresh is Target + 50,
+	retractall(turbidity(Who,What,_,_)),
+	( Turb < LowThresh -> assert(turbidity(Who,What,low,Turb))
+	; ( Turb > HighThresh -> assert(turbidity(Who,What,high,Turb))
+	  ; assert(turbidity(Who,What,okay,Turb))
 	  )
 	).
 
@@ -393,7 +413,7 @@ update(Self) :->
 	reportDeltaT(MyName, PreviousTemp, Temp),
         send(Self,slot, temperature, Temp),
         get(Self, slot, ttemperature, Target),
-	reportTemp(MyName,Target,Temp),
+	reportTemp(MyName,cellstat,Target,Temp),
 	writeln(update(cellstat,aftertemp)),
 	range_color(Target, Temp, Tc),
         get(Self, slot, tturbidity, ODTarget),
@@ -407,6 +427,7 @@ update(Self) :->
         get(Self, slot, reply, TurbReply),
         atom_to_term(TurbReply,TbTerm,_TBBindings),
 	TbTerm = turbidity(TurbVal),
+	reportTurb(MyName,cellstat,ODTarget,TurbVal),
 	send(Self, slot, turbidity, TurbVal),
 	range_color(ODTarget, TurbVal, ODc),
 	mix_colors(Tc,ODc,Color),
@@ -427,7 +448,7 @@ update(Self) :->
 	), % Else for 'no connection'
 	send(Self, label, Label),
 
-        repeat(20),sleep(0.1),retract(webok), % SEMAPHORE
+        semaphore(20,webok),
 	NewValues = [
 	param(MyName,cellstat,level,Level),
 	param(MyName,cellstat,level_t,TLevel),
@@ -494,18 +515,10 @@ update(Self) :->
         get(Self,slot,temperature,PreviousTemp),
 	reportDeltaT(MyName, PreviousTemp, Temp),
         send(Self,slot,temperature,Temp),
-	TempDeg is float(Temp)/10.0,
         get(Self,slot,ttemperature,Target),
+	reportTemp(MyName,lagoon,Target,Temp),
+	TempDeg is float(Temp)/10.0,
 	TargetDeg is float(Target)/10.0,
-	LowThresh is Target - 2,
-	HighThresh is Target + 2,
-	retractall(temperature(lagoon,_,_)),
-	( Temp < LowThresh -> assert(temperature(lagoon,low,Temp))
-	; ( Temp > HighThresh -> assert(temperature(lagoon,high,Temp))
-	  ; assert(temperature(lagoon,okay,Temp))
-	  )
-	),
-	reportTemp(MyName,Target,Temp),
 	range_color(Target, Temp, Color),
 	send(Self, colour(Color)),
         get(Self, slot, level, Level),
@@ -523,7 +536,7 @@ update(Self) :->
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
 	),
 	send(Self, label, Label),
-        repeat(21),sleep(0.1),retract(webok), % SEMAPHORE
+        semaphore(21, webok),
 	NewValues = [
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
@@ -673,7 +686,7 @@ update(Self) :->
 	get(Self, slot, levelUnits, Units),
 	concat_atom([MyName,' \n',Level,Units],Label),
 	send(Self, label, Label),
-        retractall(webok),
+        semaphore(4, webok),
 	retractall(param(MyName,supply,_,_)),
 	assert(param(MyName,supply,level,Level)),
 	assert(param(MyName,supply,levelUnits,Units)),
@@ -740,7 +753,7 @@ fast_update(Self) :->
 		      TimeAtom,' to next sample\n'],Label)
         ),
 	send(Self, label, Label),
-        repeat(19),sleep(0.1),retract(webok), % SEMAPHORE
+        semaphore(19,webok),
 	param(MyName,sampler,flowrate,FlowRate),
 	NewValues = [param(MyName,sampler,flowrate,FlowRate),
 		     param(MyName,sampler,timeleft,ShowTime),
