@@ -1,0 +1,53 @@
+Check Offline Work in
+File ->
+  Settings ->
+    Build,Execution,Deployment ->
+      Build Tools ->
+        Gradle ->
+	   Offline Work
+
+Installing libz didn't help
+libstdc++6, zlibg1, all installed
+1)      JAVA must be right.
+ 
+OS Independent:  Install java 8 (or latest) first and make sure it is default “javac –version”
+Install Android Studio and open Project on your favorite example.
+I use git@github.com:eatoin5hrdlu/Tm.git   which is my version of BluetoothChat to read temperature info from an Arduino/Bluetooth.
+ 
+2)      Expect many cycles of updates automatically triggered by Android Studio getting established on your system
+ 
+Get updates of all SDK, (over and over again). Many minutes after a Sync a message will pop up about something you need to download and install,
+Download and install it (there are wizards all over the place, nobody “knows who they are or what they are doing”, but they need to do it).
+Rinse and repeat.  Possibly up to eight times, restarting your system, and reloading the Project, changing grade. settings file to have the correct API numbers, etc.
+ 
+3)      Getting your hardware in Developer mode, and drivers on computer side to connect to your phone
+ 
+Don’t forget to add udev entry if you want to do USB debugging of your phone on Linux.
+ 
+4)      32-bit ADB is not included in Android Studio SDK
+ 
+Speaking of Linux.  ADB is only 64-bit, so if you have a 32-bit installation, you  need to download and replace the platform-tools in your SDK.
+Find your SDK directory, download:  platform-tools_r23.0.1-linux.zip from somewhere like this:
+ 
+http://androidtoolsofflinedownload.blogspot.com/p/download-android-build.html
+ 
+Copy the extracted contents of platform-tools*.zip into your <sdk>/platform-tools    directory
+ 
+5)      Using Version Control  (GitHub)
+ 
+Once you have something working in AndroidStudio, you cannot simply share it on GitHub.  It will say you can and it will  create the repository, but fail to push the files, but then everything is up to date – so you can’t retry the commit or push or anything, it is a disaster.
+This works for me: 
+ Stop Android Studio,
+go to Github.com with a browser, create a repository,
+go back to your command line,
+add all the files and push everything to the repository, 
+delete your project in Android Studio,
+restart Android Studio and now ‘import’ the project from GitHub.
+ 
+Good luck doing pull and push from inside Android Studio, things are broken. 
+Do push and pull in command line to get the directory right, then start Android Studio to do work. How stupid is that.
+ 
+ 
+
+Apparently even gradle clean runs forever
+

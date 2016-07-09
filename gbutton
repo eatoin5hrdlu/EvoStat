@@ -140,7 +140,8 @@ initialise(Self, Label:[name]) :->
         send_super(Self, initialise(Label)),
         send_super(Self, alignment, center),
 	send(Self, size, size(580,440)),
-	send(Self, display, new(_, bitmap('./web/phagestat.jpg'))).
+	new(I, image('./web/phagestat.jpg')),
+	send(Self, display, new(_, bitmap(I))).
 
 update(Self) :->
       writeln(updating(snapshot)),
