@@ -29,7 +29,8 @@
 :- dynamic err/2.
 :- multifile err/2.
 :- dynamic cycle/1.
-:- dynamic webok/0.
+
+:- dynamic webok/0.  % Asserted when evostat class is initialized
 :- multifile webok/0.
 
 %:- dynamic debug/0. % Removed by save_evostat when building binary

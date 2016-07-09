@@ -106,12 +106,23 @@ repeatN(1) :- !,plog(repeatN_exhausted),fail.
 repeatN(_).
 repeatN(N) :- M is N-1, repeatN(M).
 
-semaphore(N,Atom) :-
+waitfor(N,Atom,_) :-
    repeat(N),
-   ( retract(Atom) -> true ; sleep(0.2), fail ).
+   ( call(Atom) -> true ; sleep(0.2), fail ),
+   !.
 
-semaphore(N,Atom) :-
-    plog(failed(semaphore(N,Atom)),
+waitfor(N,Atom,Who) :-  
+    plog(failed(waitfor(N,Atom,Who))),
+    fail.
+    
+semaphore(N,Atom,_) :- % wait for and grab it
+   repeat(N),
+   ( retract(Atom) -> true ; sleep(0.2), fail ),
+   !.
+
+semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
+    plog(failed(semaphore(Who,N,Atom))),
+    retractall(webok),  % In case we failed for another reason.
     assert(webok),
     plog(asserting(webok)),
     fail.
@@ -194,21 +205,21 @@ show_conversation(Self) :->
 targetLevel(Self, Level) :->
        send(Self, slot, level_t, Level),
        get(Self, slot, myname, Name),
-       semaphore(4,webok),
+       semaphore(4,webok,targetLevel),
        retractall(param(Name,_,level_t,_)),
        assert(param(Name,_,level_t,Level)),
        assert(webok).
 
 level(@Name, Level) :->
        send(@Name, slot, level, Level),
-       semaphore(4,webok),
+       semaphore(4,webok,level),
        retractall(param(Name,_,level,_)),
        assert(param(Name,_,level,Level)),
        assert(webok).
 
 levelUnits(@Name, Units) :->
        send(@Name, slot, levelUnits, Units),
-       semaphore(4,webok),
+       semaphore(4,webok,levelUnits),
        retractall(param(Name,_,levelUnits,_)),
        assert(param(Name,_,levelUnits,Units)),
        assert(webok).
@@ -448,7 +459,7 @@ update(Self) :->
 	), % Else for 'no connection'
 	send(Self, label, Label),
 
-        semaphore(20,webok),
+        semaphore(20,webok,update(MyName)),
 	NewValues = [
 	param(MyName,cellstat,level,Level),
 	param(MyName,cellstat,level_t,TLevel),
@@ -536,7 +547,7 @@ update(Self) :->
                      'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
 	),
 	send(Self, label, Label),
-        semaphore(21, webok),
+        semaphore(21, webok, update(MyName)),
 	NewValues = [
 		     param(MyName,lagoon,level_t,TLevel),
 		     param(MyName,lagoon,level,Level),
@@ -686,10 +697,10 @@ update(Self) :->
 	get(Self, slot, levelUnits, Units),
 	concat_atom([MyName,' \n',Level,Units],Label),
 	send(Self, label, Label),
-        semaphore(4, webok),
-	retractall(param(MyName,supply,_,_)),
-	assert(param(MyName,supply,level,Level)),
-	assert(param(MyName,supply,levelUnits,Units)),
+        semaphore(4, webok,update(MyName)),
+	 retractall(param(MyName,supply,_,_)),
+	 assert(param(MyName,supply,level,Level)),
+	 assert(param(MyName,supply,levelUnits,Units)),
         assert(webok),
 	get(Self, slot, level_t, Target),
 	(Level < Target
@@ -753,8 +764,10 @@ fast_update(Self) :->
 		      TimeAtom,' to next sample\n'],Label)
         ),
 	send(Self, label, Label),
-        semaphore(19,webok),
-	param(MyName,sampler,flowrate,FlowRate),
+        semaphore(19,webok,update(MyName)),
+	( param(MyName,sampler,flowrate,FlowRate) -> true
+	; write(user_error,'THAT WAS CERTAINLY THE PROBLEM'),nl(user_error)
+	),
 	NewValues = [param(MyName,sampler,flowrate,FlowRate),
 		     param(MyName,sampler,timeleft,ShowTime),
 		     param(MyName,sampler,nextsample,TimeAtom)],

@@ -124,7 +124,7 @@ class EvoCv(object):
             plog("Bad Canny output so not calling HoughLinesP in level()")
             return -1
         # distance resolution, angle resolution, 
-        alllines = cv2.HoughLinesP(edges, 2, np.pi/2.0, 1, 8, 4)
+        alllines = cv2.HoughLinesP(edges, 2, np.pi/2.0, 1, 6, 4)
         if (alllines == None) :
             plog("No horizontal lines found in image")
             return -1
