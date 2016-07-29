@@ -1,18 +1,18 @@
 config( [
 	 textMessages(3600),  % Twice Daily (6min=360 hour=3600 4-hour=14400)
-	 updateCycle(50),    % In seconds
+	 updateCycle(90),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(100,280,330,340),
+         cellstatRegion(100,240,330,300),
          cellstatContrast(1, 1.9, -50), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(490,10,620,460),
-         lagoonContrast(  1, 1.2, -70),
+         lagoonContrast(  2, 1.8, -60),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
-	 lagoonWidth(60),
+	 lagoonWidth(40),
 
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
@@ -76,11 +76,12 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
-watcher(reintjes,'vp 9194525098',  4).  % Peter Reintjes
+watcher(reintjes,'vp 9194525098', 12).  % Peter Reintjes
+watcher(howell, 'vp 7723215578', 48).   % Finn Howell
 %watcher(pc,      'a 9193083839',  2).  % The Other Peter
-%watcher(marshall,'a 5056037415', 4). % Marshall
-%watcher(martha, 'vp 9196024293', 23). % Martha Collier
-%watcher(lea,    'vp 9194525097', 4).  % Lea
+%watcher(marshall,'a 5056037415', 4).   % Marshall
+%watcher(martha, 'vp 9196024293', 23).  % Martha Collier
+%watcher(lea,    'vp 9194525097', 4).   % Lea
 
 % Fake Level Data for PID debugging
 % simulator.

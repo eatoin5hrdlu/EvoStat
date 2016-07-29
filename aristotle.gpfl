@@ -20,9 +20,7 @@ ID{0x0098091b};CHK{0:15:1:3}=VAL{5}
 #Backlight Compensation
 ID{0x0098091c};CHK{0:1:1:0}=VAL{0}
 #Exposure, Auto
-ID{0x009a0901};CHK{0:3:1:3}=VAL{1}
-#Exposure (Absolute)
-ID{0x009a0902};CHK{2:20:2:4}=VAL{12}
+ID{0x009a0901};CHK{0:3:1:3}=VAL{3}
 #Exposure, Auto Priority
 ID{0x009a0903};CHK{0:1:1:0}=VAL{1}
 #Pan (Absolute)
