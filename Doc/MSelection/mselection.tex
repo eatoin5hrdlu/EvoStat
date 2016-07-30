@@ -215,8 +215,6 @@ Engineering novel proteins via continuous evolution of bacteriophage currently r
 
 % Use "Eq" instead of "Equation" for equation citations.
 \section*{Introduction}
-\chapter{M-Selection}
-\section{Introduction}
 Continuous evolution of bacteriophage is becomming a potent protein engineering
 tool\cite{pace}\cite{monsanto}.
 For example, PACE - Phage Assisted Continuous Evolution described by Esvelt,Carlson and Lui. 
@@ -231,37 +229,45 @@ For example, PACE - Phage Assisted Continuous Evolution described by Esvelt,Carl
 %VII(minor coat),
 %VIII(major coat),
 %IX(minor coat),
-The continuous evolution process produces a viral genome containing a gene
-which has undergone many generations of mutation and selective pressure for
+Continuous evolution rapidly produces a viral genome containing a gene
+which has undergone many generations of mutation and selection for
 a particular property.  The generality of this approach to protein engineering
-is only limited by our ability to create a selection mechanism for the desired
-property and insert an expressable initial form of the gene into the virus.
+is limited by our ability to insert an expressable initial gene into the phage and create a selection mechanism for the desired activity.
 
 Specifically, the PACE system requires:
 \begin{itemize}
 
 \item{}
-A modified viral genome missing a gene required for infectious progeny.
+A modified viral genome replacing a crucial phage gene with a gene to be evolved.
 
 \item{}
-A modified host genome/plasmid to induce an elevated mutation rate.
+A transformed host with inducible mutagenesis.
 
 \item{}
-A modified host genome/plasmid to provide a selection mechanism to provide
-the missing gene product in proportion to the desired activity of the evolving
-gene.
+A host plasmid containing a selection mechanism to provide the crucial phage gene in proportion to the desired activity of the evolving gene.
 \end{itemize}
 
+\section{M-Selection}
 Extremely high in vivo mutation rates are now possible\cite{mutation}.  With M-selection, these high rates will correspond to little or none of the desired activity, these lines of descent will be subject to catastrophic levels of mutation and low probabilities of faithful reproduction. The modulation of mutation rate within each host cell means that one of these wildly mutating strains could find an environment for faithful reproduction if it should stumble upon a promising mutation in the evolving gene.
 
-which simply modulates the rate of mutation by producing a mutagenesis suppressor from the desired activity of the evolving protein.  Improvements in the desired activity will result in a higher percentage of faithful copies of the parent genome in the succeeding generation.
+The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $$\lambda$$ is the mutation rate per virion (mutation rate/base * 6000bp/ genome). The probability of a virion with zero mutations is:
+\vskip 0.2cm
+\begin{eqnarray}
+\label{eq:POC}
+\mathrm{P}\left( 0 \right) = \frac{{e^{ - \lambda } \lambda ^0 }}{{0!}}
+\end{eqnarray}
+
+Taking a phage production average of 100/hour for normal M13 infection requires us to have a clone rate of at least 2\%: Two faithful copies per infection in order to avoid washout.  A slower flow rate would lower this minimum fraction.
+
+M-selection may allow for, or even require a flow rate which changes over the course of the experiment.  A ramping up of the flow rate would be appropriate
+
+PACE is designed to keep the transit time of host cells through the lagoon to be on the order of one generation.  However, at very high levels of mutation it seems unlikely that multiple generations of viable E. coli mutants can be produced.
+
+If the desired activity of the evolving protein produces a mutagenesis repressor, improvements in the desired activity will result in a higher percentage of faithful copies of the parent genome in the succeeding generation.
 
 As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
 
-
-
-
-Effectively, the number of infectious progeny is proportional to the activity
+In PACE, the number of infectious progeny is proportional to the activity
 of the selection mechanism. In principle, if the current mutation of the gene
 produces a product with none of the desired activity, none of the infectivity
 protein will be produced by the host, and there will be no infectous progeny.
@@ -269,29 +275,15 @@ This process involves a continuous flow of host cells through a reaction vessel
 and so any genotype producing less than two infectious virions per host will
 be washed out.
 
-M-Selection is proposed to the selection mechanism by combining it with
-the mechanism for elevated mutation.
-
 The benefits of M-Selection may include:
 
-The virus is not crippled, but only has an additional gene or domain, similar to
-phage display.
+The virus is not crippled, that is, no critical genes need to be removed from the virion, and no phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host and improves our ability to propagate phage prior to the evolution experiment.  Of course, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene(domain) is exactly what has been perfected in phage display.
 
 The nominal (high) mutation rate can be chosen to guarantee that there will be
 a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
 
-
-
-For example, if the selection mechanism stimulated by the desired activity will consist
-of a repressor for the production of mutagenic polymerase II-.
-Positive selection is the result of reduced mutation, resulting in more clones of the
-selected virus relative to its mutants.
-
 As far as we know, modulation of the mutation rate within a particular host has
-not been exploited in this way.  This form of albeit un-natural selection is referred to
-as M-selection, whereby the selection mechanism consists of reducing the rate of mutation
-acting on a particular instance of the viral genome precisely because it is having some
-desired behavior.
+not been exploited in this way.  We refer to this as M-selection, wherein the selection mechanism consists simply of reducing the rate of mutation.
 
 Figure 1 shows how the combined mutagenic and selection plasmid takes the place of the AP and MP in PACE.
 
@@ -345,21 +337,6 @@ Activity Induced\linebreak
 \vskip 1.0cm
 \centerline{\bf Fig 1. M-selection Plasmid}
 \vskip 0.2cm
-
-\subsection{Difficulties of working with crippled Virus genome}
-
-\begin{eqnarray}
-\label{eq:schemeP}
-	\mathrm{P_Y} = \underbrace{H(Y_n) - H(Y_n|\mathbf{V}^{Y}_{n})}_{S_Y} + \underbrace{H(Y_n|\mathbf{V}^{Y}_{n})- H(Y_n|\mathbf{V}^{X,Y}_{n})}_{T_{X\rightarrow Y}},
-\end{eqnarray}
-
-\subsection*{Multiplicity of Infection}
-
-\vskip 0.2cm
-\begin{eqnarray}
-\label{eq:MOI}
-\mathrm{P}\left( x \right) = \frac{{e^{ - \lambda } \lambda ^x }}{{x!}}
-\end{eqnarray}
 
 \section{Comparison with Natural Selection}
 Selection pressure for an optimal mutation rate has its own natural history\cite{evomut} although for settled phyla we see a certain natural mutation rates.  Bacteriophage and multicellular eukaryote mutation rates are higher than bacteria and single cell eukaryotes (around 0.003).
