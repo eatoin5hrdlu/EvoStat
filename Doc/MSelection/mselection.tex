@@ -203,12 +203,7 @@ Peter Reintjes\textsuperscript{1}
 \end{flushleft}
 % Please keep the abstract below 300 words
 \section*{Abstract}
-Engineering novel proteins via continuous evolution of bacteriophage currently requires the host bacteria to be transformed with two additional functions: A mutagenesis vector to provide an elevated rate of viral mutation, and a selection mechanism to increase the number of infectious progeny for the mutant encoding the improved product\cite{pace}.  I propose using a selection mechanism which simply modulates the rate of mutation by producing a mutagenesis suppressor from the desired activity of the evolving protein.  Improvements in the desired activity will result in a higher percentage of faithful copies of the parent genome in the succeeding generation.
-
-As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
-
-Extremely high in vivo mutation rates are now possible\cite{mutation}.  With M-selection, these high rates will correspond to little or none of the desired activity, these lines of descent will be subject to catastrophic levels of mutation and low probabilities of faithful reproduction. The modulation of mutation rate within each host cell means that one of these wildly mutating strains could find an environment for faithful reproduction if it should stumble upon a promising mutation in the evolving gene.
-
+Engineering novel proteins via continuous evolution of bacteriophage currently requires the host bacteria to be transformed with two additional functions: A mutagenesis vector to provide an elevated rate of viral mutation, and a selection mechanism to increase the number of infectious progeny for the individual encoding the improved product\cite{pace}.  I propose using a mutagenesis suppressor as the selection mechanism whereby the desired activity results in a higher number of clones, thus rewarding the genotype with more faithful progeny.
 
 % Please keep the Author Summary between 150 and 200 words
 % Use first person. PLOS ONE authors please skip this step. 
@@ -222,10 +217,20 @@ Extremely high in vivo mutation rates are now possible\cite{mutation}.  With M-s
 \section*{Introduction}
 \chapter{M-Selection}
 \section{Introduction}
-Continuous evolution of bacteriophage has become a potent protein engineering
-tool.  For example, PACE - Phage Assisted Continuous Evolution described by
-Esvelt,Carlson and Lui. 
-
+Continuous evolution of bacteriophage is becomming a potent protein engineering
+tool\cite{pace}\cite{monsanto}.
+For example, PACE - Phage Assisted Continuous Evolution described by Esvelt,Carlson and Lui. 
+%M13 genes
+%I(assembly),
+%II(replication init),
+%X (DNA accumulation, inside gII) 
+%III(fusion),
+%IV(assembly),
+%V(destabilizing protein),
+%VI(minor coat),
+%VII(minor coat),
+%VIII(major coat),
+%IX(minor coat),
 The continuous evolution process produces a viral genome containing a gene
 which has undergone many generations of mutation and selective pressure for
 a particular property.  The generality of this approach to protein engineering
@@ -246,6 +251,15 @@ A modified host genome/plasmid to provide a selection mechanism to provide
 the missing gene product in proportion to the desired activity of the evolving
 gene.
 \end{itemize}
+
+Extremely high in vivo mutation rates are now possible\cite{mutation}.  With M-selection, these high rates will correspond to little or none of the desired activity, these lines of descent will be subject to catastrophic levels of mutation and low probabilities of faithful reproduction. The modulation of mutation rate within each host cell means that one of these wildly mutating strains could find an environment for faithful reproduction if it should stumble upon a promising mutation in the evolving gene.
+
+which simply modulates the rate of mutation by producing a mutagenesis suppressor from the desired activity of the evolving protein.  Improvements in the desired activity will result in a higher percentage of faithful copies of the parent genome in the succeeding generation.
+
+As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
+
+
+
 
 Effectively, the number of infectious progeny is proportional to the activity
 of the selection mechanism. In principle, if the current mutation of the gene
@@ -299,23 +313,33 @@ Figure 1 shows how the combined mutagenic and selection plasmid takes the place 
 \def\circleone#1#2{\circle{#1}\put(-17,-4){#2}}
 \def\circletwo#1#2#3{\circle{#1}\put(-17,0){#2}\put(-15,20){#3}}
 
-\picture(200,150)(-70,0)
+\picture(400,150)(-90,0)
 
 \put(90,90){\vector(0,-1){15}}
-\put(90,30){\vector(0,1){15}}
+\put(90,45){\vector(0,-1){14}}
 
-\put(20,60){\vector(1,0){30}}
-\put(130,60){\vector(1,0){30}}
-\put(130,60){\vector(1,1){30}}
-\put(130,60){\vector(1,-1){30}}
 \linethickness{2pt}
 \thicklines
-\put(0,60){\circleone{40}{\Large{\ \ P1}}}
-\put(30,90){\boxtwo{\ Phage Shock}{\ \ \ Promoter}}
-\put(30,45){\boxtwo{MUTAGENESIS}{\ \ Replication}}
-\put(30,0){\boxtwo{Antisense RNA}{\ \ Suppressor}}
+\put(0,15){\circleone{40}{\Large{\ \ P1}}}
+\put(20,15){\vector(1,0){30}}
 
-\put(180,60){\circleone{40}{\Large{\ \ F1}}}
+\put(35,90){\boxtwo{\ Phage Shock}{\ \ \ Promoter}}
+\put(-20,55){
+\fbox{%
+    \begin{minipage}{1.0in}
+Activity Induced\linebreak
+\hspace*{5 mm}Repressor
+    \end{minipage}%
+}}
+\put(64,60){\vector(1,0){18}}
+\put(83,57){\fbox{\begin{minipage}{0.05in}
+		\hfill\vspace{0.30in}
+            \end{minipage}
+           }}
+\put(35,0){\boxtwo{MUTAGENESIS\ }{\ \ \ Components}}
+
+\put(130,15){\vector(1,0){30}}
+\put(180,15){\circleone{40}{\Large{\ \ F1}}}
 
 \endpicture
 \vskip 1.0cm
@@ -346,7 +370,7 @@ A selection mechanism for lowered mutation rate would not seem to correspond to 
 \section*{Materials and Methods}
 
 \subsection*{Population Dyamics of Bacteriophage}
-\subsubsection*{Clones verses Mutants}
+\subsubsection*{Clones versus Mutants}
 Although it may sounds like the title of a recent movie, this precisely states the selection mechanism of of mutation.
 
 Percentage of activated genes due to Phage Shock promoter.
@@ -435,6 +459,11 @@ Badran AH, Liu DR.
 Lynch M.
 \newblock {{E}volution of the Mutation Rate}.
 \newblock Trends in Genetics, 2010 August ; 26(8): 345–352. doi:10.1016/j.tig.2010.05.003.
+
+\bibitem{monsanto}
+  Badran A. H., Guzov V.M., Huai Q., Kemp M. M.,Vishwanath P.,Kain W., Evdokimov A., Moshiri F., Turner K.H.P., Malvar T., Liu D.R.
+  \newblock{{C}ontinuous evolution of Bacillus thuringiensis toxins overcomes insect resistance}
+  \newblock  Nature 533,58-63 (2016) doi:10.1038/nature17938
 \end{thebibliography}
 
 
