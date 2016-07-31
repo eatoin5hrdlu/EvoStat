@@ -154,12 +154,13 @@
 \pagestyle{fancy}
 \fancyhf{}
 \setlength{\headheight}{27.023pt}
-\lhead{\includegraphics[width=2.0in]{PLOS-submission.eps}}
+%\lhead{\includegraphics[width=2.0in]{PLOS-submission.eps}}
 %\rfoot{\thepage/\pageref{lastpage}}
 \renewcommand{\footrule}{\hrule height 2pt \vspace{2mm}}
 \fancyheadoffset[L]{2.25in}
 \fancyfootoffset[L]{2.25in}
-\lfoot{\sf PLOS}
+%\lfoot{\sf PLOS}
+\lfoot{\sf NCMLS}
 
 %% Include all macros below
 
@@ -231,7 +232,6 @@ Engineering novel proteins via continuous evolution of bacteriophage currently r
 % Use "Eq" instead of "Equation" for equation citations.
 \section*{Introduction}
 Continuous evolution of bacteriophage has the potential to become a potent protein engineering tool\cite{pace}\cite{monsanto}.
-For example, PACE - Phage Assisted Continuous Evolution described by Esvelt,Carlson and Lui. 
 Continuous evolution rapidly produces a viral genome containing a gene
 which has undergone many generations of mutation and selection for
 a particular property.  The generality of this approach to protein engineering
@@ -241,7 +241,7 @@ Specifically, the PACE system requires:
 \begin{itemize}
 
 \item{}
-A modified viral genome replacing a crucial phage gene with a gene to be evolved.
+A modified viral genome replacing a crucial phage gene with the gene to be evolved.
 
 \item{}
 A transformed host with inducible mutagenesis.
@@ -251,9 +251,7 @@ A host plasmid containing a selection mechanism to provide the crucial phage gen
 \end{itemize}
 
 \section{M-Selection}
-Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied and the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by proportionally more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
-
-High rates of mutation will be associated with little or none of the desired activity, and these lines of descent (both E. coli and phage) will be subject to catastrophic levels of mutation and low viability.
+Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
 
 The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome). The probability of a virion with zero mutations is:
 \vskip 0.2cm
@@ -270,12 +268,13 @@ An important difference with PACE is that mutagenesis is not induced externally 
 
 As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
 
-A possible drawback to this technique is that the mutation space is less agressively searched as the desired activity improves.  But there is no particular reason that the modulation of mutation rate necessary to produce the population shift will be a low (e.g. natural) mutation rate.
+A possible drawback to this technique is that the mutation space is less agressively searched as the desired activity improves.  But there is no particular reason that the modulation of mutation rate necessary to produce the population shift will be a particularly low (e.g. natural) mutation rate.
 
 \section{Possible Benefits of M-Selection}
 \begin{enumerate}
 \item{The virus is not crippled, that is, no critical genes need to be removed from the virion which will improve our ability to propagate phage prior to the evolution experiment.  Of course, as usual, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene(domain) is exactly what has been perfected in phage display.}
 \item{No phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host.}
+\item{High rates of mutation will be associated with individuals exhibiting little or none of the desired activity, and these lines of descent (both E. coli and phage) will be subject to catastrophic levels of mutation and low viability. This may reduce the importance of a carefully controlled flow rate.}
 \end{enumerate}
 
 The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
@@ -323,9 +322,9 @@ Activity Induced\linebreak
 		\hfill\vspace{0.30in}
             \end{minipage}
            }}
-\put(35,0){\boxtwo{MUTAGENESIS\ }{\ \ \ Components}}
+\put(35,0){\boxtwo{MUTAGENIC}{\ \ Components}}
 
-\put(130,15){\vector(1,0){30}}
+\put(134,15){\vector(1,0){26}}
 \put(180,15){\circleone{40}{\Large{\ \ F1}}}
 
 \endpicture
@@ -341,16 +340,18 @@ A selection mechanism for lowered mutation rate would not seem to correspond to 
 
 \section*{Materials and Methods}
 
-\subsection*{Population Dyamics of Bacteriophage}
+\subsection*{Population Dyamics of Bacteriophage (Under Constuction)}
 \subsubsection*{Clones versus Mutants}
-Although it may sounds like the title of a recent movie, this precisely states the selection mechanism of of mutation.
-
+Although it may sounds like the title of a bad sci-fi movie, this precisely states the selection mechanism of of mutation.
+\newline
 Percentage of activated genes due to Phage Shock promoter.
+\newline
 Number of polIII-(mutagenic polymerase) transcripts times error rate due to mutagenic polymerase.
-Error rate of normal polII, polIII
-
+\newline
+Error rate of normal polII, polIII?
+\newline
 Number of phage particles produced np(0-6 min) = 0 (six minutes before any phage appears), then production between 75-200 per hour.
-
+\newline
 Some initial single-strand (virion) DNA production will occur in non-mutagenic environment, then mutants appear, until suppression of mutagenesis due to binding(desired activity).
 
 % Results and Discussion can be combined.
