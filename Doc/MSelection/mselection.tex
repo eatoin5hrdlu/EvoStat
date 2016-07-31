@@ -1,4 +1,15 @@
 % Template for PLoS
+%M13 genes
+%I(assembly),
+%II(replication init),
+%X (DNA accumulation, inside gII) 
+%III(fusion),
+%IV(assembly),
+%V(destabilizing protein),
+%VI(minor coat),
+%VII(minor coat),
+%VIII(major coat),
+%IX(minor coat),
 %subsubsection is 3rd level heading, PLOS doen't support 4th level.
 % Version 3.3 June 2016
 % Please follow the template instructions whenever possible.
@@ -169,10 +180,14 @@
 \newline
 % Insert author names, affiliations and corresponding author email (do not include titles, positions, or degrees).
 \\
-Peter Reintjes\textsuperscript{1}
+Peter Reintjes%\textsuperscript{1,2}
 \\
 \bigskip
-\textbf{1} Museum of Life and Science, Durham, North Carolina, USA
+\textbf{Museum of Life and Science}
+\newline
+\bigskip
+\textbf{Innatrix, Inc.}
+%\textbf{1} Museum of Life and Science, Durham, North Carolina, USA
 \bigskip
 
 % Additional author notes using the symbols described below. Insert symbol callouts after author names as necessary.
@@ -203,7 +218,7 @@ Peter Reintjes\textsuperscript{1}
 \end{flushleft}
 % Please keep the abstract below 300 words
 \section*{Abstract}
-Engineering novel proteins via continuous evolution of bacteriophage currently requires the host bacteria to be transformed with two additional functions: A mutagenesis vector to provide an elevated rate of viral mutation, and a selection mechanism to increase the number of infectious progeny for the individual encoding the improved product\cite{pace}.  I propose using a mutagenesis suppressor as the selection mechanism whereby the desired activity results in a higher number of clones, thus rewarding the genotype with more faithful progeny.
+Engineering novel proteins via continuous evolution of bacteriophage currently requires the host bacteria to be transformed with two additional functions: A mutagenesis vector to provide an elevated rate of viral mutation, and a selection mechanism to increase the number of infectious progeny for the individual encoding the improved product\cite{pace}.  I propose using a mutagenesis suppressor as the selection mechanism whereby the desired activity results in a higher number of clones, rewarding the genotype by increasing the number of identical progeny.  As far as I know, modulation of the mutation rate within a particular host has not been exploited in this way.
 
 % Please keep the Author Summary between 150 and 200 words
 % Use first person. PLOS ONE authors please skip this step. 
@@ -211,23 +226,12 @@ Engineering novel proteins via continuous evolution of bacteriophage currently r
 %\section*{Author Summary}
 %Lorem ipsum dolor sit amet,
 
-\linenumbers
+%\linenumbers
 
 % Use "Eq" instead of "Equation" for equation citations.
 \section*{Introduction}
 Continuous evolution of bacteriophage has the potential to become a potent protein engineering tool\cite{pace}\cite{monsanto}.
 For example, PACE - Phage Assisted Continuous Evolution described by Esvelt,Carlson and Lui. 
-%M13 genes
-%I(assembly),
-%II(replication init),
-%X (DNA accumulation, inside gII) 
-%III(fusion),
-%IV(assembly),
-%V(destabilizing protein),
-%VI(minor coat),
-%VII(minor coat),
-%VIII(major coat),
-%IX(minor coat),
 Continuous evolution rapidly produces a viral genome containing a gene
 which has undergone many generations of mutation and selection for
 a particular property.  The generality of this approach to protein engineering
@@ -247,47 +251,36 @@ A host plasmid containing a selection mechanism to provide the crucial phage gen
 \end{itemize}
 
 \section{M-Selection}
-Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  We suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied and the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by proportionally more faithful reproduction.  We propose calling this mechanism Mutagenesis-selection or M-selection.
+Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied and the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by proportionally more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
 
+High rates of mutation will be associated with little or none of the desired activity, and these lines of descent (both E. coli and phage) will be subject to catastrophic levels of mutation and low viability.
 
-his technology maked With M-selection, these high rates will correspond to little or none of the desired activity, these lines of descent will be subject to catastrophic levels of mutation and low probabilities of faithful reproduction. The modulation of mutation rate within each host cell means that one of these wildly mutating strains could find an environment for faithful reproduction if it should stumble upon a promising mutation in the evolving gene.
-
-The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $$\lambda$$ is the mutation rate per virion (mutation rate/base * 6000bp/ genome). The probability of a virion with zero mutations is:
+The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome). The probability of a virion with zero mutations is:
 \vskip 0.2cm
 \begin{eqnarray}
 \label{eq:POC}
 \mathrm{P}\left( 0 \right) = \frac{{e^{ - \lambda } \lambda ^0 }}{{0!}}
 \end{eqnarray}
 
-Taking a phage production average of 100/hour for normal M13 infection requires us to have a clone rate of at least 2\%: Two faithful copies per infection in order to avoid washout.  A slower flow rate would lower this minimum fraction.
+PACE is designed to keep the transit time of host cells through the lagoon on the order of one generation.  However, at very high levels of mutation it seems unlikely that succeeding generations of E. coli mutants or phage will remain viable. Furthermore, the continuous flow environment ensures that there can be no other selection mechanism beyond the number of faithful copies of a particular genome.  The obvious exception to this would be a colony or biofilm which remains somehow attached in the lagoon, but the population size for such entities would be limited by the surface areas within the lagoon, and not the volume.
 
-M-selection may allow for, or even require a flow rate which changes over the course of the experiment.  A ramping up of the flow rate would be appropriate
+Taking a phage production average of 100/hour for normal M13 infection requires us to have a cloning rate of at least 2\%: Two faithful copies per infection in order to avoid washout.  The previous consideration of high mutation rates would seem to allow slower flow rates, which will lower this minimum fraction.
 
-PACE is designed to keep the transit time of host cells through the lagoon to be on the order of one generation.  However, at very high levels of mutation it seems unlikely that multiple generations of viable E. coli mutants can be produced.
-
-If the desired activity of the evolving protein produces a mutagenesis repressor, improvements in the desired activity will result in a higher percentage of faithful copies of the parent genome in the succeeding generation.
+An important difference with PACE is that mutagenesis is not induced externally and therefore in uninfected cells, so there may be a minimum number of faithful copies produced before the mutagenesis products are expressed by the infected host.  It may prove useful to retain the arabinose induced mutagenesis as a way of achieving a baseline mutation rate in the lagoon.
 
 As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
 
-In PACE, the number of infectious progeny is proportional to the activity
-of the selection mechanism. In principle, if the current mutation of the gene
-produces a product with none of the desired activity, none of the infectivity
-protein will be produced by the host, and there will be no infectous progeny.
-This process involves a continuous flow of host cells through a reaction vessel
-and so any genotype producing less than two infectious virions per host will
-be washed out.
+A possible drawback to this technique is that the mutation space is less agressively searched as the desired activity improves.  But there is no particular reason that the modulation of mutation rate necessary to produce the population shift will be a low (e.g. natural) mutation rate.
 
-The benefits of M-Selection may include:
+\section{Possible Benefits of M-Selection}
+\begin{enumerate}
+\item{The virus is not crippled, that is, no critical genes need to be removed from the virion which will improve our ability to propagate phage prior to the evolution experiment.  Of course, as usual, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene(domain) is exactly what has been perfected in phage display.}
+\item{No phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host.}
+\end{enumerate}
 
-The virus is not crippled, that is, no critical genes need to be removed from the virion, and no phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host and improves our ability to propagate phage prior to the evolution experiment.  Of course, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene(domain) is exactly what has been perfected in phage display.
+The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
 
-The nominal (high) mutation rate can be chosen to guarantee that there will be
-a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
-
-As far as we know, modulation of the mutation rate within a particular host has
-not been exploited in this way.  We refer to this as M-selection, wherein the selection mechanism consists simply of reducing the rate of mutation.
-
-Figure 1 shows how the combined mutagenic and selection plasmid takes the place of the AP and MP in PACE.
+Figure 1 shows the combined mutagenic/selection mechanism replacing the AP and MP in PACE.
 
 \def\boxone#1{
   \put(19,30){\line(1,0){67}}     % horiz top
@@ -353,69 +346,58 @@ A selection mechanism for lowered mutation rate would not seem to correspond to 
 Although it may sounds like the title of a recent movie, this precisely states the selection mechanism of of mutation.
 
 Percentage of activated genes due to Phage Shock promoter.
-Number of polIII-  (mutagenic polymerase) transcripts times error rate due to mutagenic polymerase.
-
+Number of polIII-(mutagenic polymerase) transcripts times error rate due to mutagenic polymerase.
 Error rate of normal polII, polIII
 
-Number of phage particles produced np(0-6 min) = 0 (six minutes before any phage appear),
-then production between 75-200 per hour.
+Number of phage particles produced np(0-6 min) = 0 (six minutes before any phage appears), then production between 75-200 per hour.
 
-Initial single-strand (virion) DNA production occurs in non-mutagenic environment, then mutants appear along with polII- production, until suppression of polII- occurs due to binding.  Binding ? anti-sense RNA transcription ? polII-  repression ? reduction in mutations.
+Some initial single-strand (virion) DNA production will occur in non-mutagenic environment, then mutants appear, until suppression of mutagenesis due to binding(desired activity).
 
 % Results and Discussion can be combined.
-\section*{Results}
-
-\subsection*{Comparison with Sexual/Asexual Reproduction}
+%\section*{Results}
+\section*{Comparison with Sexual/Asexual Reproduction}
 Sexual reproduction is not the same as an elevated mutation rate, but it shares the characteristic that even a perfectly fit individual will not be producing faithful copied of its genome. For organisms with access to both forms, the percentage of offspring produced by asexual reproduction would be comparable to our percentage of true copies.
-\subsubsection*{Yeast}
+\subsection*{Yeast}
 Although yeast has access to both sexual and asexual reproduction, the (time) cost of sexual reproduction is high and it is generally invoked under conditions of stress, where an increase in genetic variety of offspring.
-\subsubsection*{Daphnia} 
+\subsection*{Daphnia} 
 In Daphnia, longevity and healthy survival to the end of the season result in so called 'winter eggs' which reproduce asexually, providing a percentage of offspring which are clones of the parent. The cost differential between sexual and asexual reproduction is low and each generation represents a mix of both.
 
-\begin{enumerate}
-	\item{react}
-	\item{diffuse free particles}
-	\item{increment time by dt and go to 1}
-\end{enumerate}
-
-\subsection*{Using RNA Antisense.}
+\section{Methods for Lowering the Mutation Rate}
+\subsection*{RNA Antisense.}
 
 The components for the broad spectrum, high level mutagenisis described in Badran and Liu\cite{mutation} are variations (often single mutation variants) of the functional domains of high fidelity DNA replication and as such are not suitable targets for RNA anti-sense interference. Any such anti-sense interference would be likely to affect their normal counterparts which are needed for faithful reproduction.
 
-RNA anti-sense of gIV could be utilized to block the primary phage shock promotor which was the primary trigger activating the high level of mutation in the lagoon.
+RNA anti-sense of gIV could be utilized to block the primary phage shock promotor which is the primary stimulus activating mutagenesis.
 
-Lowering the mutation rate can be achieved in a number of ways.
-
+\subsection*{Other Methods}
 \begin{itemize}
 	\item Supress pIV production or otherwise block phage shock promotor
 	\item Selectively block downstream components of mutagenesis
 	\item Enhance production of wild-type high-fidelity replication components.
 \end{itemize}
 
-\section*{Discussion}
-Modeling needs work.
-
-\section*{Conclusion}
-
-I think this will work.
-
-\section*{Supporting Information}
+%\section*{Discussion}
+%Modeling needs work.
+%\section*{Conclusion}
+%
+%I think this will work.
+%\section*{Supporting Information}
 
 % Include only the SI item label in the paragraph heading. Use the \nameref{label} command to cite SI items in the text.
-\paragraph*{S1 Fig.}
-\label{S1_Fig}
-{\bf Bold the title sentence.} Add descriptive text after the title of the item (optional).
+%\paragraph*{S1 Fig.}
+%\label{S1_Fig}
+%{\bf Bold the title sentence.} Add descriptive text after the title of the item (optional).
 
-\paragraph*{S1 Appendix.}
-\label{S1_Appendix}
-{\bf Algorithm.} The code goes here.
+%\paragraph*{S1 Appendix.}
+%\label{S1_Appendix}
+%{\bf Algorithm.} The code goes here.
 
-\paragraph*{S1 Table.}
-\label{S1_Table}
-{\bf Graph maybe.} The Graph goes here.
+%\paragraph*{S1 Table.}
+%\label{S1_Table}
+%{\bf Graph maybe.} The Graph goes here.
 
-\section*{Acknowledgments}
-So many people to thank.
+%\section*{Acknowledgments}
+%So many people to thank.
 
 \nolinenumbers
 
@@ -426,22 +408,22 @@ So many people to thank.
 
 \bibitem{pace}
 Esvelt K. M., Carlson J. C. \& Liu D. R.
-\newblock {A system for the continuous directed evolution of biomolecules}.
+\newblock \textit{A system for the continuous directed evolution of biomolecules}.
 \newblock Nature 472, 499–503 (2011) .
 
 \bibitem{mutation}
 Badran AH, Liu DR.
-\newblock {{D}evelopment of potent in vivo mutagenesis plasmids with broad mutational spectra}.
+\newblock \textit{{D}evelopment of potent in vivo mutagenesis plasmids with broad mutational spectra}.
 \newblock Nature Communications. 2015;6:8425. doi:10.1038/ncomms9425.
 
 \bibitem{evomut}
 Lynch M.
-\newblock {{E}volution of the Mutation Rate}.
+\newblock \textit{{E}volution of the Mutation Rate}.
 \newblock Trends in Genetics, 2010 August ; 26(8): 345–352. doi:10.1016/j.tig.2010.05.003.
 
 \bibitem{monsanto}
   Badran A. H., Guzov V.M., Huai Q., Kemp M. M.,Vishwanath P.,Kain W., Evdokimov A., Moshiri F., Turner K.H.P., Malvar T., Liu D.R.
-  \newblock{{C}ontinuous evolution of Bacillus thuringiensis toxins overcomes insect resistance}
+  \newblock \textit{{C}ontinuous evolution of Bacillus thuringiensis toxins overcomes insect resistance}
   \newblock  Nature 533,58-63 (2016) doi:10.1038/nature17938
 \end{thebibliography}
 
