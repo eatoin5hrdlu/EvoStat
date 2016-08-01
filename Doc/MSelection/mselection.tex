@@ -253,13 +253,15 @@ A host plasmid containing a selection mechanism to provide the crucial phage gen
 \section{M-Selection}
 Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
 
-The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome). The probability of a virion with zero mutations is:
+The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome). We want the probability of a virion with zero mutations to be at least .02 (2\%), so that we get two clones per 100 progeny.
 \vskip 0.2cm
 \begin{eqnarray}
 \label{eq:POC}
 \mathrm{P}\left( 0 \right) = \frac{{e^{ - \lambda } \lambda ^0 }}{{0!}}
+ = \frac{{e^{ - 4 }}}{{1}} = .018
 \end{eqnarray}
 
+Which is four mutations per genome or a mutation rate of $4/6000 = .0006$.
 PACE is designed to keep the transit time of host cells through the lagoon on the order of one generation.  However, at very high levels of mutation it seems unlikely that succeeding generations of E. coli mutants or phage will remain viable. Furthermore, the continuous flow environment ensures that there can be no other selection mechanism beyond the number of faithful copies of a particular genome.  The obvious exception to this would be a colony or biofilm which remains somehow attached in the lagoon, but the population size for such entities would be limited by the surface areas within the lagoon, and not the volume.
 
 Taking a phage production average of 100/hour for normal M13 infection requires us to have a cloning rate of at least 2\%: Two faithful copies per infection in order to avoid washout.  The previous consideration of high mutation rates would seem to allow slower flow rates, which will lower this minimum fraction.
