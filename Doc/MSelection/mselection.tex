@@ -219,7 +219,7 @@ Peter Reintjes%\textsuperscript{1,2}
 \end{flushleft}
 % Please keep the abstract below 300 words
 \section*{Abstract}
-Engineering novel proteins via continuous evolution of bacteriophage currently requires the host bacteria to be transformed with two additional functions: A mutagenesis vector to provide an elevated rate of viral mutation, and a selection mechanism to increase the number of infectious progeny for the individual encoding the improved product\cite{pace}.  I propose using a mutagenesis suppressor as the selection mechanism whereby the desired activity results in a higher number of clones, rewarding the genotype by increasing the number of identical progeny.  As far as I know, modulation of the mutation rate within a particular host has not been exploited in this way.
+Engineering novel proteins via continuous evolution of bacteriophage currently requires the host bacteria to be transformed with two additional functions: A mutagenesis vector to provide an elevated rate of viral mutation, and a selection mechanism to increase the number of infectious progeny for the individual encoding the improved product\cite{pace}.  I propose using a mutagenesis suppressor as the selection mechanism whereby the desired activity results in a higher number of clones, rewarding the genotype by increasing the number of identical progeny.
 
 % Please keep the Author Summary between 150 and 200 words
 % Use first person. PLOS ONE authors please skip this step. 
@@ -237,7 +237,7 @@ which has undergone many generations of mutation and selection for
 a particular property.  The generality of this approach to protein engineering
 is limited by our ability to insert an expressable initial gene into the phage and create a selection mechanism for the desired activity.
 
-Specifically, the PACE system requires:
+Specifically, the Phage Assisted Continuous Evolution (PACE)\cite{pace} system requires:
 \begin{itemize}
 
 \item{}
@@ -253,35 +253,35 @@ A host plasmid containing a selection mechanism to provide the crucial phage gen
 \section{M-Selection}
 Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
 
-The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome). We want the probability of a virion with zero mutations to be at least .02 (2\%), so that we get two clones per 100 progeny.
+We require 2 clones per generation to prevent washout of a genotype. Assuming phage production of 100/hour and a lagoon transit time of one hour, we calculate calculate a mutation rate of about 4 mutations per phage genome.  The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\mu = 0$ is the expected number of mutations and $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome).
+A mutation rate of $\lambda = 4$ gives a 1.8\% probability of zero mutations.
 \vskip 0.2cm
 \begin{eqnarray}
 \label{eq:POC}
-\mathrm{P}\left( 0 \right) = \frac{{e^{ - \lambda } \lambda ^0 }}{{0!}}
- = \frac{{e^{ - 4 }}}{{1}} = .018
+\mathrm{P}\left( \mu, \lambda \right) = \frac{{e^{ - \lambda } \lambda ^ \mu }}{{\mu!}}
+ \rightarrow P(0,4) = \frac{{e^{ - 4 }}}{{1}} = .018
 \end{eqnarray}
 
-Which is four mutations per genome or a mutation rate of $4/6000 = .0006$.
 PACE is designed to keep the transit time of host cells through the lagoon on the order of one generation.  However, at very high levels of mutation it seems unlikely that succeeding generations of E. coli mutants or phage will remain viable. Furthermore, the continuous flow environment ensures that there can be no other selection mechanism beyond the number of faithful copies of a particular genome.  The obvious exception to this would be a colony or biofilm which remains somehow attached in the lagoon, but the population size for such entities would be limited by the surface areas within the lagoon, and not the volume.
 
-Taking a phage production average of 100/hour for normal M13 infection requires us to have a cloning rate of at least 2\%: Two faithful copies per infection in order to avoid washout.  The previous consideration of high mutation rates would seem to allow slower flow rates, which will lower this minimum fraction.
+Taking a phage production average of 100/hour for normal M13 infection requires us to have a cloning rate of at least 2\%: two faithful copies per infection in order to avoid washout.  The previous consideration of high mutation rates would seem to allow slower flow rates, which will lower this minimum fraction.
 
-An important difference with PACE is that mutagenesis is not induced externally and therefore in uninfected cells, so there may be a minimum number of faithful copies produced before the mutagenesis products are expressed by the infected host.  It may prove useful to retain the arabinose induced mutagenesis as a way of achieving a baseline mutation rate in the lagoon.
+An important difference with PACE is that mutagenesis is not induced externally and therefore in uninfected cells, so there may be a minimum number of faithful copies produced before the mutagenesis products are expressed by the infected host.  It may prove useful to retain the arabinose-induced mutagenesis as a way of achieving a baseline mutation rate in the lagoon.
 
-As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
+As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype, while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
 
 A possible drawback to this technique is that the mutation space is less agressively searched as the desired activity improves.  But there is no particular reason that the modulation of mutation rate necessary to produce the population shift will be a particularly low (e.g. natural) mutation rate.
 
 \section{Possible Benefits of M-Selection}
 \begin{enumerate}
-\item{The virus is not crippled, that is, no critical genes need to be removed from the virion which will improve our ability to propagate phage prior to the evolution experiment.  Of course, as usual, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene(domain) is exactly what has been perfected in phage display.}
+\item{The virus is not crippled, that is, no critical genes need to be removed from the virion which will improve our ability to propagate phage prior to the evolution experiment.  Of course, as usual, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene or domain is exactly what has been perfected in phage display.}
 \item{No phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host.}
 \item{High rates of mutation will be associated with individuals exhibiting little or none of the desired activity, and these lines of descent (both E. coli and phage) will be subject to catastrophic levels of mutation and low viability. This may reduce the importance of a carefully controlled flow rate.}
 \end{enumerate}
 
 The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
 
-Figure 1 shows the combined mutagenic/selection mechanism replacing the AP and MP in PACE.
+Figure 1 shows the combined mutagenic/selection mechanism replacing the Mutagenesis Plasmid(MP) and Accessory Plasmid (AP) in PACE.
 
 \def\boxone#1{
   \put(19,30){\line(1,0){67}}     % horiz top
@@ -324,7 +324,7 @@ Activity Induced\linebreak
 		\hfill\vspace{0.30in}
             \end{minipage}
            }}
-\put(35,0){\boxtwo{MUTAGENIC}{\ \ Components}}
+\put(35,0){\boxtwo{Mutagenic}{\ \ Components}}
 
 \put(134,15){\vector(1,0){26}}
 \put(180,15){\circleone{40}{\Large{\ \ F1}}}
@@ -342,7 +342,7 @@ A selection mechanism for lowered mutation rate would not seem to correspond to 
 
 \section*{Materials and Methods}
 
-\subsection*{Population Dyamics of Bacteriophage (Under Constuction)}
+\subsection*{Population Dyamics of Bacteriophage (Under Construction)}
 \subsubsection*{Clones versus Mutants}
 Although it may sounds like the title of a bad sci-fi movie, this precisely states the selection mechanism of of mutation.
 \newline
@@ -354,23 +354,23 @@ Error rate of normal polII, polIII?
 \newline
 Number of phage particles produced np(0-6 min) = 0 (six minutes before any phage appears), then production between 75-200 per hour.
 \newline
-Some initial single-strand (virion) DNA production will occur in non-mutagenic environment, then mutants appear, until suppression of mutagenesis due to binding(desired activity).
+Some initial single-strand (virion) DNA production will occur in non-mutagenic environment, then mutants appear, until suppression of mutagenesis due to binding (e.g. the desired activity).
 
 % Results and Discussion can be combined.
 %\section*{Results}
 \section*{Comparison with Sexual/Asexual Reproduction}
-Sexual reproduction is not the same as an elevated mutation rate, but it shares the characteristic that even a perfectly fit individual will not be producing faithful copied of its genome. For organisms with access to both forms, the percentage of offspring produced by asexual reproduction would be comparable to our percentage of true copies.
+Sexual reproduction is not the same as an elevated mutation rate, but it shares the characteristic that even a perfectly fit individual will not be producing faithful copies of its genome. For organisms with access to both forms, the percentage of offspring produced by asexual reproduction would be comparable to our percentage of true copies.
 \subsection*{Yeast}
-Although yeast has access to both sexual and asexual reproduction, the (time) cost of sexual reproduction is high and it is generally invoked under conditions of stress, where an increase in genetic variety of offspring.
+Although yeast has access to both sexual and asexual reproduction, the time and energy cost of sexual reproduction is high and it is generally induced by stress, indicating a need for more genetic diversity.
 \subsection*{Daphnia} 
-In Daphnia, longevity and healthy survival to the end of the season result in so called 'winter eggs' which reproduce asexually, providing a percentage of offspring which are clones of the parent. The cost differential between sexual and asexual reproduction is low and each generation represents a mix of both.
+In Daphnia, longevity and healthy survival to the end of the season result in so-called 'winter eggs' which reproduce asexually, providing a percentage of offspring which are clones of the parent. The cost differential between sexual and asexual reproduction is low and each generation represents a mix of both.
 
 \section{Methods for Lowering the Mutation Rate}
 \subsection*{RNA Antisense.}
 
-The components for the broad spectrum, high level mutagenisis described in Badran and Liu\cite{mutation} are variations (often single mutation variants) of the functional domains of high fidelity DNA replication and as such are not suitable targets for RNA anti-sense interference. Any such anti-sense interference would be likely to affect their normal counterparts which are needed for faithful reproduction.
+The components for the broad-spectrum, high-level mutagenisis described in Badran and Liu\cite{mutation} are variations (often single mutation variants) of the functional domains of high-fidelity DNA replication, and as such are not suitable targets for RNA anti-sense interference. Any such anti-sense interference would be likely to affect their normal counterparts which are needed for faithful reproduction.
 
-RNA anti-sense of gIV could be utilized to block the primary phage shock promotor which is the primary stimulus activating mutagenesis.
+RNA anti-sense of gIV could be utilized to block the phage shock promotor which is the primary stimulus that activates mutagenesis.
 
 \subsection*{Other Methods}
 \begin{itemize}
