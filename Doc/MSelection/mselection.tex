@@ -251,7 +251,7 @@ A host plasmid containing a selection mechanism to provide the crucial phage gen
 \end{itemize}
 
 \section{M-Selection}
-Extremely high, yet controllable, in-vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: the desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplfied by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
+Extremely high, yet controllable, in vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: The desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplified by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
 
 We require 2 clones per generation to prevent washout of a genotype. Assuming phage production of 100/hour and a lagoon transit time of one hour, we calculate calculate a mutation rate of about 4 mutations per phage genome.  The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\mu = 0$ is the expected number of mutations and $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome).
 A mutation rate of $\lambda = 4$ gives a 1.8\% probability of zero mutations.
@@ -274,9 +274,11 @@ A possible drawback to this technique is that the mutation space is less agressi
 
 \section{Possible Benefits of M-Selection}
 \begin{enumerate}
-\item{The virus is not crippled, that is, no critical genes need to be removed from the virion which will improve our ability to propagate phage prior to the evolution experiment.  Of course, as usual, care must be taken to ensure that the evolving gene is not discarded before the experiment begins.  However, M13 with one additional gene or domain is exactly what has been perfected in phage display.}
+\item{The virus is not crippled, that is, no critical genes are removed from the virion which should improve our ability to propagate phage prior to the evolution experiment.  Care must be taken to ensure that the evolving gene is not discarded, but M13 plus one additional gene or domain is exactly what has been perfected in phage display.}
 \item{No phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host.}
 \item{High rates of mutation will be associated with individuals exhibiting little or none of the desired activity, and these lines of descent (both E. coli and phage) will be subject to catastrophic levels of mutation and low viability. This may reduce the importance of a carefully controlled flow rate.}
+\item{Clonal Interference\cite{dynamics}, the inabiltiy of a single genotype to gain sufficient advantage to become fixed in a population due to weak sellection pressure is viewed as a problem in experimental evolution (one mutant has an important beneficial mutation, but also has a bad mutation hitch-hiking along which attenuates the advantage as compared to a sibling with neither mutation.}
+
 \end{enumerate}
 
 The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
@@ -303,28 +305,31 @@ Figure 1 shows the combined mutagenic/selection mechanism replacing the Mutagene
 
 \picture(400,150)(-90,0)
 
-\put(90,90){\vector(0,-1){15}}
-\put(90,45){\vector(0,-1){14}}
+\put(90,90){\vector(0,-1){12}}
+\put(90,56){\vector(0,-1){26}}
 
 \linethickness{2pt}
 \thicklines
 \put(0,15){\circleone{40}{\Large{\ \ P1}}}
-\put(20,15){\vector(1,0){30}}
+\put(0,35){\vector(0,1){16}}
+\put(10,40){\small Protein}
+\put(20,15){\vector(1,0){34}}
+\put(25,18){DNA}
 
 \put(35,90){\boxtwo{\ Phage Shock}{\ \ \ Promoter}}
-\put(-20,55){
+\put(-20,62){
 \fbox{%
     \begin{minipage}{1.0in}
 Activity Induced\linebreak
 \hspace*{5 mm}Repressor
     \end{minipage}%
 }}
-\put(64,60){\vector(1,0){18}}
-\put(83,57){\fbox{\begin{minipage}{0.05in}
-		\hfill\vspace{0.30in}
+\put(64,70){\vector(1,0){18}}
+\put(83,65){\fbox{\begin{minipage}{0.05in}
+		\hfill\vspace{0.20in}
             \end{minipage}
            }}
-\put(35,0){\boxtwo{Mutagenic}{\ \ Components}}
+\put(35,0){\boxtwo{\ \ Mutagenic}{\ \ Components}}
 
 \put(134,15){\vector(1,0){26}}
 \put(180,15){\circleone{40}{\Large{\ \ F1}}}
@@ -335,16 +340,23 @@ Activity Induced\linebreak
 \vskip 0.2cm
 
 \section{Comparison with Natural Selection}
-Selection pressure for an optimal mutation rate has its own natural history\cite{evomut} although for settled phyla we see a certain natural mutation rates.  Bacteriophage and multicellular eukaryote mutation rates are higher than bacteria and single cell eukaryotes (around 0.003).
+Selection pressure for an optimal mutation rate has its own natural history\cite{evomut} although for settled phyla we see consistent\cite{drake91}, low mutation rates.  Bacteriophage $6.4 X 10^-4$, and multicellular eukaryote mutation rates are higher than bacteria $4 X 10^-11$ and single cell eukaryotes $3 X 10^-10$.
 
 A selection mechanism for lowered mutation rate would not seem to correspond to anything in the natural world.  Natural selection is largely about responses to the external environment, which we control closely in laboratory evolution.  Perhaps the closest parallel is found in species which can reproduce by asexual or sexual reproduction and change the rates between the alternatives as a way of accessing more diversity through sexual reproduction or producing more clones via asexual reproduction.
 
+
+\section*{Comparison with Sexual/Asexual Reproduction}
+Sexual reproduction is not the same as an elevated mutation rate, but it shares the characteristic that even a perfectly fit individual will not be producing faithful copies of its genome. For organisms with access to both forms, the percentage of offspring produced by asexual reproduction would be comparable to our percentage of true copies.
+\subsection*{Yeast}
+Although yeast has access to both sexual and asexual reproduction, the time and energy cost of sexual reproduction is high and it is generally induced by stress, indicating a need for more genetic diversity.
+\subsection*{Daphnia} 
+In Daphnia, longevity and healthy survival to the end of the season result in so-called ``winter eggs'' which reproduce asexually, providing a percentage of offspring which are clones of the parent. The cost differential between sexual and asexual reproduction is low and each generation represents a mix of both.
 
 \section*{Materials and Methods}
 
 \subsection*{Population Dyamics of Bacteriophage (Under Construction)}
 \subsubsection*{Clones versus Mutants}
-Although it may sounds like the title of a bad sci-fi movie, this precisely states the selection mechanism of of mutation.
+Although it may sounds like the title of a bad sci-fi movie, this precisely states the selection mechanism of mutation.
 \newline
 Percentage of activated genes due to Phage Shock promoter.
 \newline
@@ -358,24 +370,18 @@ Some initial single-strand (virion) DNA production will occur in non-mutagenic e
 
 % Results and Discussion can be combined.
 %\section*{Results}
-\section*{Comparison with Sexual/Asexual Reproduction}
-Sexual reproduction is not the same as an elevated mutation rate, but it shares the characteristic that even a perfectly fit individual will not be producing faithful copies of its genome. For organisms with access to both forms, the percentage of offspring produced by asexual reproduction would be comparable to our percentage of true copies.
-\subsection*{Yeast}
-Although yeast has access to both sexual and asexual reproduction, the time and energy cost of sexual reproduction is high and it is generally induced by stress, indicating a need for more genetic diversity.
-\subsection*{Daphnia} 
-In Daphnia, longevity and healthy survival to the end of the season result in so-called 'winter eggs' which reproduce asexually, providing a percentage of offspring which are clones of the parent. The cost differential between sexual and asexual reproduction is low and each generation represents a mix of both.
 
-\section{Methods for Lowering the Mutation Rate}
-\subsection*{RNA Antisense.}
+\subsection{Methods for Lowering the Mutation Rate}
+\subsubsection*{RNA Anti-sense}
 
 The components for the broad-spectrum, high-level mutagenisis described in Badran and Liu\cite{mutation} are variations (often single mutation variants) of the functional domains of high-fidelity DNA replication, and as such are not suitable targets for RNA anti-sense interference. Any such anti-sense interference would be likely to affect their normal counterparts which are needed for faithful reproduction.
 
 RNA anti-sense of gIV could be utilized to block the phage shock promotor which is the primary stimulus that activates mutagenesis.
 
-\subsection*{Other Methods}
+\subsubsection*{Other Methods}
 \begin{itemize}
-	\item Supress pIV production or otherwise block phage shock promotor
-	\item Selectively block downstream components of mutagenesis
+	\item Suppress pIV production or otherwise block phage shock promotor.
+	\item Selectively block downstream components of mutagenesis.
 	\item Enhance production of wild-type high-fidelity replication components.
 \end{itemize}
 
@@ -412,25 +418,36 @@ RNA anti-sense of gIV could be utilized to block the phage shock promotor which 
 \bibitem{pace}
 Esvelt K. M., Carlson J. C. \& Liu D. R.
 \newblock \textit{A system for the continuous directed evolution of biomolecules}.
-\newblock Nature 472, 499–503 (2011) .
+\newblock Nature 472, 499–503 (2011).
 
 \bibitem{mutation}
 Badran AH, Liu DR.
 \newblock \textit{{D}evelopment of potent in vivo mutagenesis plasmids with broad mutational spectra}.
 \newblock Nature Communications. 2015;6:8425. doi:10.1038/ncomms9425.
 
+\bibitem{dynamics}
+Barrick, Jeffrey E., Lenski, Richard E.
+\newblock \textit{{G}enome Dynamics during Experimental Evolution}
+\newblock  Nat Rev Genet, 2013 December, 14(12), pp. 827-839, doi:10.1038/nrg3564
+
 \bibitem{evomut}
 Lynch M.
 \newblock \textit{{E}volution of the Mutation Rate}.
-\newblock Trends in Genetics, 2010 August ; 26(8): 345–352. doi:10.1016/j.tig.2010.05.003.
+\newblock Trends in Genetics, 2010 August; 26(8): 345–352. doi:10.1016/j.tig.2010.05.003.
 
 \bibitem{monsanto}
   Badran A. H., Guzov V.M., Huai Q., Kemp M. M.,Vishwanath P.,Kain W., Evdokimov A., Moshiri F., Turner K.H.P., Malvar T., Liu D.R.
-  \newblock \textit{{C}ontinuous evolution of Bacillus thuringiensis toxins overcomes insect resistance}
-  \newblock  Nature 533,58-63 (2016) doi:10.1038/nature17938
+  \newblock \textit{{C}ontinuous evolution of Bacillus thuringiensis toxins overcomes insect resistance.}
+  \newblock  Nature 533,58-63 (2016) doi:10.1038/nature17938.
+
 \end{thebibliography}
 
-
+\fbox{\begin{minipage}{4.0in}
+Bacteriophage M13. The genome size is 6407 bp (4). The
+mutational target is 258 bp of an inserted Escherichia coli
+lacZa sequence (5). The spontaneous mutant frequency is 6.4
+x 10-4 \textit{Drake, 1991}
+\end{minipage}}
 
 \end{document}
 
