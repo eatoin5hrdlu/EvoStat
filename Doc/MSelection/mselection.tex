@@ -251,9 +251,9 @@ A host plasmid containing a selection mechanism to provide the crucial phage gen
 \end{itemize}
 
 \section{M-Selection}
-Extremely high, yet controllable, in vivo mutation rates are now possible\cite{mutation}.  This mutagenesis can be generated and controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: The desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplified by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.
+Extremely high, yet controllable, in vivo mutation rates are now possible\cite{mutation}.  This broad-spectrum mutagenesis with a (claimed) 320,000:1 dynamic range is generated and can be controlled within an individual host cell.  I suggest that if this mutagenesis is initiated  by infection, say with the phage shock promotor but then reduced by the desired activity, the two principal components of evolution will be satisfied: The desired activity will be selected for as the number of phage progeny of the individual exhibiting that activity will be amplified by more faithful reproduction.  I propose calling this mechanism Mutagenesis-selection or M-selection.  So far, all PACE-derived procedures induce a uniform mutagenesis in the lagoon: M-selection doesn't even require the small-molecule (Ara) induction mechanism.
 
-We require 2 clones per generation to prevent washout of a genotype. Assuming phage production of 100/hour and a lagoon transit time of one hour, we calculate calculate a mutation rate of about 4 mutations per phage genome.  The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\mu = 0$ is the expected number of mutations and $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome).
+We require 2 clones per generation to infect hosts and produce phage to prevent washout of a genotype. Assuming phage production of 100/hour and a lagoon transit time of one hour, we calculate calculate a mutation rate of about 4 mutations per phage genome.  The percentage of phage progeny which are exact copies of the parent is given by the Poisson distribution where $\mu = 0$ is the expected number of mutations and $\lambda$ is the mutation rate per virion (mutation rate/base * 6kbp/ genome).
 A mutation rate of $\lambda = 4$ gives a 1.8\% probability of zero mutations.
 \vskip 0.2cm
 \begin{eqnarray}
@@ -262,11 +262,14 @@ A mutation rate of $\lambda = 4$ gives a 1.8\% probability of zero mutations.
  \rightarrow P(0,4) = \frac{{e^{ - 4 }}}{{1}} = .018
 \end{eqnarray}
 
+So the maximum per-base mutation rate that a genome could tolerate and still stay in the lagoon is $6400/4 = 6.25 X 10^-4$.
+Liu et al. claim 322,000 times basal mutation rate. Basal rate is possibly ambiguous here if they are referring to the basal rate of E. coli producing E. coli  ($4x10-10$) vs. E coli producing M13 phage ($7.2 x 10-7$), but in either case their claimed dynamic range covers the required phage mutation crossover rate required to avoid washout.
+
 PACE is designed to keep the transit time of host cells through the lagoon on the order of one generation.  However, at very high levels of mutation it seems unlikely that succeeding generations of E. coli mutants or phage will remain viable. Furthermore, the continuous flow environment ensures that there can be no other selection mechanism beyond the number of faithful copies of a particular genome.  The obvious exception to this would be a colony or biofilm which remains somehow attached in the lagoon, but the population size for such entities would be limited by the surface areas within the lagoon, and not the volume.
 
 Taking a phage production average of 100/hour for normal M13 infection requires us to have a cloning rate of at least 2\%: two faithful copies per infection in order to avoid washout.  The previous consideration of high mutation rates would seem to allow slower flow rates, which will lower this minimum fraction.
 
-An important difference with PACE is that mutagenesis is not induced externally and therefore in uninfected cells, so there may be a minimum number of faithful copies produced before the mutagenesis products are expressed by the infected host.  It may prove useful to retain the arabinose-induced mutagenesis as a way of achieving a baseline mutation rate in the lagoon.
+An important difference with PACE is that mutagenesis is not induced externally and therefore in uninfected cells, so there may be a minimum number of faithful copies produced before the mutagenesis products are expressed by the infected host.  It may prove useful to retain the arabinose-induced mutagenesis as a way of achieving a baseline mutation rate in the lagoon, or an ante-chamber for the lagoon where induction can begin before exposure to phage.
 
 As the evolving protein approaches a high level of desired activity, the proportionally lowered mutation rate will ensure that more viral progeny contain exact copies of the parent genotype, while a baseline mutation rate ensures that our mechanism to lower the mutation rate will not result in stagnation.
 
@@ -277,12 +280,20 @@ A possible drawback to this technique is that the mutation space is less agressi
 \item{The virus is not crippled, that is, no critical genes are removed from the virion which should improve our ability to propagate phage prior to the evolution experiment.  Care must be taken to ensure that the evolving gene is not discarded, but M13 plus one additional gene or domain is exactly what has been perfected in phage display.}
 \item{No phage genes are required in a host plasmid.  This avoids the problem associated with the presence of gIII in the host.}
 \item{High rates of mutation will be associated with individuals exhibiting little or none of the desired activity, and these lines of descent (both E. coli and phage) will be subject to catastrophic levels of mutation and low viability. This may reduce the importance of a carefully controlled flow rate.}
-\item{Clonal Interference\cite{dynamics}, the inabiltiy of a single genotype to gain sufficient advantage to become fixed in a population due to weak sellection pressure is viewed as a problem in experimental evolution (one mutant has an important beneficial mutation, but also has a bad mutation hitch-hiking along which attenuates the advantage as compared to a sibling with neither mutation.}
+\item{Clonal Interference\cite{dynamics}, the inabiltiy of a single genotype to gain sufficient advantage to become fixed in a population due to weak selection pressure is viewed as a problem in experimental evolution (one mutant has an important beneficial mutation, but also has a bad mutation hitch-hiking along which attenuates the advantage as compared to a sibling with neither mutation. In our case, maybe not a disadvantage as it keeps variety in the lagoon. Multiple genotypes in the lagoon at sample time would be informative. Does weak selection correspond to a flatter fitness landscape? I'm making an assumption here that M-selection corresponds to what Drake and others refer to as 'weak selection'.}
+
+\item{We get 'genetic drift' for free, or at the cost of defective interference, anyway. To quote Patent \#9023549 (Havard/PACE):
+\quote{\textit{A major problem with traditional directed evolution, whether in vitro or in vivo, is that libraries that do not contain any functional variants will be entirely lost, and the effort wasted--even if functionality lies only a couple of mutations away. The present invention overcomes this problem by allowing "switchable" genetic drift. This can be achieved by, for example, providing "free" propagation components to all library members, such as by inducible expression from an anhydrotetracycline-regulated titratable promoter, enabling all variants to infect host cells. By providing enough "free" propagation components, but less than the optimal level, any functional variants that arise will produce slightly more of the missing propagation components, produce more infectious progeny, and take over the population. }}}
+
+\item{Adding a negative selection component may be simpler than in PACE: Just need something to re-up-modulate the mutation rate as a result of off-target binding. A suppressor supressor?}
 
 \end{enumerate}
 
-The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage of clones will then increase as the mutation rate is reduced.
+The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage (of clones) will then increase proportunally as the mutation rate is reduced.
 
+One downside to all this is defective interference from all the propagating mutants with none of the desired activity. So they are infecting host cells and crowding out the 'nice clones' as we wait for their lineages to undergo Error Catastrophe.  It would be good to know how many uninfected host are making it through the lagoon. If we have an excess of uninfected host, this would reduce defective interference.
+
+\begin{minipage}{\textwidth}
 Figure 1 shows the combined mutagenic/selection mechanism replacing the Mutagenesis Plasmid(MP) and Accessory Plasmid (AP) in PACE.
 
 \def\boxone#1{
@@ -337,6 +348,7 @@ Activity Induced\linebreak
 \endpicture
 \vskip 1.0cm
 \centerline{\bf Fig 1. M-selection Plasmid}
+\end{minipage}
 \vskip 0.2cm
 
 \section{Comparison with Natural Selection}
@@ -440,13 +452,16 @@ Lynch M.
   \newblock \textit{{C}ontinuous evolution of Bacillus thuringiensis toxins overcomes insect resistance.}
   \newblock  Nature 533,58-63 (2016) doi:10.1038/nature17938.
 
+\bibitem{drake91}
+  Drake J. W., 
+  \newblock \textit{{A} constant rate of spontaneous mutation in DNA-based microbes}, 
+  \newblock  Proc Natl Acad Sci U S A. 1991 Aug 15;88(16):7160-4.
 \end{thebibliography}
 
 \fbox{\begin{minipage}{4.0in}
 Bacteriophage M13. The genome size is 6407 bp (4). The
 mutational target is 258 bp of an inserted Escherichia coli
-lacZa sequence (5). The spontaneous mutant frequency is 6.4
-x 10-4 \textit{Drake, 1991}
+lacZa sequence (5). The spontaneous mutant frequency is $6.4 x 10-4$ per genome or $7.2 x 10-7$ per base pair \textit{Drake, 1991}
 \end{minipage}}
 
 \end{document}
