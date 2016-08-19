@@ -55,7 +55,7 @@ const int P4 = 11;
 
 #endif
 
-const int DEFAULT_VALVECYCLE = 20000UL;
+const int DEFAULT_VALVECYCLE = 60000UL;
 const int DEFAULT_SAMPLES    = 24;
 const int DEFAULT_SAMPLETIME = 3600UL;
 const int DEFAULT_ALIQUOT    = 500UL;
@@ -118,7 +118,7 @@ int sampleNum;     // Total number of samples to take
 int groupNum;      // Number of samples per group
 int groupTime;     // Time between groups
 int aliquot;       // Milliseconds for sample taking
-int valveInterval;
+unsigned int valveInterval;
 int valveTime[6]; // Valve open time in milliseconds per interval
 int valvePin[6]; // Valve open time in milliseconds per interval
 
@@ -139,9 +139,9 @@ void printHelp(void)
 	Serial.print("k(");Serial.print(valveTime[2]);Serial.println(",'set lagoon3 drain time(ms)').");
 	Serial.print("l(");Serial.print(valveTime[3]);Serial.println(",'set lagoon4 drain time(ms)').");
 	Serial.print("m(");Serial.print(valveTime[4]);Serial.println(",'set cellStat drain time(ms)').");
-	Serial.println("n(value,'total number of samples').");
-	Serial.println("p(value,'set drain timing interval').");
-	Serial.println("t(value,'time between samples').");
+	Serial.print("n(");Serial.print(sampleNum);Serial.println(",'total number of samples').");
+	Serial.print("p("); Serial.print(valveInterval);Serial.println(",'set drain timing interval').");
+	Serial.print("t("); Serial.print(sampleTime); Serial.println(",'time between samples').");
 	Serial.println("s('save current settings').");
 	Serial.println("r('restore stored settings').");
 	Serial.println("z('zero EEPROM - defaults restored after reset').");
@@ -223,7 +223,7 @@ int i;
 		groupNum   = 12;                // Number of samples per group
 		groupTime  = 0;                 // Time between groups
 		aliquot = DEFAULT_ALIQUOT;      // SAMPLE SIZE in mSec
-		for (i=0; i< 6; i++) valveTime[i] = 3000;
+		for (i=0; i< 6; i++) valveTime[i] = 800;
 		valveInterval = DEFAULT_VALVECYCLE;
 		saveRestore(SAVE);
 	}
@@ -349,6 +349,9 @@ void respondToRequest(void)
 void printTermInt(char *functor, int arg)
 { Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
 
+void printTermUInt(char *functor, unsigned int arg)
+{ Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
+
 void printTerm2Int(char *functor, int arg1, int arg2)
 { 
   Serial.print(functor); Serial.print("(");
@@ -405,13 +408,16 @@ int i;
 			else 		valveTime[4] = value;
 			break;
 		case 'n':
-			sampleNum = value;
+			if (value == 0) printTermInt("samples",sampleNum);
+			else 		sampleNum = value;
 			break;
 		case 'r' :
 			saveRestore(RESTORE);
 			break;
-		case 'p': valveInterval = value; break;
-		
+		case 'p':
+			if (value == 0) printTermUInt("period",valveInterval);
+			else 		valveInterval = value;
+			break;
 		case 't' :        // Set Value or Report Time to next Sample
 		     	if (value == 0) {
 			   time_left = sampleTimeMS - (millis()-lastSampleTime);
@@ -425,10 +431,7 @@ int i;
 			saveRestore(SAVE);
 			break;
 		case 'z' :
-			int i;
-			for(i=0;i<5*sizeof(int);i++) EEPROM.write(i,0);
-			Serial.println("EEPROM ZEROED");
-			delay(4000);
+			EEPROM.write(0,0);
 			break;
 		default :
 			printTermChar("ignored",c);
