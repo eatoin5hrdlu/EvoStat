@@ -8,7 +8,7 @@ from __future__ import print_function
 from contrast import makeTkSliders
 
 import sys, os, time, socket, subprocess, re, traceback
-
+import datetime
 from os  import popen
 import glob
 import base64, urllib2
@@ -183,17 +183,27 @@ class ipCamera(object):
                 else :
                     self.evocv2.showUser(frame)
         return None
-
+    
+    def lagoon_level_bbox_xy(self, lnum) :
+        (y1,x1,y2,x2) = self.params['lagoonRegion']
+        quarterWidth = int((x2-x1)/4)
+        eighthWidth = int((x2-x1)/8)
+        sixteenthWidth = int(eighthWidth/2)
+        left = x1 + sixteenthWidth + 8
+        right = x1 + sixteenthWidth + eighthWidth - 8
+        return ((left+(lnum*quarterWidth), y1+8),(right+(lnum*quarterWidth),y2-8))
 
     def exportImage(self, image) :
         global levelPhase
-        (x1,y1,x2,y2) = self.params['lagoonRegion']
-        (cx1,cy1,cx2,cy2) = self.params['cellstatRegion']
-        filename = "./web/phagestat.jpg"
         if (image != None ) :
-            cv2.rectangle(image,(y1,x1),(y2,x2),(250,250,0),2)
-            cv2.rectangle(image,(cy1,cx1),(cy2,cx2),(0,200,200),2)
-#            image = cv2.add(cv2.multiply(image,1.3),-30)
+            (y1,x1,y2,x2) = self.params['lagoonRegion']
+            cv2.rectangle(image,(x1,y1),(x2,y2),(250,250,0),2)
+            for i in range(4):
+                ((lx1,ly1),(lx2,ly2)) = self.lagoon_level_bbox_xy(i)
+                cv2.rectangle(image,(lx1,ly1),(lx2,ly2),(100,255-i*60,i*60),2)
+            (cy1,cx1,cy2,cx2) = self.params['cellstatRegion']
+            cv2.rectangle(image,(cx1,cy1),(cx2,cy2),(0,200,200),2)
+            filename = "./web/phagestat.jpg"
             cv2.imwrite(filename,cv2.resize(image,self.params['imageSize']))
             newSnapshot = None
                     
@@ -400,9 +410,9 @@ def showLevel(img, bb, lvl, color) :
     width = bb[3]-bb[1]
     (px,py) = ( bb[3]-width/2, bb[0]+lvl )
     pc = 100-100*lvl/height
-    cv2.line(img,(px,py),(px+width,py), color, 2)
-    cv2.putText(img,"  "+str(pc)+"%",(px,py),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color,1)
+    cv2.line(img,(px,py),(px+(width/2),py), color, 2)
+    cv2.putText(img,"  "+str(pc)+"%",(px-10,py-8),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.75, color,2)
 
 if __name__ == "__main__" :
     plog("openCV('" + str(cv2.__version__) + "').")
@@ -463,8 +473,10 @@ if __name__ == "__main__" :
         llist = []
         for i in range(ipcam.params['numLagoons']) :
             x1 = brect[1] + i * eighthWidth
-            x2 = brect[1] + (i+1)*eighthWidth
+            x2 = brect[1] + int((i+1)*(1.2)*eighthWidth)
             lbb = (brect[0], x1, brect[2], x2)
+            ( (lx1,ly1), (lx2,ly2) ) = ipcam.lagoon_level_bbox_xy(i)
+            lbb = (ly1,lx1,ly2,lx2)
             llev = ipcam.evocv2.getLevel( img,
                                           lbb,
                                           green,
@@ -478,6 +490,9 @@ if __name__ == "__main__" :
         contrast = ipcam.params['cellstatContrast']
         lev = ipcam.evocv2.getLevel(img, brect, red, contrast)
         plog("CBB " + str(brect) + " level " + str(lev))
+        (wi,he,de) = img.shape
+        cv2.putText(img,time.asctime(time.localtime()),(wi/16,3*he/4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255),2)
         showLevel(img, brect, lev, (255,255,0))
         ipcam.exportImage(img)
         llist.insert(0,lev)

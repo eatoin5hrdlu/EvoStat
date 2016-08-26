@@ -5,12 +5,12 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(100,240,330,300),
+         cellstatRegion(100,190,330,250),
          cellstatContrast(1, 1.9, -50), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
-         lagoonRegion(490,10,620,460),
-         lagoonContrast(  2, 1.8, -60),
+         lagoonRegion(470,10,620,460),
+         lagoonContrast(  2, 2.2, -50),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
@@ -76,10 +76,10 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
-watcher(reintjes,'vp 9194525098', 12).  % Peter Reintjes
+watcher(reintjes,'vp 9194525098', 24).  % Peter Reintjes
 watcher(howell, 'vp 7723215578', 48).   % Finn Howell
-%watcher(pc,      'a 9193083839',  2).  % The Other Peter
-%watcher(marshall,'a 5056037415', 4).   % Marshall
+watcher(pc,      'a 9193083839',  6).  % The Other Peter
+watcher(marshall,'a 5056037415', 6).   % Marshall
 %watcher(martha, 'vp 9196024293', 23).  % Martha Collier
 %watcher(lea,    'vp 9194525097', 4).   % Lea
 

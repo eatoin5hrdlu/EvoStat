@@ -5,6 +5,7 @@ import glob
 import base64, urllib2
 
 from suppress_stdout_stderr import suppress_stdout_stderr
+debug = False
 
 # Tools to fenerate PROLOG terms from Python
 # PROLOG: "f(a(1),b(2))."  FROM PYTHON:  "f"  and   { a:1, b:2 }
@@ -16,10 +17,14 @@ def termInt(f,i) :
     return f+"("+str(i)+")."
 
 def termIntList(f,l) :
+    if (l == None ):
+        plog("Failed to produce a complex term due to empty argument list: " + f)
+        return f+"."
     return f+"("+", ".join([str(i) for i in l])+")."
 
 def plog(str) :
-    print("      --"+str, file=sys.stderr)
+    if (debug == True):
+        print("      --"+str, file=sys.stderr)
 
 def settings() :
     for root in sys.argv:  # See if anything on the command-line matches a .setting file
