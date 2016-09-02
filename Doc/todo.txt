@@ -1,11 +1,78 @@
-The following required for each EvoStat
+Here is my working manifest of pieces and work that need to be done. I'm sorry it is not a concise, pithy description of the few things that need to be done, but I've put an asterisk beside things that are less farther along if you want to call them out specificially.  Everything here has had progress -- (I really tried to find early failures in every sub-system in order to see where the problems will be).
+
+Estimating the time required for individual tasks is always difficult. Sometimes things fall into place and more often things take twice as long.  We've both had enough experience that we can probably take a stab at an appropriately padded schedule.
+--------------------
+Potential time-saving changes:
+
+Use a machine shop service for specialized metal parts, sparger, heat exchanger, etc.
+
+If the 3D printed parts that I've made work well, we can start ordering them from a service (ShapeWays), so I don't spend any more nights (like last night) cleaning the clogged nozzel on the 3D printer.  Otherwise the schedule would need time allocated to things which would appear to have nothing to do with the EvoStat.
+--------------------------
+
+The following will be required for each EvoStat, but at least one prototype for each sub-system has been built and most have two instances but no completely connected system exists yet.
+
+Full integration of the system remains to be done and this will likely require some changes to both hardware and software.  Emphasis has been on keeping the cost low and making the system easy to replicate.  The next phase is to assemble enough of a complete system to start long test runs -- one expected result of these runs may require upgrades to certain components.
+
+For example, even with low-duty-cycle operation, the four $25.00 peristaltic priming pumps may be an early failure point.  These four pumps are required for the three inputs: Host cells, Mutagenisis Inducer (Arabinose), and Selection Inducer (cAMP) -- and one waste/sample output.
+(Note: Nutrient pump/valve are not included in the critical flow-rate subsystem because it is independently controlled by the Turbidostat).  Systems with more than three inputs will require a major change, but only if the additional inputs have substantial volumes and thereby need to be part of the flow-rate management.  Small volumes of indicators or innoculant which do not significantly affect the working volume can be handled without additional instrumentation.
+
+The following required for each EvoStat:
 
 
 Definitions:
    Lagoon - small container for independent evolving viral populations 
-   Driver - switched current source to activate a relay or motor
+   Driver - switched current source to activate a relay or motorDefinitions:
+   Supply   - The liquid containers on the top of the EvoStat containing the
+              input materials, nutrient and inducers for EvoStat subsystems.
+	      This is a collection of containers with bottom output ports
+   Cellstat - Subsystem supporting the host cell culture. This includes:
+              Heater, mixer, meniscus light, turbidostat, PIR temperature sens,
+              Nutrient inlet valve
+   Lagoon - The small container for independent evolving viral populations and
+            by extension, the subsystem supporting the phage population therein
+            including: heater, mixer, meniscus light, four-port input valve for
+            host cells and inducers.
+
+   Port   - Lower liquid exit passage for Supply, Cellstat, and Lagoon vessels:
+            Ports on all autoclavable vessels must include a disconnect at the end of a
+	    length of silicon tubing to avoid stress where the port fitting enters the vessel
+            1/8-3/16" diamond-drilled hole in vessel wall
+            1/4" silicon tubing gasket inserted into vessel wall
+	    One (1) tubing/tubing connection inserted into silicon tubing gasket
+	    Minimum 2-4" silicon tubing to mechanically separate the disconnect from vessel
+	    One (1) tubing to Luer-lock disconnect fitting.
+
+   Sampler - The sample collector and outflow valve controller for both lagoon
+             and cellstat outflow rates.
+
+   Driver - Any of several switched current sources to activate a relay or motor
+
+   Solid-state relay - 3-5volt DC controlled line-voltage, high-current relays for
+	       Heater power supply (36 VAC transformer)
+	       Aeration system (Aquarium Air pump)
 
 
+Containers/Septa:
+   1 Cellstat Vessel, 1-2L transparent glass with:
+      a) Three (3) top inflow Ports 
+      b) Five (5) lower outflow Ports
+   1-4 Lagoon Vessels, 250mL transparent glass with single lower exit Port
+   1-4 3D printed septa Lagoons w/2-4 inlets.
+
+Heating:  
+    Heater for host cell container
+    Melexis (PIR) temperature detector
+    1 high-voltage solid state relay
+    1-4 (low-voltage) heaters for lagoons
+    (Still possible we will want a chamber heater. E.g. Heat Gun w/ relay)
+    Drivers for Arduino control of all heating elements
+    Software
+
+Mixing:
+    Magnetic mixer for Host cell container
+    4 magnetic mixers for lagoons
+    Drivers for five mixing motors
+    Software
 
 Containers:
    1 3D printed cap with septa for host cell container
@@ -22,7 +89,6 @@ Heating:
     Drivers for Arduino control of all heating elements
     Software
 
-
 Mixing:
     Magnetic mixer for Host cell container
     4 magnetic mixers for lagoons
@@ -30,23 +96,17 @@ Mixing:
     Software
 
 Aeration:
-    2 stainless steel sparger arcs for host cell container
-    1 Aquarium air-pump
-    1 High-voltage solid-state relay for air-pump
+    Two (2) stainless steel sparger arcs for host cell container
+    One (1) Aquarium air-pump
+    One (1) High-voltage solid-state relay for air-pump
 
 Flow
-    12 3D printed compression valves
-    1  3D-printed pointer
-    1  3D-printed motor bracket
     Drivers for:
-    	    Nutrient valve and pump
-	    Inducer valve and pump
-	    Host cell valve and pump
-	    Outflow valve and pump
-    Driver for Rotary valve unit (torque control)
-    Step-encoder resistor network
-    Software for position sensing and torque control
-
+     	    Nutrient valve
+	    Inducer valve
+	    Host cell valve
+	    Four (4) Five (5) position pinch valves for Lagoons
+	    Outflow valve
 
 Optics:
     Drivers for red, yellow, green, blue, and red laser LEDs
@@ -65,5 +125,12 @@ Software:
     Data logging
     Text messaging
    
-  
+
+Stainless steel upgrade:
+
+The EvoStat super-structure uses PVC for all vertical structure and black-iron pipe for strong horizontal platforms (e.g. Supply platform).  Black-iron fittings should be replaced with stainless steel (at approx 4X cost).
+
+I have initial versions of software for the pump control software on micro-controllers and level detection on system computer, but integration of optical sensing and flow control is still to be done.
+
+ 
 
