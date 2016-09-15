@@ -176,9 +176,9 @@ int *times = valves.getTimes();
 	Serial.println("cmd(r,'Restore settings from EEPROM').");
 	Serial.println("cmd(s,'Save settings in EEPROM').");
 	Serial.print("cmd(t,[");Serial.print(target_temperature);
-	Serial.println("],'Set/get target temperature in tenth degrees C').");
+	Serial.println("],'Get current temperature in tenth degrees C').");
 	Serial.print("cmd(tt,[");Serial.print(target_temperature);
-	Serial.println("],'Set/get target temperature in tenth degrees C').");
+	Serial.println("],'Get/Set target temperature in tenth degrees C').");
 	Serial.println("cmd(t,'Get temperature').");
 	Serial.println("cmd(z,'Zero EEPROM').");
 }
@@ -339,13 +339,14 @@ void mixer(byte v)
 		mixer_state = false;
 	} else {
 	    if (!mixer_state) {
-	    	for(int i=3; i<11; i++) {
+	    	for(int i=3; i<13; i++) {
 			analogWrite(MIXER, i*mixerspeed/10);
 			respondToRequest();
 			if (auto_valve) valves.checkValves();
 			for(int j=0;j<100;j++)
 				delayMicroseconds(4000);
 		}
+		analogWrite(MIXER, mixerspeed);
 		mixer_state = true;
 	    }
 	}
@@ -473,9 +474,11 @@ byte d;
 		case 't':
 		        switch(c2) {
 			  case 't':
+			  if (value == 0) {
 			   sprintf(reply,"target_temperature(%d).",
                                           target_temperature);
 			   soutln(reply);
+			   } else target_temperature = value;
 			   break;
 			 default:
 			   sprintf(reply,"temperature(%d).",get_temperature());
