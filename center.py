@@ -33,9 +33,11 @@ beta    = np.array([ -60 ])
 theta = 1
 phi = 1
 
+logging = False
 
 def plog(s) :
-    print(s)
+    if (logging):
+        print(s)
     
 def lightLevel() :
     cmd = "http://" + ip + brightCmd + userpwd
@@ -49,13 +51,31 @@ def lightLevel() :
     except urllib2.URLError, msg :
         plog("camera "+str(msg)+"-"+ip)
 
-def moveCamera(cmd) :
-    cmd = "http://" + ip + "/decoder_control.cgi?command=" + cmd + "&onestep=5" + userpwd
+def ledMode(n) :
+    cmd = "http://" + ip + "/set_misc.cgi?led_mode=" + str(n) + userpwd
+    try:
+        urllib2.urlopen(urllib2.Request(cmd))
+    except urllib2.URLError, msg :
+        plog("camera "+str(msg)+"-"+ip)
+
+def moveCamera(cnum,dist) :
+    cmd = "http://" + ip + "/decoder_control.cgi?command=" + str(cnum) + userpwd # "&onestep=5"
     plog(cmd)
     try:
         urllib2.urlopen(urllib2.Request(cmd))
     except urllib2.URLError, msg :
         plog("camera "+str(msg)+"-"+ip)
+    paws = abs(dist)/200.0
+    plog("Moving "+str(dist)+ " or " + str(paws)+ " seconds")
+    time.sleep(paws)
+    cnum = cnum + 1
+    cmd = "http://" + ip + "/decoder_control.cgi?command=" + str(cnum) + userpwd
+    plog(cmd)
+    try:
+        urllib2.urlopen(urllib2.Request(cmd))
+    except urllib2.URLError, msg :
+        plog("camera "+str(msg)+"-"+ip)
+    time.sleep(0.2)
 
 def grabFrame() :
     snapshot = "http://"+ip+picCmd+userpwd
@@ -76,7 +96,6 @@ def grabFrame() :
     except urllib2.URLError, msg :
         plog("camera "+str(msg)+"-"+ip)
         exit(0)
-            
     if (img1 == None) :
         debug = debug + "No image returned in IPcamera.grab()"
         return None
@@ -84,14 +103,14 @@ def grabFrame() :
 
 #                   UP          DOWN        LEFT         RIGHT
 #
-keycmds  = { 65362 : '0', 65364 : '2', 65363: '4', 65361 : '6' }
-textcmds = { 'up' : '0', 'down': '2', 'left': '4', 'right' : '6' }
+keycmds  = { 65362 : 0, 65364 : 2, 65363: 4, 65361 : 6 }
+textcmds = { 'up' : 0, 'down': 2, 'left': 4, 'right' : 6 }
 
-def showUser(image, time=1000) :
+def showUser(image, time=10) :
         cv2.imshow("camera", image)
         key = cv.WaitKey(time)
         if (key in keycmds.keys()) :
-            moveCamera(keycmds[key])
+            moveCamera(keycmds[key],100)
         elif key == 27:
             exit(0)
     
@@ -100,22 +119,22 @@ def nearest_error(bbs, centerx, centery) :
     minbb = bbs[0]
     for r in bbs:
         distance = abs(r[0]-centerx)*abs(r[0]-centerx) + abs(r[1]-centery)*abs(r[1]-centery)
-        print("Distance "+str(distance))
         if distance < min_x_plus_y :
             minbb = r
             min_x_plus_y = distance
     xerror = centerx - minbb[0]
     yerror = centery - minbb[1]
+    plog("Nearest blob is " + str(minbb))
     return (xerror,yerror)
     
 # Return blobs in monochrome image with width and height between min and max
-def monoblobs(img, con=(1,1.8,-70), minDim=3, maxDim=12) :
+def monoblobs(monochr, con=(1,1.6,-60), minDim=10, maxDim=30) :
     """IP cameras like 2X(Erode->Dilate->Dilate) erodeDilate(img,2,1,2)
     USB camera likes single erode->dilate cycle erodeDilate(img,1,1,1)
     TODO: Automate variation of these parameters to get a good reading"""
     (it, sc, off) = con
-    con = contrast(img, iter=it, scale=sc, offset=off)
-    gray = erodeDilate(con, 1, 1, 2)
+    con = contrast(monochr, iter=it, scale=sc, offset=off)
+    gray = erodeDilate(con, 1, 1, 1)
     gray2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
     contours, _ = cv2.findContours(gray2, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     toosmall = 0
@@ -123,23 +142,17 @@ def monoblobs(img, con=(1,1.8,-70), minDim=3, maxDim=12) :
     bbs = []
     for c in contours:
         rect = cv2.boundingRect(c)
-        plog("Considering contour : "+str(rect))
         if (rect[1] < 3) :
-            plog("Too high ")
             continue
         if rect[2] < minDim or rect[3] < minDim:  
-            plog(str(rect)+ " too small MinDIM="+str(minDim))
             toosmall += 1
             continue
         elif    rect[2]>maxDim or rect[3]>maxDim :
-            plog(str(rect)+ " too large MAXDIM="+str(maxDim))
             toolarge += 1
             continue
         else :
-            plog( "SIZE OKAY   " + str(rect) + "\n")
             bbs.append(rect)
-
-    plog(str(toosmall)+" too small "+str(toolarge)+" too large")
+    plog(str(toosmall)+" too small "+str(toolarge)+" too large. Returning "+str(len(bbs)) + " blobs")
     return bbs
 
 def erodeDilate(img,iter=1,erode=1,dilate=1) :
@@ -162,7 +175,8 @@ def contrast(image, iter=1, scale=1.4, offset=-70) :
                 plog( "image(None) after add/mulitply in contrast!")
         image = erodeDilate(image, 1, 1, 1)
     showUser(image)
-    (ret,img) = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+    (ret,img) = cv2.threshold(image, 170, 255, cv2.THRESH_BINARY)
+#    (ret,img) = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
     if (ret == False) :
         plog( "Thresholding failed?")
         return None
@@ -172,7 +186,11 @@ def contrast(image, iter=1, scale=1.4, offset=-70) :
     return img
     
 if __name__ == "__main__" :
+    if ('--verbose' in sys.argv or 'verbose' in sys.argv or '-v' in sys.argv):
+        logging = True
     cv2.namedWindow("camera", cv2.CV_WINDOW_AUTOSIZE)
+    cv2.moveWindow("camera", 200,50)
+    ledMode(0)
     lightLevel()
     img = grabFrame()
     (w,h,d) = img.shape
@@ -180,39 +198,54 @@ if __name__ == "__main__" :
     centery = h/2
     while(1) :
         img = grabFrame()
-        centerpoint = str((centery-30,centerx+7))
+        plog("NEW FRAME")
+        img[:,:,0] = cv2.multiply(img[:,:,0],0.5)
+        img[:,:,1] = cv2.multiply(img[:,:,1],0.5)
+        img[:,:,2] = cv2.subtract(img[:,:,2],cv2.add(cv2.multiply(img[:,:,0],0.5),
+                                                     cv2.multiply(img[:,:,1],0.5)))
+        for i in range(8):
+            red2 = grabFrame()
+            img[:,:,0] = cv2.add(img[:,:,0], cv2.subtract(red2[:,:,2],
+                                                cv2.add( cv2.multiply(red2[:,:,0],0.5),
+                                                        cv2.multiply(red2[:,:,1],0.5))))
+            img[:,:,1] = cv2.add(img[:,:,1], cv2.subtract(red2[:,:,2],
+                                                cv2.add( cv2.multiply(red2[:,:,0],0.5),
+                                                         cv2.multiply(red2[:,:,1],0.5))))
+            img[:,:,2] = cv2.add(img[:,:,2], cv2.subtract(red2[:,:,2],
+                                                cv2.add( cv2.multiply(red2[:,:,0],0.5),
+                                                         cv2.multiply(red2[:,:,1],0.5))))
+        centerpoint = str((centery,centerx))
         cv2.putText(img,centerpoint, (centery-40,centerx+7),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),1)
         cv2.putText(img,"l", (centery-60,centerx),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1)
         cv2.putText(img,"r", (centery+60,centerx),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1)
         cv2.putText(img,"u", (centery,centerx-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1)
         cv2.putText(img,"d", (centery,centerx+30),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1)
-        cv2.rectangle(img,(centery+50,centerx-20),(centery-50,centerx+20),(100,100,255),1)
+        cv2.rectangle(img,(centery+20,centerx-20),(centery-20,centerx+20),(100,100,255),1)
         showUser(img)
         (b,g,r) = cv2.split(img)
-        red = cv2.subtract(cv2.multiply(r,2),cv2.add(b/2,g/2))
-        showUser(red)
-#        red = cv2.subtract(cv2.multiply(red, 3),100)
-#        showUser(red)
-        bbs = monoblobs(red)
+        bbs = monoblobs(r)
+        if (len(bbs) == 0) :
+            img = None
+            continue
         for r in bbs:
             cv2.rectangle(img,(r[0],r[1]),(r[0]+r[2],r[1]+r[3]),(255,160,120),1)
-        showUser(img,5000)
+        showUser(img)
         (deltax, deltay) = nearest_error(bbs, centery, centerx)
         cv2.rectangle(img,(centerx+deltax-10,centery+deltay-10),(centerx+deltax+10,centery+deltay+10),(0,0,255),1)
-        print("Error "+str((deltax,deltay)))
-        if (abs(deltax) > 20):
+        plog("Error "+str((deltax,deltay)))
+        if (abs(deltax) > 5):
             if deltax < 0 :
-                print("move left")
-                moveCamera(textcmds['left'])
+                moveCamera(textcmds['left'],deltax)
             else :
-                print("move right")
-                moveCamera(textcmds['right'])
-        if (abs(deltay) > 20):
+                moveCamera(textcmds['right'],deltax)
+        if (abs(deltay) > 5):
             if deltay < 0 :
-                print("move down")
-                moveCamera(textcmds['down'])
+                moveCamera(textcmds['down'],deltay)
             else :
-                print("move up")
-                moveCamera(textcmds['up'])
+                moveCamera(textcmds['up'],deltay)
+        if (abs(deltax) < 6 and abs(deltay) < 6):
+            time.sleep(5)
+            exit(0)
+        img = None
                 
             
