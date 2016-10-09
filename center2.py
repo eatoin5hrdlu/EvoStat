@@ -1,4 +1,4 @@
-#!C:/cygwin/Python27/python -u
+#!C:/Python27/python -u
 #!/usr/bin/python -u
 #!C:/Python27/python -u
 # Regions lead with y  (y1,x1,y2,x2) where (y1,x1) is (uppermost,leftmost)
@@ -20,7 +20,8 @@ import cv2.cv as cv
 import evocv2
 from util import *
 
-ip      = '172.16.3.234'
+#ip      = '172.16.3.234'
+ip      = '192.168.254.30'
 userpwd = '&user=scrapsec&pwd=lakewould'
 picCmd  = '/snapshot.cgi?resolution=32&user=admin&pwd=lakewould'
 brightCmd   = '/camera_control.cgi?param=1&value=1' # Range 1-9
@@ -81,21 +82,21 @@ def grabFrame() :
     req = urllib2.Request(snapshot)
     try :
         img1 = urllib2.urlopen(req).read()
-        if (img1 == None) :
+        if img1 is None :
             plog("camera "+ip)
             exit(0)
         img1 = bytearray(img1)
-        if (img1 == None) :
+        if img1 is None :
             plog("bytearray(fail).")
             exit(0)
         img1 = np.asarray(img1, dtype=np.uint8)
-        if (img1 == None) :
+        if img1 is None :
             plog("numpy_conversion(fail).")
             exit(0)
     except urllib2.URLError, msg :
         plog("camera "+str(msg)+"-"+ip)
         exit(0)
-    if (img1 == None) :
+    if img1 is None :
         debug = debug + "No image returned in IPcamera.grab()"
         return None
     return(cv2.imdecode(img1, 1))
@@ -118,19 +119,21 @@ def showUser(image, time=10) :
     if key == 27:
         exit(0)
     
-def nearest_error(bbs, y, x) :
+def nearest_error(img, bbs, x, y) :
     min_x_plus_y = 200000
     minbb = bbs[0]
     for r in bbs:
-        distance = abs(r[0]-y)*abs(r[0]-y) + abs(r[1]-x)*abs(r[1]-x)
+        distance = abs(r[0]-x)*abs(r[0]-x) + abs(r[1]-y)*abs(r[1]-y)
+        cv2.rectangle(img, (r[0],r[1]), (r[0]+r[2],r[1]+r[3]), (255,255,0),2)
         if distance < min_x_plus_y :
             minbb = r
             min_x_plus_y = distance
+    showUser(img)
     plog("Nearest blob is " + str(minbb))
-    return(y-minbb[0], x-minbb[1])
+    return((minbb[0]+minbb[2]/2)-x, (minbb[1]+minbb[3]/2)-y)
     
 # Return blobs in monochrome image with width and height between min and max
-def monoblobs(monochr, con=(1,1.6,-60), minDim=10, maxDim=30) :
+def monoblobs(monochr, con=(1,1.3,-80), minDim=10, maxDim=40) :
     """IP cameras like 2X(Erode->Dilate->Dilate) erodeDilate(img,2,1,2)
     USB camera likes single erode->dilate cycle erodeDilate(img,1,1,1)
     TODO: Automate variation of these parameters to get a good reading"""
@@ -164,16 +167,16 @@ def erodeDilate(img,iter=1,erode=1,dilate=1) :
     return img
 
 def contrast(image, iter=1, scale=1.4, offset=-70) :
-    if (image == None) :
+    if image is None :
         plog("contrast called with null Image")
     for i in range(iter) :
         plog("Try contrast "+str((iter,scale,offset)))
-        if (image == None) :
+        if image is None :
             plog("contrast loop: Image is None")
         else :
             showUser(image)
             image = cv2.add(cv2.multiply(image,scale),offset)
-            if (image == None) :
+            if image is None :
                 plog( "image(None) after add/mulitply in contrast!")
         image = erodeDilate(image, 1, 1, 1)
     showUser(image)
@@ -181,16 +184,18 @@ def contrast(image, iter=1, scale=1.4, offset=-70) :
     if (ret == False) :
         plog( "Thresholding failed?")
         return None
-    if (img == None) :
+    if img is None :
         plog( "img is None after binary threshold in contrast")
     showUser(img)
     return img
 
 def addhalf(img,b,c) :
-    return cv2.add(cv2.multiply(img[:,:,b],0.5),
-                   cv2.multiply(img[:,:,c],0.5))
+    return cv2.add(cv2.multiply(img[:,:,b],0.3),
+                   cv2.multiply(img[:,:,c],0.3))
 
-def integrate(iter,a,b,c):
+def integrate(iter,a):
+    b = (a+1)%3
+    c = (a+2)%3
     img = grabFrame()
     plog("NEW FRAME")
     img[:,:,a] = cv2.subtract(img[:,:,a],addhalf(img,b,c))
@@ -203,7 +208,7 @@ def decorate(img) :
     (h,w,_) = img.shape
     y = h/2
     x = w/2
-    label = str((y,x))
+    label = str((x,y))
     cv2.putText(img,label, (x-40,y+7),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),1)
     cv2.putText(img,"l", (x-60,y),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1)
     cv2.putText(img,"r", (x+60,y),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1)
@@ -217,14 +222,14 @@ def adjustCamera(dx,dy) :
     plog("Error "+str((dx,dy)))
     if (abs(dx) > 5):
         if dx < 0 :
-            moveCamera(textcmds['left'],dx)
-        else :
             moveCamera(textcmds['right'],dx)
+        else :
+            moveCamera(textcmds['left'],dx)
     if (abs(dy) > 5):
         if dy < 0 :
-            moveCamera(textcmds['down'],dy)
-        else :
             moveCamera(textcmds['up'],dy)
+        else :
+            moveCamera(textcmds['down'],dy)
     if (abs(dx) < 6 and abs(dy) < 6):
         return True
     return False
@@ -247,18 +252,21 @@ if __name__ == "__main__" :
     (h,w,d) = img.shape
     cy = h/2
     cx = w/2
+    primary = 0 # BLUE
     while(1) :
-        img = integrate(8,2,0,1) # Integrate X8 Red(2) minus Blue(0) and Green(1)
+        img = integrate(2,primary) # Integrate X8 Red(2) minus Blue(0) and Green(1) integrate(3,2,0,1)
         img = decorate(img)
         showUser(img)
-        bbs = monoblobs(img[:,:,2]) # Look for red blobs
+        bbs = monoblobs(img[:,:,0]) # Look for red blobs
         if (len(bbs) == 0) :
             continue
         for r in bbs:
             cv2.rectangle(img,(r[0],r[1]),(r[0]+r[2],r[1]+r[3]),(255,160,120),1)
+            cv2.rectangle(img,(r[0],r[1]),(r[0]+2,r[1]+2),(0,255,0),2)
         print(str(bbs))
-        (deltay, deltax) = nearest_error(bbs, cy, cx)
-        cv2.line(img,(cx,cy),(cx-deltax,cy-deltay),(0,0,255),1)
+        (deltax, deltay) = nearest_error(img, bbs, cx, cy)
+        cv2.line(img,(cx,cy),(cx+deltax,cy+deltay),(0,0,255),1)
+        print("center " + str((cx,cy))+ " blob " + str((cx+deltax,cy+deltay)))
         showUser(img)
         plog("Error "+str((deltax,deltay)))
         if (adjustCamera(deltax,deltay)) :
