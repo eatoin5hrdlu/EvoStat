@@ -113,14 +113,14 @@ class Secchi(object):
         band = (y2-y1)/10
         osy = band/5
         cimg = self.croppedImage(brect)
-        for i in range(8) :
-            cv2.rectangle(cimg,(osx+3,osy+band*i),((x2-x1)-osx,band*(i+1)-osy),(30*i,100,255-30*i),2)
-        self.showUser(cimg)
         vals = []
         for i in range(8) :
             offset = band*i
-            (B,G,R,A) = cv2.mean(img[offset:offset+band,:,:])
-            vals.append(int(R))
+            (B,G,R,A) = cv2.mean(cimg[offset:offset+band,:,:])
+            vals.append(int(B+G+R))
+        for i in range(8) :
+            cv2.rectangle(cimg,(osx+3,osy+band*i),((x2-x1)-osx,band*(i+1)-osy),(30*i,100,255-30*i),2)
+        self.showUser(cimg)
         print(termIntList("rawdata",vals))
         print(termIntList("deltas",self.deltas(vals)))
         return vals
