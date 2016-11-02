@@ -72,6 +72,8 @@ class Secchi(object):
         if (self.params['debugpause'] > 10) :
             (text, y, x) = label
             cv2.putText(img,text, (y,x),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,0,255),1)
+            if img.shape[1] < 100 :
+                img = cv2.resize(img,None,fx=4, fy=4, interpolation = cv2.INTER_CUBIC)
             cv2.imshow("camera", img)
             if cv.WaitKey(self.params['debugpause']) == 27:
                  exit(0)
@@ -109,18 +111,23 @@ class Secchi(object):
     def turbidity(self, img) :
         brect = self.params['secchiRegion']
         (y1,x1,y2,x2) = brect
-        osx = (x2-x1)/10
-        band = (y2-y1)/10
-        osy = band/5
+        osx = (x2-x1)/9
+        band = (y2-y1)/7
+        osy = band/4
         cimg = self.croppedImage(brect)
         vals = []
-        for i in range(8) :
+        for i in range(6) :
             offset = band*i
-            (B,G,R,A) = cv2.mean(cimg[offset:offset+band,:,:])
-            vals.append(int(B+G+R))
-        for i in range(8) :
-            cv2.rectangle(cimg,(osx+3,osy+band*i),((x2-x1)-osx,band*(i+1)-osy),(30*i,100,255-30*i),2)
-        self.showUser(cimg)
+#            (B,G,R,A) = cv2.mean(cimg[offset:offset+band,:,:])
+            (B,G,R,A) = cv2.mean(cimg[
+            osy+band*i:band*(i+1)-osy,
+            osx+3:((x2-x1)-osx),
+            :])
+            vals.append(int(R))
+        for i in range(6) :
+            cv2.rectangle(cimg,(osx+3,osy+band*i),((x2-x1)-osx,band*(i+1)-osy),(34*i,200,255-30*i),1)
+        big = cv2.resize(cimg,None,fx=4, fy=4, interpolation = cv2.INTER_CUBIC)
+        self.showUser(big)
         print(termIntList("rawdata",vals))
         print(termIntList("deltas",self.deltas(vals)))
         return vals
@@ -169,8 +176,9 @@ if __name__ == "__main__" :
     if (not rval) :
         plog("camera read failed")
         exit(0)
+    secchi = Secchi(usbcam, params)
     if (params['rotate']) :
-        img = rotateImage(img, params['rotate'])
+        img = secchi.rotateImage(img, params['rotate'])
     if ('gen' in sys.argv) :   # Python .settings file updated
         exportImage(img)
         exit(0)
@@ -179,7 +187,6 @@ if __name__ == "__main__" :
     if (not rval):
         plog("VideoCapture test returned "+str(rval))
         exit(4)
-    secchi = Secchi(usbcam, params)
     print(termIntList("turbidity",secchi.turbidity(img)))
     usbcam.release()
     cv2.destroyAllWindows()
