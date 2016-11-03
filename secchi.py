@@ -48,7 +48,7 @@ class Secchi(object):
                 if (image == None) :
                     plog( "image(None) after add/mulitply in contrast!")
             image = self.erodeDilate(image, 1, 1, 1)
-        self.showUser(image,label= ("cdone",image.shape[0]/2,image.shape[1]/2) )
+        self.showUser(image)
         (ret,img) = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
         if (ret == False) :
             plog( "Thresholding failed?")
@@ -68,10 +68,10 @@ class Secchi(object):
                             cv2.multiply(cv2.add( img[:,:,(color+1)%3],
                                                   img[:,:,(color+2)%3]),fraction))
     
-    def showUser(self, img, label=(".",0,0),multiplier=1) :
+    def showUser(self, img, delay=-1) :
+        if (delay > -1) :
+            self.params['debugpause'] = delay
         if (self.params['debugpause'] > 10) :
-            (text, y, x) = label
-            cv2.putText(img,text, (y,x),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,0,255),1)
             if img.shape[1] < 100 :
                 img = cv2.resize(img,None,fx=4, fy=4, interpolation = cv2.INTER_CUBIC)
             cv2.imshow("camera", img)
@@ -98,6 +98,7 @@ class Secchi(object):
         (y1,x1,y2,x2) = brect
         image = self.grab()
         plog("croppedImage input: " + str(image.shape))
+        cv2.rectangle(image,(x1,y1),(x2,y2),(255,0,0),2)
         self.showUser(image)
         if (image == None) :
             plog("camera(fail).")
@@ -108,6 +109,16 @@ class Secchi(object):
         self.showUser(cimg)
         return cv2.copyMakeBorder(cimg, 2,2,2,2, cv2.BORDER_CONSTANT,(0,0,0))
 
+    def locate(self):
+        (y1,x1,y2,x2) = self.params['secchiRegion']
+        while(1) :
+            image = self.grab()
+            if (image is None) :
+                plog("camera(fail).")
+                exit(0)
+            cv2.rectangle(image,(x1,y1),(x2,y2),(255,0,0),2)
+            self.showUser(image,delay=100)
+            
     def turbidity(self, img) :
         brect = self.params['secchiRegion']
         (y1,x1,y2,x2) = brect
@@ -172,16 +183,20 @@ if __name__ == "__main__" :
         print("requires a <hostname>.settings configuration file")
         exit(0)
     usbcam = cv2.VideoCapture(params['camera'])
-    (rval, img) = usbcam.read()
-    if (not rval) :
-        plog("camera read failed")
-        exit(0)
+    for w in range(10) :
+        (rval, img) = usbcam.read()
+        if (not rval) :
+            plog("camera read failed")
+            exit(0)
+        time.sleep(1)
     secchi = Secchi(usbcam, params)
     if (params['rotate']) :
         img = secchi.rotateImage(img, params['rotate'])
     if ('gen' in sys.argv) :   # Python .settings file updated
         exportImage(img)
         exit(0)
+    if ('locate' in sys.argv) :
+        secchi.locate()
     time.sleep(0.1)
     (rval,img) = usbcam.read()
     if (not rval):
