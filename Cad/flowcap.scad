@@ -38,4 +38,4 @@ module flow(d,t,rad) {
 }
 
 //cap(10,4);
-flow(10,4,2);
+rotate([180,0,0]) flow(10,4,2);
