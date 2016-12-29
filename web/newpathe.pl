@@ -1,77 +1,109 @@
 :- dynamic webok/0.
 :- multifile webok/0.
 
-nl --> [ br([]) ].
 
-label(level, Obj) --> [TLevel,' / ',Level,Units],
-    { get(Obj,level,Level),
-      get(Obj,level_t,TLevel),
-      get(Obj,levelUnits,Units) }.
+% DCG versions of XPCE get/3, and EvoStat component/3
 
-label(od, Obj) --> ['OD',sub(600),'  .',ODTarget,'/.',Turbidity],
-    { get(Obj,tturbidity,ODTarget),
-      get(Obj,turbidity,Turbidity) }.
+getx(Obj,ID,[Data|T],T)              :- get(Obj,ID,Data).
 
-label(temperature, Obj) --> ['Temperature ',TargetFmt,' / ',TempFmt],
-    {  get(Obj,temperature,Temp),
-       DispTemp is float(Temp)/10.0,
-       format(atom(TempFmt), '~4g', [DispTemp]),
-       get(Obj,ttemperature,TargetTemp),
-       DispTarget is float(TargetTemp)/10.0,
-       format(atom(TargetFmt), '~4g', [DispTarget]) }.
+component(Name,Type,Obj,[Name|T],T) :- component(Name,Type,Obj).
 
-label(flow, Obj) --> ['Rate ',TFlow,' / ',Flow,Units],
-    {  get(Obj,flow,Flow),
-       get(Obj,flow_t,TFlow),
-       get(Obj,flowUnits,Units) }.
+nl --> {html,!}, [br([])].
+nl --> ['\n'].
 
-label(supply, Name) --> [Name], nl, [Level,Units],
-    { component(Name,supply,Obj),
-      get(Obj,levelUnits,Units),
-      get(Obj,level,Level) }.
+% Divide by 10 and present as 4-digit float because
+% Internal temperatures integral tenths of degrees C.
 
-label(cellstat,Name) --> [Name,' '],
-    { component(Name,cellstat,Obj) },
+float_tenth(Thing,Obj,[Display|T],T) :-
+    getx(Obj,Thing,InTenths),
+    DispTemp is float(InTenths)/10.0,
+    format(atom(Display), '~4g', [DispTemp]).
+
+label(level, Obj) --> getx(Obj,level_t),
+                      [' / '],
+                      getx(Obj,level), getx(Obj,levelUnits).
+
+label(od, Obj) --> ['OD',sub(600)],
+                   ['  .'], getx(Obj,tturbidity),
+                   ['/.'],  getx(Obj,turbidity).
+
+label(temperature, Obj) --> ['Temperature '],
+    float_tenths(ttemperature,Obj),
+    [' / '],
+    float_tenths(temperature,Obj),
+    getx(Obj, temperatureUnits).
+
+label(flow, Obj) --> ['Rate '],
+    getx(Obj,flow_t), [' / '], getx(Obj,flow), getx(Obj,flowUnits).
+
+label(supply,Name) --> 
+    component(Name,supply,Obj), nl,
+    getx(Obj, level),
+    getx(Obj, levelUnits).
+
+label(cellstat,Name) --> 
+    component(Name,cellstat,Obj), [' '],
     label(level,Obj),       nl,
     label(temperature,Obj), nl,
     label(od, Obj).
 
-label(lagoon,Name) --> [Name,' '],
-    { component(Name,cellstat,Obj) },
+label(lagoon,Name) --> 
+    component(Name,cellstat,Obj), [' '],
     label(level,Obj),       nl,
     label(temperature,Obj), nl,
     label(flow, Obj).
 
-label(sampler,Name) --> [ Name ], nl,
-			[ 'Next Level Reading in ',TimeLeft,'s' ], nl,
-			[ 'Next Sample ',TimeAtom ],
-	{ component(Name,sampler,Obj),
-	  get(Obj,timeleft,TimeLeft),
-	  get(Obj,nextsample,TimeAtom) }.
+label(sampler,Name) --> 
+    component(Name,autosampler,Obj), nl,
+    [ 'Next Level Reading in '], getx(Obj,timeleft), ['s'], nl,
+    [ 'Next Sample '], getx(Obj,nextsample).
 
 label(drainage,waste) --> ['Waste'].
+
+evostatName(Req,Name) :-
+    memberchk(search(List),Req),
+    memberchk(evostat(Name),List),
+    !.
+evostatName(_,Name) :-
+     gethostname(Fullname),
+     atomic_list_concat([Name|_],'.',Fullname).
+
+backPlate(Name, NamePlate) :-
+    concat_atom(['./images/',Name,'.png'],NamePlate).
+
+web_debug(Req) :-
+    nonvar(Req),
+    logIP(Req),				
+    memberchk(search(Search),Req),
+    memberchk(trace='1',Search),
+    !,
+    ( windows -> 
+      write(user_error,'Tracing in Web page generators broken in windows'),nl(user_error)
+    ; trace
+    ).
+web_debug(_).
 
 newpathe(Req) :-
   web_debug(Req),
   evostatName(Req,Name),
   backPlate(Name,BackPlate),
-  Title = 'Pathe Control Panel',
-  findall(label([id=S],Supply),label(supply,S,Supply,[]),Nutrient_Inducers),
+  findall(  label([id=S],Supply),
+            label(supply,S,Supply,[]),
+            Nutrient_Inducers),
   label(cellstat,_,Cellstat,[]),
-  setof(label(id=L,Lagoon),label(lagoon,L,Lagoon,[]),LagoonLabels),
+  setof(label(id=L,Lagoon),
+        label(lagoon,L,Lagoon,[]),
+	LagoonLabels),
   label(sampler,autosampler,AutoSamplerLabel,[]),
   label(drainage,waste,Waste,[]),
   reply_html_page(
-  [title(Title),
-   meta(['http-equiv'(refresh),content(5)],[]), % Make it an active page
+  [title('Pathe Control Panel'),
+   meta(['http-equiv'(refresh),content(5)],[]),% refresh
    script([ language(javascript) ],[])],
-% ['location.reload(true)'])],
    body([background(BackPlate)],
 	[
-          center(a([id=logozone,href('./phagestat.pl')],i(Name))), % click
-%	  div(class=phagestat,img(src('./phagestat.png'))),        % hover
+          center(a([id=logozone,href('./phagestat.pl')],i(Name))),
 	  div(class=supply,Nutrient_Inducers),
-
 	  div(class=cellstat, label([],Cellstat)),
 	  div([class=lagoon,width('100%')],LagoonLabels),
 	  div(class=autosampler,label([],AutoSamplerLabel)),
