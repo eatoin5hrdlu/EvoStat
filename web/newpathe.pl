@@ -1,11 +1,7 @@
-:- dynamic webok/0.
-:- multifile webok/0.
-
-% DCG versions of XPCE get/3, and EvoStat component/3
-
-getx(Obj,ID,[Data|T],T)              :- get(Obj,ID,Data).
-
-component(Name,Type,Obj,[Name|T],T) :- component(Name,Type,Obj).
+% DCG access to XPCE get/3 and EvoStat component/3
+    
+getx(Obj,ID)             --> { get(Obj,ID,Data) },         [Data].
+component(Name,Type,Obj) --> { component(Name,Type,Obj) }, [Name].
 
 nl --> {html,!}, [br([])].
 nl --> ['\n'].
@@ -55,8 +51,6 @@ label(sampler,Name) -->  component(Name,autosampler,Obj), nl,
     [ 'Next Level Reading in '], getx(Obj,timeleft), ['s'], nl,
     [ 'Next Sample '], getx(Obj,nextsample).
 
-label(drainage,waste) --> ['Waste'].
-
 newpathe(Req) :-                    % The web page generator
     gethostname(Fullname),
     atomic_list_concat([Name|_],'.',Fullname).
@@ -69,7 +63,6 @@ newpathe(Req) :-                    % The web page generator
           label(lagoon,L,Lagoon,[]),
           LagoonLabels),
     label(sampler,autosampler,AutoSamplerLabel,[]),
-    label(drainage,waste,Waste,[]),
     reply_html_page(
     [title('Pathe Control Panel'),
      meta(['http-equiv'(refresh),content(5)],[]),% refresh
@@ -80,7 +73,7 @@ newpathe(Req) :-                    % The web page generator
        div(class=cellstat, label([],Cellstat)),
        div([class=lagoon,width('100%')],LagoonLabels),
        div(class=autosampler,label([],AutoSamplerLabel)),
-       div(class=drainage,label([],Waste)),
+       div(class=drainage,label([],'Waste')),
        form([class=mod,
              action='./ipathe.pl'],
              input([type=submit,name=submit,value=change]))
