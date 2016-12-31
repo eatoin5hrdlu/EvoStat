@@ -167,15 +167,16 @@ update(Self) :->
 
 :- pce_begin_class(ebutton, button).
 
-variable(myname,           name, both, "Component ID"             ).
-variable(socket,            any, both, "Bluetooth/IP Socket"      ).
-variable(reply,            name, both, "Last Message from Device" ).
-variable(l,                 int, both, "Percent Full"             ).
-variable(tl,                int, both, "Target Level"             ).
-variable(levelUnits,       name, both, "% or mL (usually)"       ).
-variable(turbidityUnits,   name, both, "Optical Density (600nM)" ).
-variable(temperatureUnits, name, both, "C"                       ).
-variable(fluxUnits,        name, both, "rlu"                     ).
+variable(myname,           name,       both, "Component ID"             ).
+variable(socket,            any,       both, "Bluetooth/IP Socket"      ).
+variable(reply,            name,       both, "Last Message from Device" ).
+variable(l,                 int := 30, both, "Percent Full"             ).
+variable(tl,                int := 30, both, "Target Level"             ).
+variable(levelUnits,       name := '%', both, "% or mL (usually)"       ).
+variable(turbidityUnits,   name := 'OD600', both,"Optical Density"      ).
+variable(temperatureUnits, name := 'C', both, "Degrees Centigrade"      ).
+variable(flowUnits,        name := 'Vol/hr', both, "Vol/hr"             ).
+variable(fluxUnits,        name := 'rlu',    both, "rlu"                ).
 
 initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
@@ -199,15 +200,6 @@ show_conversation(Self) :->
         get(Self, socket, Socket),
 	new(_, dialin(Name,Socket)).
 	
-
-targetLevel(Self, Level) :->
-       send(Self, slot, level_t, Level),
-       get(Self, slot, myname, Name),
-       semaphore(4,webok,targetLevel),
-       retractall(param(Name,_,level_t,_)),
-       assert(param(Name,_,level_t,Level)),
-       assert(webok).
-
 compute(_) :-> true.
 
 % Shape is defined as a percentage of the screen
@@ -218,10 +210,10 @@ shape(Self, W:[int], H:[int]) :->
 
 od(Self, OD600:[real]) :->
 	 Turb is integer(OD600*1000),
-	 send(Self, slot, tturbidity, Turb).
+	 send(Self, tb, Turb).
 
 temp(Self, Temp:[int]) :->
-	 send(Self, slot, ttemperature, Temp),
+	 send(Self, tt, Temp),
          plog(tempsetting(Self,Temp)).
 
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
@@ -264,7 +256,7 @@ converse(Self, Cmd) :->
 connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::
 	get(Self, myname, MyName),
-	bt_device(MyName, Addr),
+	( bt_device(MyName, Addr) -> true ; Addr = "DD:DD:DD:DD:DD:DD" ),
 	get(Self, socket, OldSocket),
         ( OldSocket == @nil -> true
 	; bt_close(OldSocket),

@@ -108,7 +108,7 @@ camera_reset :-
 windows :- current_prolog_flag(windows,true).
 unix    :- current_prolog_flag(unix,true).
 
-evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :-
+evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat\\') :-
   gethostname('ncmls8066.ncmls.org'),!.
 evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat\\')  :- windows, !.
 evostat_directory('/home/peter/src/EvoStat/').
@@ -394,7 +394,7 @@ initialise(W, Label:[name]) :->
 	  free(@ft),
 	  param(updateCycle(Seconds)),
           Frequent is integer(Seconds/10),
-	  plog(frequentTimer(Frequent)),
+    plog(frequentTimer(Frequent)),
 	  send(W, attribute, attribute(timer, new(@ft, timer(Frequent, Msg2)))),
 	
 	  % Status updates via Text Messaging
@@ -619,8 +619,8 @@ readLevels(_) :->
 
 fastUpdate(Self) :->
     change_request,
-    send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
+%    send(Self?graphicals, for_all,
+%	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
     check_web_files.
 
 sendText(Self) :->
@@ -813,7 +813,8 @@ main(_Argv) :-
 	assert(supress(screen(_,_,_))),       %     ''
         writePythonParams(Root),
         start_http,
-	c(Root),
+        c(Root),
+        sleep(10),
         !,
 	stop_http.
 

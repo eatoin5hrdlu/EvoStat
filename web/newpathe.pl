@@ -3,13 +3,13 @@
 getx(Obj,ID)            -->{get(Obj,ID,Data)},        [Data].
 component(Name,Type,Obj)-->{component(Name,Type,Obj)},[Name].
 
-nl --> {html,!}, [br([])].
-nl --> ['\n'].
+nl --> [br([])].
+% nl --> ['\n'].
 
 % Divide by 10 and present as 4-digit float because
 % Internal temperatures integral tenths of degrees C.
 
-float_tenth(Obj,Thing) --> [Display],
+float_tenths(Obj,Thing) --> [Display],
     { get(Obj,Thing,InTenths),
       DispTemp is float(InTenths)/10.0,
       format(atom(Display), '~4g', [DispTemp]) }.
@@ -18,7 +18,7 @@ label(temperature, Obj) --> ['Temperature '],
     float_tenths(Obj,tt), [' / '], float_tenths(Obj,t),
     getx(Obj, temperatureUnits).
 
-label(level, Obj) --> getx(Obj,lt),
+label(level, Obj) --> getx(Obj,tl),
                       [' / '],
                       getx(Obj,l), getx(Obj,levelUnits).
 
@@ -29,7 +29,7 @@ label(od, Obj) --> ['OD',sub(600)],
 label(flow, Obj) --> ['Rate '],
                      getx(Obj,tf),
                      [' / '],
-                     getx(Obj,f), getx(Obj,flowUnits).
+                     getx(Obj,f), [' '], getx(Obj,flowUnits).
 
 label(supply,Name) --> component(Name,supply,Obj), nl,
                        getx(Obj, l),
@@ -40,27 +40,32 @@ label(cellstat,Name) --> component(Name,cellstat,Obj), [' '],
                          label(temperature,Obj), nl,
                          label(od, Obj).
 
-label(lagoon,Name) --> component(Name,cellstat,Obj), [' '],
+label(lagoon,Name) --> component(Name,lagoon,Obj), [' '],
                        label(level,Obj),       nl,
                        label(temperature,Obj), nl,
                        label(flow, Obj).
 
-label(sampler,Name) -->  component(Name,autosampler,Obj), nl,
-    [ 'Next Level Reading in '], getx(Obj,rt), ['s'], nl,
+label(sampler,Name) -->  component(Name,sampler,Obj), nl,
+    [ 'Next Level Reading in '], getx(Obj,u), ['s'], nl,
     [ 'Next Sample '], getx(Obj,ns).
 
 newpathe(_Req) :-                    % The web page generator
     gethostname(Fullname),
     atomic_list_concat([Name|_],'.',Fullname),
     concat_atom(['./images/',Name,'.png'],NamePlate),
+    format(user_error,'~q~n',newpath),
     findall(  label([id=S],Supply),
               label(supply,S,Supply,[]),
               Nutrient_Inducers),
+    format(user_error,'~q~n',supplies),
     label(cellstat,_,Cellstat,[]),
+    format(user_error,'~q~n',cellstat),
     setof(label(id=L,Lagoon),
           label(lagoon,L,Lagoon,[]),
           LagoonLabels),
+    format(user_error,'~q~n',lagoons),
     label(sampler,autosampler,AutoSamplerLabel,[]),
+    format(user_error,'~q~n',sampler),
     reply_html_page(
     [title('Pathe Control Panel'),
      meta(['http-equiv'(refresh),content(5)],[]),% refresh

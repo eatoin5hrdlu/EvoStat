@@ -3,31 +3,35 @@
 iface( supply, ebutton,[]).
 
 iface( sampler, ebutton,
-      [ ro( u, int, "Next Update"),
-	ro(ns, int, "Next Sample Time"),
-        rw(i0, int, "Host Drain Valve Timing"),
-        rw(i1, int, "Lagoon1 Drain Valve Timing"),
-        rw(i2, int, "Lagoon2 Drain Valve Timing"),
-        rw(i3, int, "Lagoon3 Drain Valve Timing"),
-        rw(i4, int, "Lagoon4 Drain Valve Timing")
+      [ ro( u, int:=90,   "Update every 90 seconds"),
+	ro(ns, int:=3600, "Sample once per hour"),
+        rw(i0, int:=1000, "Host Drain Valve Timing"),
+        rw(i1, int:=1000, "Lagoon1 Drain Valve Timing"),
+        rw(i2, int:=1000, "Lagoon2 Drain Valve Timing"),
+        rw(i3, int:=1000, "Lagoon3 Drain Valve Timing"),
+        rw(i4, int:=1000, "Lagoon4 Drain Valve Timing")
       ]).
 
 iface( cellstat, ebutton,
-      [ ro(t,  int, "Temperature"),
-	rw(tt, int, "Target Temperature"),
-	ro( b, int, "Turbidity"),
-	rw(tb, int, "Target Turbidity"),
-	ro( w, int, "Leak Detection"),
-        rw(i1, int, "Host Supply 1 Valve Timing"),
-        rw(i2, int, "Host Supply 2 Valve Timing"),
-        rw(i3, int, "Host Supply 3 Valve Timing")
+      [ ro(t,  int:=372, "Temperature"),
+	rw(tt, int:=364, "Target Temperature"),
+	ro( b, int:=400, "Turbidity"),
+	rw(tb, int:=400, "Target Turbidity"),
+	ro( w, int:=500, "Leak Detection"),
+        rw(i1, int:=1000, "Host Supply 1 Valve Timing"),
+        rw(i2, int:=1000, "Host Supply 2 Valve Timing"),
+        rw(i3, int:=1000, "Host Supply 3 Valve Timing"),
+        rw( f, real:=1.0, "Flow Rate"),
+        rw(tf, real:=1.0, "Target Flow Rate")
       ]).
 
 iface( lagoon, ebutton,
-      [ ro( t, int, "Temperature"),
-	rw(tt, int, "Target Temperature"),
-        rw(i1, int, "Host Cell Valve Timing"),
-        rw(i2, int, "Supply 2 Valve Timing"),
-        rw(i3, int, "Supply 3 Valve Timing"),
-        rw(i4, int, "Supply 4 Valve Timing")
+      [ ro( t, int:=36.9, "Temperature"),
+	rw(tt, int:=35.0, "Target Temperature"),
+        rw(i1, int:=1000, "Host Cell Valve Timing"),
+        rw(i2, int:=1000, "Supply 2 Valve Timing"),
+        rw(i3, int:=1000, "Supply 3 Valve Timing"),
+        rw(i4, int:=1000, "Supply 4 Valve Timing"),
+        rw( f, real:=1.5, "Flow Rate"),
+        rw(tf, real:=3.5, "Target Flow Rate")
       ]).
