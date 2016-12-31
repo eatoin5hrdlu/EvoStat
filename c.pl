@@ -21,6 +21,7 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 :- ensure_loaded(webspec).           % HTTP Request handlers
+:- ensure_loaded(et).                % Term Expansion for XPCEgen
 
 :- free(@'_dialog_bg'),  % This should make the background light-blue steel
    XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
@@ -116,7 +117,13 @@ python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
 python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
 python('/usr/bin/python').
 
-:- [gbutton]. % Micro-controllers as PCE objects
+:- [gbutton]. % XPCE parent class [ebutton] etc.
+% Arduino interface objects [cellstat,lagoon,supply,sampler]
+:- tell(iface), [ard], told.  
+:- writeln(consulting(iface)),
+   [iface],
+    writeln(consulted(iface)).
+
 :- [dialin].  % Pop up Aduino dialog interface
 :- [adjust].  % PID controller <-> PCE interface
 
@@ -280,6 +287,8 @@ lagoon_number(Object, N) :-
     atom_codes(Lagoon, Codes),
     Digit is N + 0'0,
     append(_,[Digit],Codes).
+
+
 
 % Alternative to for_all ?grapicals
 lagoons(Cmd) :-

@@ -9,32 +9,30 @@ nl --> ['\n'].
 % Divide by 10 and present as 4-digit float because
 % Internal temperatures integral tenths of degrees C.
 
-float_tenth(Thing,Obj,[Display|T],T) :-
-    getx(Obj,Thing,InTenths),
-    DispTemp is float(InTenths)/10.0,
-    format(atom(Display), '~4g', [DispTemp]).
+float_tenth(Obj,Thing) --> [Display],
+    { get(Obj,Thing,InTenths),
+      DispTemp is float(InTenths)/10.0,
+      format(atom(Display), '~4g', [DispTemp]) }.
 
 label(temperature, Obj) --> ['Temperature '],
-    float_tenths(ttemperature,Obj),
-    [' / '],
-    float_tenths(temperature,Obj),
+    float_tenths(Obj,tt), [' / '], float_tenths(Obj,t),
     getx(Obj, temperatureUnits).
 
-label(level, Obj) --> getx(Obj,level_t),
+label(level, Obj) --> getx(Obj,lt),
                       [' / '],
-                      getx(Obj,level), getx(Obj,levelUnits).
+                      getx(Obj,l), getx(Obj,levelUnits).
 
 label(od, Obj) --> ['OD',sub(600)],
-                   ['  .'], getx(Obj,tturbidity),
-                   ['/.'],  getx(Obj,turbidity).
+                   ['  .'], getx(Obj,tb),
+                   ['/.'],  getx(Obj,b).
 
 label(flow, Obj) --> ['Rate '],
-                     getx(Obj,flow_t),
+                     getx(Obj,tf),
                      [' / '],
-                     getx(Obj,flow), getx(Obj,flowUnits).
+                     getx(Obj,f), getx(Obj,flowUnits).
 
 label(supply,Name) --> component(Name,supply,Obj), nl,
-                       getx(Obj, level),
+                       getx(Obj, l),
                        getx(Obj, levelUnits).
 
 label(cellstat,Name) --> component(Name,cellstat,Obj), [' '],
@@ -48,14 +46,13 @@ label(lagoon,Name) --> component(Name,cellstat,Obj), [' '],
                        label(flow, Obj).
 
 label(sampler,Name) -->  component(Name,autosampler,Obj), nl,
-    [ 'Next Level Reading in '], getx(Obj,timeleft), ['s'], nl,
-    [ 'Next Sample '], getx(Obj,nextsample).
+    [ 'Next Level Reading in '], getx(Obj,rt), ['s'], nl,
+    [ 'Next Sample '], getx(Obj,ns).
 
-
-newpathe(Req) :-                    % The web page generator
+newpathe(_Req) :-                    % The web page generator
     gethostname(Fullname),
-    atomic_list_concat([Name|_],'.',Fullname).
-    concat_atom(['./images/',Name,'.png'],NamePlate).
+    atomic_list_concat([Name|_],'.',Fullname),
+    concat_atom(['./images/',Name,'.png'],NamePlate),
     findall(  label([id=S],Supply),
               label(supply,S,Supply,[]),
               Nutrient_Inducers),
