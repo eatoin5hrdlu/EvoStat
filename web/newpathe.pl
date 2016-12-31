@@ -1,7 +1,7 @@
 % DCG access to XPCE get/3 and EvoStat component/3
     
-getx(Obj,ID)             --> { get(Obj,ID,Data) },         [Data].
-component(Name,Type,Obj) --> { component(Name,Type,Obj) }, [Name].
+getx(Obj,ID)            -->{get(Obj,ID,Data)},        [Data].
+component(Name,Type,Obj)-->{component(Name,Type,Obj)},[Name].
 
 nl --> {html,!}, [br([])].
 nl --> ['\n'].
@@ -50,6 +50,7 @@ label(lagoon,Name) --> component(Name,cellstat,Obj), [' '],
 label(sampler,Name) -->  component(Name,autosampler,Obj), nl,
     [ 'Next Level Reading in '], getx(Obj,timeleft), ['s'], nl,
     [ 'Next Sample '], getx(Obj,nextsample).
+
 
 newpathe(Req) :-                    % The web page generator
     gethostname(Fullname),
