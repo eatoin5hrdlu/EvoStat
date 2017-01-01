@@ -118,13 +118,7 @@ python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
 python('/usr/bin/python').
 
 :- [gbutton]. % XPCE parent class [ebutton] etc.
-% Arduino interface objects [cellstat,lagoon,supply,sampler]
-:- tell(iface), [ard], told.  
-:- writeln(consulting(iface)),
-   [iface],
-    writeln(consulted(iface)).
 
-:- [dialin].  % Pop up Aduino dialog interface
 :- [adjust].  % PID controller <-> PCE interface
 
 :- dynamic screen/5, input/2.
@@ -562,6 +556,7 @@ autoUpdate(Self) :->
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     send(Self,mixon),      plog(sent(mixon)),  % Send update
+    prep, % refreshes assertion for Web page
     report,
     send(@gui, started).
 
@@ -617,7 +612,7 @@ readLevels(_) :->
 % Image update, time to next level detection, etc.
 % Currently only the autosampler/next cycle time indication
 
-fastUpdate(Self) :->
+fastUpdate(_Self) :->
     change_request,
 %    send(Self?graphicals, for_all,
 %	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
@@ -728,6 +723,7 @@ c(Name) :-
     free(@gui),
     new(@gui, evostat(Name)),
     send(@gui?frame, icon, bitmap('./evo.xpm')),
+    prep,
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@ft, stop),
@@ -750,14 +746,16 @@ report :-
     close(S).
 
 reportTemperature(What,S) :-
-    temperature(Who,What,_,Val),
+    component(Who, What, Obj),
+    get(Obj,t,Val),
     HiC is integer(Val/10), LoC is integer(Val) mod 10,
     format(S, '~s Temp    ~d.~dC~n', [Who, HiC, LoC]),
     fail.
 reportTemperature(_,_).
 
 reportTurbidity(What,S) :-
-    turbidity(Who, What, _, ODVal),
+    component(Who, What, Obj),
+    get(Obj,b,ODVal),
     format(S, '~s OD600  .~d~n',[Who,ODVal]),
     fail.
 reportTurbidity(_,_).
@@ -952,3 +950,7 @@ logIP(Req) :-
     write(S,IP),nl(S),
     close(S).
 
+get_background(ImageFile) :-
+    gethostname(Fullname),
+    atomic_list_concat([Name|_],'.',Fullname),
+    concat_atom(['./images/',Name,'.png'],ImageFile).

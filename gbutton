@@ -170,8 +170,10 @@ update(Self) :->
 variable(myname,           name,       both, "Component ID"             ).
 variable(socket,            any,       both, "Bluetooth/IP Socket"      ).
 variable(reply,            name,       both, "Last Message from Device" ).
-variable(l,                 int := 30, both, "Percent Full"             ).
-variable(tl,                int := 30, both, "Target Level"             ).
+variable(l,                 int := 29, both, "Percent Full"             ).
+variable(tl,                int := 31, both, "Target Level"             ).
+variable(f,                real := 1.5, both,"Flow  Rate"               ).
+variable(tf,               real := 3.5, both, "Target Flow Rate"        ).
 variable(levelUnits,       name := '%', both, "% or mL (usually)"       ).
 variable(turbidityUnits,   name := 'OD600', both,"Optical Density"      ).
 variable(temperatureUnits, name := 'C', both, "Degrees Centigrade"      ).
@@ -298,32 +300,6 @@ wget(Self, IP:[name], Cmd:[name]) :->
 
 :- pce_end_class. % ebutton
 
-:- pce_begin_class(xcellstat, ebutton).
-
-variable(leak,   int, get, "Leak Detector").
-
-initialise(Self, Label:[name]) :->
-	"Initialise the cellstat"::
-        send_super(Self, initialise(Label)),
-	send_super(Self, slot, level, 85),
-	send_super(Self, slot, level_t, 85),
-	send_super(Self, slot, levelUnits, '%'),
-	get_super(Self, slot, ttemperature, Target),
-	get_super(Self, slot, temperature, Temp),
-	get_super(Self, slot, tturbidity, ODTarget),
-	get_super(Self, slot, turbidity, Turb),
-
-% Default values: Web Interface must work before any updates
-        retractall(param(Label,cellstat,_,_)),
-	assert(param(Label,cellstat,level,85)),
-	assert(param(Label,cellstat,level_t,85)),
-	assert(param(Label,cellstat,levelUnits,'%')),
-	assert(param(Label,cellstat,ttemperature,Target)),
-	assert(param(Label,cellstat,temperature,Temp)),
-	assert(param(Label,cellstat,tturbidity,ODTarget)),
-	assert(param(Label,cellstat,turbidity,Turb)),
-	writeln(cellstat(asserted)).
-
 check_leak(leak(N)) :- !, check_leak_value(N).
 check_leak(P)       :-    writeln(expected(leak/1,P)).
 
@@ -358,340 +334,46 @@ reportDeltaT(Who, Old, New) :-
 	retractall(err(Who,deltaT(_))),
 	(DeltaT > 5 -> assert(err(Who,deltaT(DeltaT))) ; true).
 
-reportTemp(Who, What,Target,Temp) :-  % Temperatures are 10th degrees
-	LowThresh is Target - 20, % +- 2 degrees
-	HighThresh is Target + 20,
+reportTemp(Who, What,Target,Temp) :-  % Temp in 1/10 degC
+	condition(Temp, Target, 20, Cond),
 	retractall(temperature(Who,_,_,_)),
-	( Temp < LowThresh -> assert(temperature(Who,What,low,Temp))
-	; ( Temp > HighThresh -> assert(temperature(Who,What,high,Temp))
-	  ; assert(temperature(Who,What,okay,Temp))
-	  )
-	).
+	assert(temperature(Who,What,Cond,Temp)).
 
 reportTurb(Who,What,Target,Turb) :- 
-	LowThresh is Target - 50, % +- .05 units
-	HighThresh is Target + 50,
-	retractall(turbidity(Who,What,_,_)),
-	( Turb < LowThresh -> assert(turbidity(Who,What,low,Turb))
-	; ( Turb > HighThresh -> assert(turbidity(Who,What,high,Turb))
-	  ; assert(turbidity(Who,What,okay,Turb))
-	  )
-	).
+	condition(Turb, Target, 50, Cond),
+	retractall(turbidity(Who,What,   _,   _)),
+	assert(    turbidity(Who,What,Cond,Turb)).
 
-update(Self) :->
-	send_super(Self, update),
-        assert(webok).
+condition(Value,Target,Delta,Cond) :-
+	LowThresh is Target - Delta,
+	HighThresh is Target + Delta,
+	( Value < LowThresh   -> Cond = low
+	 ;(Value > HighThresh -> Cond = high
+	 ;                       Cond = okay)).
 
-:- pce_end_class.  % cellstat
-
-:- pce_begin_class(xlagoon, ebutton).
-
-variable(fluorescence,real, get, "Fluorescence").
-variable(fluorescence_t, real, get, "Target Fluorescence").
-variable(level_max, real, get, "Max Allowed Level").
-variable(calibrate_level, real, get, "Calibration Level").
-
-variable(calibration, name, get, "Calibration State Machine").
-variable(target_rate, real, get, "Target Flow Rate").
-variable(start_time, real, get, "Time since last Calibration state change").
-variable(rate_input, real, get, "Calculated Input Flow Rate").
-variable(rate_output, real, get, "Calculated Output Flow Rate").
-variable(calibration, name, get, "Calibration State Machine").
-variable(overflow,   int,   get, "Indication of Overflow").
-
-initialise(Self, Label:[name]) :->
-	"Initialise the lagoon"::
-        send_super(Self, initialise(Label)),
-	send(Self, slot, calibration, normal),
-	send_super(Self, slot, level, 30),
-	send_super(Self, slot, level_t, 33),
-	send(Self, slot, fluorescence_t, 0.2),
-	send(Self, slot, overflow, 0),
-	send(Self, slot, fluorescence, 0.0),
-	retractall(param(Label,lagoon,_,_)),
-	assert(param(Label,lagoon,level,33)),
-	assert(param(Label,lagoon,level_t,33)),
-	assert(param(Label,lagoon,levelUnits,mL)),
-	assert(param(Label,lagoon,ttemperature,370)),
-	assert(param(Label,lagoon,levelUnits,mL)),
-	assert(param(Label,lagoon,temperature,240)).
-
-
-% update(Self) :-> get_super(Self, socket, @nil),!,fail. % Don't even try
-
-update(Self) :->
-        get(Self, slot, myname, MyName),
-	writeln(updating(lagoon(MyName))),
-        send_super(Self, update),
-        send_super(Self,converse,'t'),
-        get(Self,slot,reply,Reply),
-	(Reply = 'no_connection.'
-	-> Label = 'No Bluetooth\nConnection'
-	;
-	parse_reply(Reply,temperature(Temp),temperature(111)),
-        get(Self,slot,temperature,PreviousTemp),
-	reportDeltaT(MyName, PreviousTemp, Temp),
-        send(Self,slot,temperature,Temp),
-        get(Self,slot,ttemperature,Target),
-	reportTemp(MyName,lagoon,Target,Temp),
-	TempDeg is float(Temp)/10.0,
-	TargetDeg is float(Target)/10.0,
-	range_color(Target, Temp, Color),
-	send(Self, colour(Color)),
-        get(Self, slot, level, Level),
-        get(Self, slot, level_t, TLevel),
-        get(Self, slot, levelUnits, LevelUnits),
-        get(Self, slot, fluorescence_t,LuxTarget),
-        get(Self, slot, fluorescence,Lux),
-	format(atom(GuiTemp), '~4g', [TempDeg]),
-	format(atom(GuiTarget), '~4g', [TargetDeg]),
-	format(atom(Lux2), '~4g', [Lux]),
-%	get(Self,slot,calibration,State),  % Calibration State is the Message
-%	send(Self,State),
-        concat_atom(['Level ', TLevel, ' / ', Level, LevelUnits, '\n',
-	             'Temp  ', GuiTarget, 'C / ',GuiTemp,' C\n',
-                     'Lux   ', LuxTarget, ' / ', Lux2, 'lumen' ], Label)
-	),
-	send(Self, label, Label),
-        semaphore(21, webok, update(MyName)),
-	NewValues = [
-		     param(MyName,lagoon,level_t,TLevel),
-		     param(MyName,lagoon,level,Level),
-		     param(MyName,lagoon,levelUnits,LevelUnits),
-		     param(MyName,lagoon,ttemperature,Target),
-		     param(MyName,lagoon,temperature,Temp)],
-        retractall(param(MyName,lagoon,_,_)),
-	(ground(NewValues)
-	 -> maplist(assert,NewValues),
-	    write(user_error,updated(MyName,level(Level))),nl(user_error)
-	 ;   write(user_error,'  FAILED_update'(MyName)),nl(user_error)
-	),
-        assert(webok).
-
-	
-% Calibration begins after someone sends the 'calibrate' message
-% Lagoons can distiguish between input valves and output valves.
-% command: do (disable output valves)
-%          eo (enable outputs)
-%          di (disable input valves)
-%          ei (enable input valves)
-
-calibrate(Self) :->
-    get(Self,slot,calibration,C),
-    writeln(calibration(Self,C)),
-    C = normal,
-    send(Self,slot,calibration,inflow),
-    get_time(Time),
-    send(Self,slot,start_time,Time),
-    get(Self,slot,level,Level),
-    CLevel is 1.1 * Level,
-    send(Self,slot,calibrate_level,CLevel).
-%    send(Self,command, do).  % Disable Output Flow(s)
-
-
-setFlux(Self,Level) :->
-       send(Self, slot, fluorescence, Level).
-
-
-normal(_Self) :-> true.
-
-inflow(Self) :->
-    get_time(Now),
-    get(Self,slot,start_time,STime),
-    Now >= STime + 20,
-    !,
-    writeln(calibrationInflowTimedOut(Self)),
-    send(Self,slot,calibration,outflow),
-    get(Self,slot,level,Level),
-    get(Self,slot,calibrate_level,CLevel),
-    Level >= CLevel,
-    get_time(Time),
-    get(Self,slot,start_time,StartTime),
-    RateInput is ( Level/(10*(Time-StartTime))),
-    send(Self,slot,rate_input,RateInput),
-    CLevel is Level - (Level/11.0),
-    get(Self,slot,calibrate_level,Level),
-    get(Self,slot,start_time,Time), % Restart timer
-%    send(Self,command, eo), % Enable Output Flow(s)
-%    send(Self,command, di), % Disable Input Flow(s)
-    send(Self,slot,calibration,outflow),
-    !.
-	       
-% Calculate Output Flow Rate with time to decrease volume by 10% (1/11)
-
-outflow(Self) :->
-    get_time(Now),
-    get(Self,slot,start_time,STime),
-    Now >= STime + 20,
-    !,
-    writeln(calibrationOutflowTimedOut(Self)),
-    send(Self,slot,calibration,normal),
-    get(Self,slot,level,Level),
-    get(Self,slot,calibrate_level,CLevel),
-    Level =< CLevel,
-    get_time(Time),
-    get(Self,slot,start_time,StartTime),
-    RateOutput is ( CLevel/(10*(Time-StartTime))),
-    send(Self,slot,rate_output,RateOutput),
-    send(Self,slot,calibration,normal),
-%    send(Self, command, ei), % Re-enable Normal Input Flow(s)
-    !.
-
-% Adjust valve times with the calculated Flow Rates
-done(Self) :->
-    get(Self,slot,target_rate, TargetFlow),
-    get(Self,slot,rate_input, RateInput),
-    _DeltaInput is TargetFlow - RateInput,
-%    send(Self,command,[ai,DeltaInput]),
-    get(Self,slot,rate_output, RateOutput),
-    _DeltaOutput is TargetFlow - RateOutput,
-%    send(Self,command,[ao,DeltaOutput]),
-    send(Self,slot,calibration,normal).
-
-:- pce_end_class.  % lagoon
-
-
-:- pce_begin_class(xsupply, ebutton).
-
-% "Target Level" is used differently in a Supply.  Since we can't
-% "maintain" a level in a supply container, but we can alert someone
-% when it gets too low.  The Target Level is that level (of depletion).
-
-initialise(Self, Label:[name]) :->
-	"Initialise the autosampler"::
-        send_super(Self, initialise(Label)),
-	send(Self,slot,level,0),
-	send(Self,slot,level_t,10),
-	send(Self,slot,levelUnits,'L'),
-        retractall(param(Label,supply,_,_)),
-	assert(param(Label,supply,levelUnits,'L')),
-	assert(param(Label,supply,level,0)).
-
-update(Self) :->
-	send_super(Self, update),
-	get_super(Self, slot, myname, MyName),
-	writeln(updating(MyName)),
-	get(Self, slot, level, Level),
-	get(Self, slot, levelUnits, Units),
-	concat_atom([MyName,' \n',Level,Units],Label),
-	send(Self, label, Label),
-        semaphore(4, webok,update(MyName)),
-	 retractall(param(MyName,supply,_,_)),
-	 assert(param(MyName,supply,level,Level)),
-	 assert(param(MyName,supply,levelUnits,Units)),
-        assert(webok),
-	get(Self, slot, level_t, Target),
-	(Level < Target
-	 -> send(Self, colour, colour(red))
-         ;  send(Self, colour, colour(black))
-        ).
-	
-:- pce_end_class.  % supply
-
-:- pce_begin_class(xdrainage, ebutton).
-initialise(Self, Label:[name]) :->
-	"Initialise the drain"::
-        send_super(Self, initialise(Label)).
-
-update(_Self) :-> true.
-:- pce_end_class.  % drainage
-
-
-:- pce_begin_class(xsampler, ebutton).
-
-variable(remaining,   int,   get, "Seconds until next Sample").
-variable(flowrate,   real,   get, "Flow Rate in Volumes/Hour").
-
-initialise(Self, Label:[name]) :->
-	"Initialise the autosampler"::
-        send_super(Self, initialise(Label)),
-	assert(param(Label,sampler,flowrate,3.5)),
-	send(Self, slot, flowrate, 3.5),
-	send(Self, slot, myname, Label),
-	send(Self,slot,remaining,3600).
-
-update(Self) :->
-	send_super(Self, update),
-	( get_super(Self, socket, @nil) -> true
-	; send_super(Self,converse,'t'),
-	  get_super(Self, reply, Reply),
-	  DefaultTime is 99*60, % 99 Minutes
-	  parse_reply(Reply, Remaining, remaining(DefaultTime)),
-	  Remaining = remaining(Time),
-	  send(Self,slot,remaining,Time)
-	),
-	send(Self,fast_update).
-	  
-fast_update(Self) :->
-	get_super(Self, slot, myname, MyName),
-	get(Self,slot,remaining,Time),
-	Hours is floor(Time/3600),
-	Minutes is floor(mod(Time,3600)/60),
-	Seconds is Time mod 60,
-	timeatom(Hours,Minutes,Seconds,TimeAtom),
-	timer_left(CTime),
-	param(updateCycle(Cycle)),
-	TimeLeft is Cycle-CTime,
-	(TimeLeft < 0 -> ShowTime = Cycle ; ShowTime = TimeLeft),
-	(ShowTime < 10
-	-> concat_atom(['\nAutoSampler\n',
-		      ' Level reading in Progress...\n',
-		      TimeAtom,' to next sample\n'],Label)
-	; concat_atom(['\nAutoSampler\n',
-		      ShowTime,' seconds to level reading\n',
-		      TimeAtom,' to next sample\n'],Label)
-        ),
-	send(Self, label, Label),
-        semaphore(19,webok,update(MyName)),
-	( param(MyName,sampler,flowrate,FlowRate) -> true
-	; write(user_error,'THAT WAS CERTAINLY THE PROBLEM'),nl(user_error)
-	),
-	NewValues = [param(MyName,sampler,flowrate,FlowRate),
-		     param(MyName,sampler,timeleft,ShowTime),
-		     param(MyName,sampler,nextsample,TimeAtom)],
-	(ground(NewValues) ->
-             retractall(param(MyName,sampler,_,_)),
-	     maplist(assert,NewValues),
-             write(user_error,' t'(ShowTime))
-	 ;   write(user_error,'   FAILED_update'(MyName)),nl(user_error)
-	),
-        assert(webok).
-
-flow(Self, Rate:[real]) :-> 
-	send(Self, slot, flowrate, Rate),
-	get(Self,slot,myname, MyName),
-	retractall(param(MyName,sampler,flowrate,_)),
-	assert(param(MyName, sampler,flowrate,Rate)).
-
-:- pce_end_class.  % autosampler
-
-
-:- pce_begin_class(spacer, box).
-
-variable(defaultColor, name, get, "DefaultColor" ).
-
+:- pce_begin_class(spacer, box). % SECTION SEPARATOR
+variable(defaultColor, name := black, both, "Default Color" ).
 initialise(Self, _Name:[name]) :->
         screen(DW,_,WW,_,_),
 	NWid is DW*WW/110,
         send_super(Self, initialise(NWid, 6)),
-	send(Self, colour, colour(black)),
-	send(Self, slot, defaultColor, black),
-	send(Self, fill_pattern, colour(black)).
+        get(Self, defaultColor, C),
+	send(Self, colour, colour(C)),
+	send(Self, fill_pattern, colour(C)).
 
 color(Self, Color) :->
-     ( get(Self,slot,defaultColor,colour(black))   % First time
-      -> send(Self,slot,defaultColor,Color)  % New default
-      ; true
+     ( get(Self,defaultColor,black)         % First time
+      -> send(Self,slot,defaultColor,Color) % New default
+      ;  true
      ),
      send(Self, colour, colour(Color)),
      send(Self, fill_pattern, colour(Color)).
 
 resetColor(Self) :-> 
-     get(Self,slot,defaultColor,C),
+     get(Self, defaultColor,C),
      send(Self, colour, colour(C)).
 
 update(_Self) :-> true.
-
 :- pce_end_class.
 
 :- pce_begin_class(hotbox, box).
@@ -702,3 +384,13 @@ initialise(Self, Color:[name]) :->
 	send(Self, colour, colour(black)),
         send(Self, fill_pattern, colour(Color)).
 :- pce_end_class.
+
+% Arduino interface objects [ supplies, cellstat, lagoons, sampler ]
+
+:- tell(iface), [ard], told.   % GENERATE
+:- [iface].                    % CONSULT
+
+:- [dialin].  % Pop up Aduino dialog interface
+
+:- [prephtml]. % prep/0 will prepare/assert PCE data for web server
+

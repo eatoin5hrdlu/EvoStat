@@ -20,18 +20,14 @@ iface( cellstat, ebutton,
 	ro( w, int:=500, "Leak Detection"),
         rw(i1, int:=1000, "Host Supply 1 Valve Timing"),
         rw(i2, int:=1000, "Host Supply 2 Valve Timing"),
-        rw(i3, int:=1000, "Host Supply 3 Valve Timing"),
-        rw( f, real:=1.0, "Flow Rate"),
-        rw(tf, real:=1.0, "Target Flow Rate")
+        rw(i3, int:=1000, "Host Supply 3 Valve Timing")
       ]).
 
 iface( lagoon, ebutton,
-      [ ro( t, int:=36.9, "Temperature"),
-	rw(tt, int:=35.0, "Target Temperature"),
+      [ ro( t, int:=369, "Temperature"),
+	rw(tt, int:=350, "Target Temperature"),
         rw(i1, int:=1000, "Host Cell Valve Timing"),
         rw(i2, int:=1000, "Supply 2 Valve Timing"),
         rw(i3, int:=1000, "Supply 3 Valve Timing"),
-        rw(i4, int:=1000, "Supply 4 Valve Timing"),
-        rw( f, real:=1.5, "Flow Rate"),
-        rw(tf, real:=3.5, "Target Flow Rate")
+        rw(i4, int:=1000, "Supply 4 Valve Timing")
       ]).
