@@ -90,3 +90,48 @@ control(lagoon3,  level, 'v1', autosampler, 'k').
 control(lagoon2,  level, 'v1', autosampler, 'j').
 control(lagoon1,  level, 'v1', autosampler, 'i').
 
+%%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
+
+% To build stand-alone executable there are different emulators
+:- discontiguous evostat_directory/1, python/1, os_emulator/1.
+
+% DEFAULTS FOR WINDOWS
+evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
+python('C:\\Python27\\python.exe')                            :- windows.
+os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe')          :- windows.
+
+% OPTIONS FOR WINDOWS
+% evostat_directory('C:\\cygwin64\\home\\Owner\\src\\EvoStat\\') :- windows.
+% python('C:\\cygwin\\Python27\\python.exe').
+% python('C:\\cygwin64\\Python27\\python.exe').
+% os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe').
+
+
+% DEFAULTS FOR LINUX
+evostat_directory('/home/peter/src/EvoStat/') :- linux.
+python('/usr/bin/python')                     :- linux.
+os_emulator('/swipl/bin/swipl')        :- linux, pce_autoload_all, pce_autoload_all.
+
+% OPTIONS FOR LINUX
+% os_emulator('/usr/bin/swipl')        :- linux, pce_autoload_all, pce_autoload_all.
+% os_emulator('/home/peter/bin/swipl') :- linux, pce_autoload_all, pce_autoload_all.
+% os_emulator(swi('bin/xpce-stub.exe')):- linux, pce_autoload_all, pce_autoload_all.
+% os_emulator(swi('bin/swipl-win.exe')):- linux, pce_autoload_all, pce_autoload_all.
+    
+
+% RUNTIME LOADING OF SHARED OBJECT
+
+load_bluetooth :- 
+  ( windows
+    -> load_foreign_library(foreign(plblue))
+    ; load_foreign_library(plblue)
+  ).
+% Windows??
+% load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
+
+% COMPILE TIE LOADING OF SHARED OBJECT
+% :- ( current_prolog_flag(arch,'i386-win32')
+%     -> load_foreign_library(foreign(plblue))
+%     ;  load_foreign_library(plblue)
+%   ),
+%   writeln('plblue (BLUETOOTH) loaded').
