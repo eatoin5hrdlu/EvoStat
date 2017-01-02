@@ -15,16 +15,9 @@
 :- dynamic errs/2.
 :- multifile errs/2.
 
-filldigits(N,In,Out) :-
-    number_codes(In,Chs),
-    length(Chs,Len),
-    (Len = N -> In = Out
-    ; (Len is N-1 -> atom_codes(Out,[0'0|Chs])
-      ; (Len is N-2 -> atom_codes(Out, [0'0,0'0|Chs]) ; true))).
-
 timeatom(Hours,M,S,TimeAtom) :-
- 	(M > 9 -> M = Minutes ; concat_atom(['0',M],Minutes)),
- 	(S > 9 -> S = Seconds ; concat_atom(['0',S],Seconds)),
+	format(atom(Minutes), '~|~`0t~w~2|', M),
+	format(atom(Seconds), '~|~`0t~w~2|', S),
 	concat_atom([Hours,':',Minutes,':',Seconds],TimeAtom).
 	
 window_percent(WFraction,HFraction,W,H) :-
@@ -32,12 +25,12 @@ window_percent(WFraction,HFraction,W,H) :-
 	W is integer(DW*WW*WFraction/10000),
 	H is integer(DH*WH*HFraction/11000).
 
+mix_colors(   _, red,    red) :- !.
+mix_colors( red,   _,    red) :- !.
 mix_colors(   C,   C,      C) :- !.
 mix_colors(   _,blue, purple) :- !.
 mix_colors(blue,   _, purple) :- !.
-mix_colors(green,  _, orange) :- !.
-mix_colors( _, green, orange) :- !.
-mix_colors( _, red,   red).
+mix_colors(   _,  _,  orange).
 
 compatible(T1,T2) :-
 	nonvar(T1),nonvar(T2),
@@ -76,10 +69,11 @@ adjust_valve(Obj, Valve, Amt) :-
 parse_reply(Reply, Term, Default) :-
 	catch( atom_to_term(Reply,TmpTerm,_TMBindings),
 	       Exception,
-	       ( writeln(caught(Exception,atom_to_term(Reply))), TmpTerm = exception(Exception))),
-	( compatible(TmpTerm,Default)
-	 -> Term = TmpTerm
-	;   Term = Default
+	       ( writeln(caught(Exception,atom_to_term(Reply))),
+                 TmpTerm = exception(Exception))
+             ),
+	( compatible(TmpTerm,Default) -> Term = TmpTerm
+	;                                Term = Default
 	).
 
 getIPfromMAC(_,_) :- fail.
@@ -95,7 +89,7 @@ snapshot(Path, Filename) :-
 	concat_atom([Path,'opencvlevel.jpg'], Filename).
 
 
-% WGET will use alternate filenames so we update Image properly
+% WGET will use alternate filenames so we update Image proerly
 % and are never caught reading a file that hasn't been fully written
 
 toggle('mypic1.jpg','mypic2.jpg') :- tog(2), retract(tog(2)),assert(tog(1)).
@@ -138,11 +132,7 @@ semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
     plog(asserting(webok)),
     fail.
 
-:- ( current_prolog_flag(arch,'i386-win32')
-     -> load_foreign_library(foreign(plblue))
-     ;  load_foreign_library(plblue)
-   ),
-   writeln('plblue (BLUETOOTH) loaded').
+%:- load_bluetooth, writeln('BLUETOOTH loaded while consulting gbutton').
 
 :- pce_begin_class(snapshot, window).
 
@@ -300,34 +290,32 @@ wget(Self, IP:[name], Cmd:[name]) :->
 
 :- pce_end_class. % ebutton
 
-check_leak(leak(N)) :- !, check_leak_value(N).
-check_leak(P)       :-    writeln(expected(leak/1,P)).
+paint(Things, Color) :-
+	send(@gui?graphicals, for_all,
+		if(message(@arg1,instance_of,Things),
+				message(@arg1,color(Color)))).
 
+leak_type(<, definite).
+leak_type(>, no).
+leak_type(=, possible).
 
-check_leak_value(N) :-  N > 700,
-			!,
-			writeln('No leak'),
-			retractall(leak(_)),
-			send(@gui?graphicals, for_all,
-			     if(message(@arg1,instance_of,spacer),
-				message(@arg1,resetColor))).
-			
+leak_color(definite, red).
+leak_color(      no, blue).
+leak_color(possible, orange).
 
-check_leak_value(N) :- N < 300,
-		       !,
-		       writeln(leak(definitely)),
-		       retractall(leak(_)),
-		       assert(leak(definite)),
-		       send(@gui?graphicals, for_all,
-			    if(message(@arg1,instance_of,spacer),
-			       message(@arg1,color,red))).
+compare_delta(>,A,B,Delta) :- Upper is B+Delta, A > Upper, !.
+compare_delta(<,A,B,Delta) :- Lower is B-Delta, A < Lower, !.
+compare_delta(=,_,_,_).
 
-check_leak_value(N) :- writeln(leak(possible,N)),
-		       retractall(leak(_)),
-		       assert(leak(possible)),
-		       send(@gui?graphicals, for_all,
-			    if( message(@arg1,instance_of,spacer),
-				message(@arg1,color,orange))).
+check_leak :-
+	component(_,cellstat,Obj),
+	get(Obj, a0, N),
+	compare_delta(Op,N,500,200),
+        leak_type(Op,Type),
+	retractall(leak(_)),
+	assert(leak(Type)),
+        leak_color(Op,Color),
+	paint(spacer,Color).
 
 reportDeltaT(Who, Old, New) :-
 	DeltaT is integer(abs(Old-New)/10), % DeltaT in degrees

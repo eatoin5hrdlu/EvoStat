@@ -1,11 +1,11 @@
-:- dynamic html_syntax/0.
+:- dynamic html_syntax/0. % Also DCG version html_syntax/2.
 :- dynamic prepped/4.
 
 % DCG access to XPCE get/3 and EvoStat component/3
 getx(Obj,ID)               --> {get(Obj,ID,Data)},         [Data].
 component(Name, Type, Obj) --> {component(Name,Type,Obj)}, [Name].
 
-nl --> {html_syntax, !}, [br([])].
+nl --> html_syntax, !, [br([])].
 nl --> ['\n'].
 
 % Divide by 10 and present as 4-digit float because
@@ -21,16 +21,12 @@ label(temperature, Obj) --> ['Temperature '],
     getx(Obj, temperatureUnits).
 
 label(level, Obj) --> 
-		      { dblog(in_level), dblog(Obj) },
                       getx(Obj,tl),
-		      { dblog(after_getx) },
                       [' / '],
                       getx(Obj,l),
-		      { dblog(in_level) },
 		      getx(Obj,levelUnits).
 
 label(od, Obj) --> ['OD',sub(600)],
-		   { dblog(in_od) },
                    ['  .'], getx(Obj,tb),
                    ['/.'],  getx(Obj,b).
 

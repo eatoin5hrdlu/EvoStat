@@ -10,9 +10,16 @@
 %%%%%%%%%%% INTERNAL WEB SERVER 
 :- use_module(library(http/thread_httpd)).   % Server loop
 :- use_module(library(http/http_dispatch)).  % dispatch table
-:- use_module(library(http/http_header)).    % Terms -> HTML conversion
-:- use_module(library(http/html_write)).     % Terms -> HTML conversion
+:- use_module(library(http/http_header)).    % Terms -> HTML
+:- use_module(library(http/html_write)).     % Terms -> HTML
 :- use_module(library(http/html_head)).      % html_requires//1
+
+:- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
+html_syntax --> {html_syntax}. % Also callable as a grammar rule
+
+%%%%%%%%%%% OS IDENTIFICATION
+windows :- current_prolog_flag(windows,true).
+unix    :- current_prolog_flag(unix,true).
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -20,6 +27,7 @@
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
+
 :- ensure_loaded(webspec).           % HTTP Request handlers
 :- ensure_loaded(et).                % Term Expansion for XPCEgen
 
@@ -27,43 +35,58 @@
    XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
    new(@'_dialog_bg', colour(@default,XR,XG,XB)).
 
+
+message(F,L) :- format(user_error, F, L).
+
+:- dynamic component/3,
+           leak/1,
+	   temperature/3,
+	   last_level/2,
+	   cycle/1.
+
+:- dynamic bt_device/2, watcher/2.
+:- multifile bt_device/2, watcher/2.
+
+:- dynamic debug/0, logfile/1.
+:- multifile debug/0, logfile/1.
+% debug.
+% logfile(logfile).
+
 :- dynamic err/2.
 :- multifile err/2.
-:- dynamic cycle/1.
 
 :- dynamic webok/0.  % Asserted when evostat class is initialized
 :- multifile webok/0.
 
-%:- dynamic debug/0. % Removed by save_evostat when building binary
-%debug.
-
-message(F,L) :- format(user_error, F, L).
-
-timestring(TString):- get_time(Now), convert_time(Now,TString).
-timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
-
-:- dynamic component/3, leak/1, temperature/3, last_level/2.
-
-% Configuration <hostname>.pl settings
-:- dynamic bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/2.
-:- multifile bt_device/2, logfile/1, simulator/0, deadzone/1, watcher/2.
-% logfile(logfile).
+%%%% LIST ALL TEMPORARY FILES FOR CLEANUP
 
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
 temp_file('dbg.txt').
 temp_file(File)       :- logfile(File).
 
+cleanup :- temp_file(F), exists_file(F), delete_file(F), fail.
+cleanup.
+
+%%%%% TIME STUFF
+
+timestring(TString):- get_time(Now), convert_time(Now,TString).
+timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
+
 :- dynamic timer_time/1.
 timer_left(T) :-
     get_time(Now),
     timer_time(Last),
     T is integer(Now-Last).
+
+timer_reset :-
+    get_time(Now),
+    INow is integer(Now), % One second resolution
+    retractall(timer_time(_)),
+    assert(timer_time(INow)).
     
-cleanup :- temp_file(F), exists_file(F), delete_file(F) ; true.
-
+%%%%%% LOGGING
 % All messages to logfile (otherwise, message window)
-
 % Never use logfile on Windows
 logging :- windows, !, retractall(logfile(_)).
 logging :- ( logfile(File)
@@ -75,6 +98,7 @@ logging :- ( logfile(File)
 	    ; write(user_error,'No Logging at this time'),nl(user_error)
 	   ).
 
+%%%%%%%%%%%%%%%% CAMERA
 camera_device(Device) :-
     param(camera(Num)),
     integer(Num),
@@ -104,32 +128,20 @@ camera_reset :-
     writeln(resettingCamera(Dir, Cmd, Args)),
     process_create(Cmd,Args,[cwd(Dir)]),
     writeln(resetCamera).
-
-windows :- current_prolog_flag(windows,true).
-unix    :- current_prolog_flag(unix,true).
-
-evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat\\') :-
-  gethostname('ncmls8066.ncmls.org'),!.
-evostat_directory('C:\\cygwin\\home\\peter\\src\\EvoStat\\')  :- windows, !.
-evostat_directory('/home/peter/src/EvoStat/').
-	
-python('C:\\Python27\\python.exe')         :- gethostname(elapse),!.
-python('C:\\cygwin\\Python27\\python.exe') :- windows, !.
-python('/usr/bin/python').
+%%%%%%%%%%%%%CAMERA
+%% SUBSYSTEMS
 
 :- [gbutton]. % XPCE parent class [ebutton] etc.
 
 :- [adjust].  % PID controller <-> PCE interface
 
-:- dynamic screen/5, input/2.
-
+:- dynamic screen/5.
 :- dynamic levelStream/2,
 	   air/0,
 	   mix/0,
 	   toggle_auto/0.
-
 %
-% Copy and edit template.pl to create a configuration <hostname>.pl
+% Create configuration file <hostname>.pl from  template.pl
 % (or <evostatname>.pl if more than one on the same computer).
 % 'evostat' reads this file and creates <hostname>.settings
 % for Python programs (levels.py, level.py, fluor.py, pH.py)
@@ -457,10 +469,6 @@ started(_W) :->
 	    if(@arg1?value==start,message(@arg1, active, @off))),
        send(@action?members, for_all,
 	    if(@arg1?value==stop, message(@arg1, active, @on))),
-       get_time(Now),
-       INow is integer(Now),
-       retractall(timer_time(_)),
-       assert(timer_time(INow)),
        send(@ft,start),       % Now restart the fast GUI update timer
        plog('Starting Level Detection (Image processing)').
 
@@ -694,10 +702,10 @@ bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
 bluetalk(   _,   _, 'send_failed.'    ).
 
 
-% Create prolog executable (saved-state) with goal [c],save_evostat.
-% Configuration <name> is either a command-line argument or <hostname>
-% The corresponding Prolog file ( <name>.pl ) must exist.
-% Load configuration and generate Python .settings (dictionary) file.
+% Create executable (saved-state) with goal [c],save_evostat.
+% <name> of configuration is a command-line argument or <hostname>
+% The corresponding Prolog file: <name>.pl,  must exist.
+% Load config and generate Python .settings (dictionary) file.
 % Many dynamic predicates (config, debug options ) from <hostname>.pl
 
 update_config(Config) :-      % Load or reload when file changes
@@ -777,12 +785,12 @@ main(_Argv) :-
     ),
 
     open('evostat.report', write, S),
-    nl(S),nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
+    nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
     
-    assert(file_search_path('C:\\cygwin\\home\\peter\\src\\EvoStat')),
     evostat_directory(HomeDir),  % With this, the savestate
     cd(HomeDir),               % can be executed from anywhere
-    cleanup,                   % uses temp_file/1 to remove files
+    assert(file_search_path(HomeDir)),
+    cleanup,                   % Remove all temp_file/1 entries
     logging,                   % Send output to F if logfile(F) defined
 
 	% Delay a bit if the computer is just starting up (low PID)
@@ -791,11 +799,7 @@ main(_Argv) :-
 
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),  % Special exit predicate to call
-	( windows
-         -> load_foreign_library(foreign(plblue))
-	  ; load_foreign_library(plblue)
-        ),
-%        load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
+        load_bluetooth,
 	update_config(Root),
 	param(screen(WF,HF,Loc)),    % From configuration data
         get(@display?size,width,Width),
@@ -816,29 +820,6 @@ main(_Argv) :-
         !,
 	stop_http.
 
-% To build stand-alone 'evostat', there are different emulators
-% Windows  'C:\\cygwin\\swipl\\bin\\swipl-win.exe'
-% Cygwin   '/cygdrive/c/cygwin/swipl/bin/swipl-win.exe'
-%          '/usr/bin/swipl-win'
-% Linux    swi('bin/xpce-stub.exe'), swi('bin/swipl-win.exe')
-%
-
-os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe') :-
-    gethostname(egate), !.   % My windows laptop
-
-os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe') :-
-    windows, !.
-    
-os_emulator('/home/peter/bin/swipl') :- % Haldane at SplatSpace
-     gethostname(haldane),              % Custom-build SWI Prolog
-     !,
-     pce_autoload_all,
-     pce_autoload_all.
-
-os_emulator('/usr/bin/swipl') :-  % Linux
-     pce_autoload_all,
-     pce_autoload_all.
-
 save_evostat :-
     os_emulator(Emulator),
 %    retractall(debug),
@@ -858,16 +839,14 @@ reload    :- stop_http, reconsult(webspec), start_http.
 stop_http  :- catch(http_stop_server(21847,[]),_,true).
 
 start_http :-
-    ( running
-     -> true
+    ( running -> true
      ;
-     process_files('web/*',        [] ),
+     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
+%     process_files('web/*',        [] ),
      process_files('web/*.html', [] ),
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
      process_files('web/images/*', [] ),
-%     process_files('web/*', [] ),
-     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
      http_server( http_dispatch, [ port(21847) ] )
     ).
 

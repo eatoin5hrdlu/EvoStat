@@ -1,20 +1,20 @@
+:- set_prolog_flag(double_quotes,codes).
 :- use_module(library(pce)).
 :- op(1200,xfx,':->'). % Define operators for PCE term-expansion
 :- op(1200,xfx,':<-').
 :- op(910, xfx,'::').
-:- set_prolog_flag(double_quotes,codes).
 :- dynamic webValue/3.
 
-% Generate an XPCE/HTML interfaces for an Arduino device
-% Arduino responds to 'i' with iface(Class, Parent, Variables)
+% Generate XPCE/HTML interfaces for Arduino devices
+% Arduino response to 'i' is iface(Class, Parent, Variables)
 % E.g. iface(lagoon, ebutton,
 %          [int(temperature,   t, ro, "Temperature"),
 %           int(ttemperature, tt, rw, "Target Temperature")]).
 %
-% Our Parent class (ebutton) contains:
-% r/w variables: [socket, temperatureUnits, turbidityUnits, volumeUnits]
+% Parent class (ebutton) contains:
+% rw variables: [socket, {temperature, turbidity, volume}Units ]
 % and methods : [ connect, converse, parse_reply ]
-% Variables mac (address) and Name are created in the new class
+% Variable myname is created in the new class
 
 :- dynamic changed/2.   % Assertion to tell system to push new
 :- multifile changed/2. % values to the Arduino during update
@@ -24,7 +24,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
     expand_type(Type,Methods,[]),  % Type-specific Methods
     flatten([ (:-style_check(-singleton)),
        (:- pce_begin_class(Type, PType)),
-       variable(myname, name, get, "Object Name"), 
+       variable(myname, name, both, "Object Name"), 
        Declarations,
        ( initialise(Self, Label:[name]) :->
 	 "Initialise button and connect to device"::
@@ -65,15 +65,17 @@ expand_vars([rw(Name,Type,Doc)|Vs], Ns) -->
     [ variable(Name,Type,both,Doc) ],
     expand_vars(Vs,Ns).
 
+% check_level doesn't need to be here except 
+% as an example of a generated method
+
 expand_type(Type)   -->
-    { memberchk(Type,[lagoon, cellstat]) },
-    !,
-    [(check_level(Self) :->
-	get(Self,l,Level),
-	get(Self,tl,TargetLevel),
+    { memberchk(Type,[lagoon, cellstat]), ! },
+    [(check_level(Self) :-> 
+        get(Self,l,Level),
+        get(Self,tl,TargetLevel),
         Amt is TargetLevel - Level,
         Error is abs(Amt),
-	(Error < 4 -> true ; adjust(Self,Amt) ))].
+        ( Error < 4 -> true ; adjust(Self,Amt) ))].
 
 expand_type(_) --> [(check_level(_) :-> true)].
 
