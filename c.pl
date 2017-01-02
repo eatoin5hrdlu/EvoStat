@@ -298,14 +298,14 @@ sendLevel(1,Level) :-
     Level > 0,
     !,
     component(_, cellstat, Cellstat),
-    send(Cellstat, level, Level),
+    send(Cellstat, l, Level),
     writeln(sentCellstatLevel(Level)).
 sendLevel(Num,Level) :-
     Num > 1,
     Level > 0,
     LNum is Num-1,
     lagoon_number(Object, LNum),
-    send(Object, level, Level),
+    send(Object, l, Level),
     writeln(sentLagoonLevel(LNum, Level)).
 
 send_info(end_of_file,_) :-

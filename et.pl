@@ -3,6 +3,8 @@
 :- op(1200,xfx,':<-').
 :- op(910, xfx,'::').
 :- set_prolog_flag(double_quotes,codes).
+:- dynamic webValue/3.
+
 % Generate an XPCE/HTML interfaces for an Arduino device
 % Arduino responds to 'i' with iface(Class, Parent, Variables)
 % E.g. iface(lagoon, ebutton,
@@ -36,6 +38,8 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
                               send(S2,converse,[N2]),
                               parse_reply(N2, V2),
+			      retractall(webValue(S2,N2,_)),
+			      assert(webValue(S2,N2,V2)),
 			      send(S2, N2, V2)),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::
