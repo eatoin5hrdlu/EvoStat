@@ -20,6 +20,10 @@ html_syntax --> {html_syntax}. % Also callable as a grammar rule
 %%%%%%%%%%% OS IDENTIFICATION
 windows :- current_prolog_flag(windows,true).
 unix    :- current_prolog_flag(unix,true).
+linux   :- unix.
+
+evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
+evostat_directory('/home/peter/new/EvoStat/') :- linux.
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -400,7 +404,7 @@ initialise(W, Label:[name]) :->
 	  free(@ft),
 	  param(updateCycle(Seconds)),
           Frequent is integer(Seconds/10),
-    plog(frequentTimer(Frequent)),
+	  plog(frequentTimer(Frequent)),
 	  send(W, attribute, attribute(timer, new(@ft, timer(Frequent, Msg2)))),
 	
 	  % Status updates via Text Messaging
@@ -448,7 +452,8 @@ initialise(W, Label:[name]) :->
 	      if(@arg1?value==pIDoff,message(@arg1, active, @on))),
 
          send(W,started),
-         send_super(W, open, Location).
+         send_super(W, open, Location),
+	 plog(finished(evostat)).
 
 drain(_W, What) :->  plog(draining(What)).
 
@@ -799,7 +804,11 @@ main(_Argv) :-
 
         set_prolog_flag(save_history,false),
 	at_halt(pathe_report(verbose)),  % Special exit predicate to call
-        load_bluetooth,
+        ( windows
+        -> load_foreign_library(foreign(plblue))
+        ;  load_foreign_library(plblue),
+	   plog(loaded(bluetooth))
+        ),
 	update_config(Root),
 	param(screen(WF,HF,Loc)),    % From configuration data
         get(@display?size,width,Width),

@@ -248,14 +248,19 @@ converse(Self, Cmd) :->
 connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::
 	get(Self, myname, MyName),
-	( bt_device(MyName, Addr) -> true ; Addr = "DD:DD:DD:DD:DD:DD" ),
+	plog(connect(MyName)),
+	( bt_device(MyName, Addr) -> true ; Addr = 'DD:DD:DD:DD:DD:DD' ),
 	get(Self, socket, OldSocket),
+	plog(oldSocket(OldSocket)),
         ( OldSocket == @nil -> true
-	; bt_close(OldSocket),
-	  writeln(setting(MyName,socket,@nil)),
+	; plog(bt_close(MyName,OldSocket)),
+	  bt_close(OldSocket),
+	  plog(setting(MyName,socket,@nil)),
 	  send(Self, slot, socket, @nil)
 	),
+	plog(bt_socket(Addr)),
 	( bt_socket(Addr, BTSocket) ->
+	  plog(bt_socket(returned(BTSocket))),
 	  write(socket(BTSocket)),write(' '),
 	  ( BTSocket > -1 ->
 	    send(Self, slot, socket, BTSocket),
@@ -264,8 +269,8 @@ connect(Self) :->
 	    writeln(returned(MyName,bt_socket,BTSocket)),
 	    send(Self,colour,colour(red))
 	  )
-	  ; writeln(failed(bt_socket(MyName))),
-	    send(Self,colour,colour(red))
+	;  plog(failed(bt_socket(MyName))),
+	   send(Self,colour,colour(red))
 	).
 
 insertIP(Cmd, IP, Result) :-
