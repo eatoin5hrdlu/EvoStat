@@ -5,8 +5,9 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(100,190,330,250),
-         cellstatContrast(1, 1.9, -50), % Iterations, Multiply, Subtract
+         cellstatRegion(180,180,330,230),
+%         cellstatRegion(205,250,400,310),
+         cellstatContrast(1, 1.4, -70), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
@@ -29,7 +30,7 @@ config( [
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
 		 lagoon( lagoon1, next_row, [temp(350), TL, LS, LF]),
-		 lagoon( lagoon2, right,    [temp(350), TL, LS, LF]),
+		 lagoon( lagoond2, right,    [temp(350), TL, LS, LF]),
 		 lagoon( lagoon3, right,   [temp(345) , TL, LS, LF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
 		 sampler(autosampler, next_row, [shape(40,12),SF]),
@@ -46,9 +47,11 @@ config( [
 % When testing with no devices, uncomment next line for fast startup.
 % bt_address(Name, Addr) :- !, fail.
 
+bt_device(cellstat,    '98:D3:31:50:12:F4'). % HC-06
 %bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
-bt_device(cellstat,    '98:D3:31:90:29:0E').
+%bt_device(cellstat,    '98:D3:31:90:29:0E').
 bt_device( lagoon1,    '98:D3:31:80:34:39'). % was d3
+bt_device( lagoond2,   '98:D3:31:30:95:60').
 bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 %bt_device(labcellstat,  '98:D3:31:90:29:0E').
@@ -68,7 +71,6 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 % Museum simulator
 %bt_device( cellstatd,     '98:D3:31:40:90:13').
 %bt_device(  lagoond1,     '98:D3:32:30:42:6A').
-%bt_device(  lagoond2,     '98:D3:31:30:95:60').
 %swbt_device(  lagoond3,     '98:D3:31:80:34:39').
 %bt_device(autosampler,    '98:D3:31:30:95:4B').
 
@@ -76,12 +78,13 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
-watcher(reintjes,'vp 9194525098', 24).  % Peter Reintjes
-watcher(howell, 'vp 7723215578', 48).   % Finn Howell
-watcher(pc,      'a 9193083839',  6).  % The Other Peter
-watcher(marshall,'a 5056037415', 6).   % Marshall
+watcher(reintjes,'vp 9194525098', 12).  % Peter Reintjes
+watcher(laurie,  'vp 9196987470', 24).   % Laurie Betts
+%watcher(pc,      'a 9193083839',  8).  % The Other Peter
+%watcher(marshall,'a 5056037415', 8).   % Marshall
 %watcher(martha, 'vp 9196024293', 23).  % Martha Collier
 %watcher(lea,    'vp 9194525097', 4).   % Lea
+%watcher(howell, 'vp 7723215578', 48).  % Finn Howell
 
 % Fake Level Data for PID debugging
 % simulator.
@@ -103,25 +106,26 @@ pid_controllers([
 %  control(Component, level, InflowTime, Alt-Component, OutflowTime)
 control( cellstat, level, 'v0', autosampler, 'm').
 control(  lagoon1, level, 'v1', autosampler, 'i').
+
 %%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
 
 % To build stand-alone executable there are different emulators
 :- discontiguous evostat_directory/1, python/1, os_emulator/1.
 
 % DEFAULTS FOR WINDOWS
-evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
+edir('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
 python('C:\\Python27\\python.exe')                            :- windows.
 os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe')          :- windows.
 
 % OPTIONS FOR WINDOWS
-% evostat_directory('C:\\cygwin64\\home\\Owner\\src\\EvoStat\\') :- windows.
+% edir('C:\\cygwin64\\home\\Owner\\src\\EvoStat\\') :- windows.
 % python('C:\\cygwin\\Python27\\python.exe').
 % python('C:\\cygwin64\\Python27\\python.exe').
 % os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe').
 
 
 % DEFAULTS FOR LINUX
-evostat_directory('/home/peter/src/EvoStat/') :- linux.
+edir('/home/peter/src/EvoStat/') :- linux.
 python('/usr/bin/python')                     :- linux.
 os_emulator('/swipl/bin/swipl')        :- linux, pce_autoload_all, pce_autoload_all.
 
@@ -130,7 +134,6 @@ os_emulator('/swipl/bin/swipl')        :- linux, pce_autoload_all, pce_autoload_
 % os_emulator('/home/peter/bin/swipl') :- linux, pce_autoload_all, pce_autoload_all.
 % os_emulator(swi('bin/xpce-stub.exe')):- linux, pce_autoload_all, pce_autoload_all.
 % os_emulator(swi('bin/swipl-win.exe')):- linux, pce_autoload_all, pce_autoload_all.
-    
 
 % RUNTIME LOADING OF SHARED OBJECT
 
