@@ -2,6 +2,7 @@
 %:- use_module(library(semweb/rdf_db)).
 %:- use_foreign_library(dlltest). 
 %:- rlc_color(window, 150,150,200).
+% PROLOG FILES [c,gbutton,adjust,newpid,iface,dialin,prephtml].
 
 :- set_prolog_flag(double_quotes,codes).
 :- use_module(library(time)).
@@ -13,7 +14,6 @@
 :- use_module(library(http/http_header)).    % Terms -> HTML
 :- use_module(library(http/html_write)).     % Terms -> HTML
 :- use_module(library(http/html_head)).      % html_requires//1
-
 :- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
 html_syntax --> {html_syntax}. % Also callable as a grammar rule
 
@@ -22,8 +22,9 @@ windows :- current_prolog_flag(windows,true).
 unix    :- current_prolog_flag(unix,true).
 linux   :- unix.
 
+evostat_directory(Dir) :- evoDir(Dir),!.
 evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
-evostat_directory('/home/peter/new/EvoStat/') :- linux.
+evostat_directory('/home/peter/new/EvoStat/tmp') :- linux.
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -33,12 +34,11 @@ evostat_directory('/home/peter/new/EvoStat/') :- linux.
 :- use_module(library(ctypes)).
 
 :- ensure_loaded(webspec).           % HTTP Request handlers
-:- ensure_loaded(et).                % Term Expansion for XPCEgen
+:- ensure_loaded(et).                % Term Expansion for XPCEgen g
 
 :- free(@'_dialog_bg'),  % This should make the background light-blue steel
    XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
    new(@'_dialog_bg', colour(@default,XR,XG,XB)).
-
 
 message(F,L) :- format(user_error, F, L).
 
@@ -47,6 +47,9 @@ message(F,L) :- format(user_error, F, L).
 	   temperature/3,
 	   last_level/2,
 	   cycle/1.
+
+:- dynamic evoDir/1.               % <evostat>.pl configuration file
+:- multifile evoDir/1.
 
 :- dynamic bt_device/2, watcher/2.
 :- multifile bt_device/2, watcher/2.
@@ -163,7 +166,6 @@ camera_reset :-
 
 :- dynamic config/1.       % Loaded configuration
 :- dynamic file_modtime/2. % Modification time of loaded file
-:- dynamic supress/1.      % Exclude terms from Python dictionary
 :- dynamic param/4.        % param(Name, Type, Attr, Value)
 
 param(P) :- config(List), memberchk(P,List).
@@ -197,7 +199,11 @@ tabs(1).
 
 writePythonParams(EvoStat) :-    
     config(List),
-    pl2PythonDict(List, PyString),        % Convert to Python Dictionary
+    findall(H, ( member(H, List),
+                 functor(H, F, A),
+                 \+ memberchk(F/A,[layout/1,screen/3])), % Remove
+            PyTerms),
+    pl2PythonDict(PyTerms, PyString),        % Convert to Python Dictionary
     concat_atom([EvoStat,'.settings'],File), % Write it out
     tell(File),
     write(PyString),
@@ -210,24 +216,16 @@ pl2PythonDict(Data, PyAtom) :-       % Generate a Python dictionary string
 	flatten(['{\n',PythonDict,'}\n'], Flat),
 	concat_atom(Flat, PyAtom).
 
-quote_atom(false,'None') :- !.
-quote_atom([A],Q) :- quote_atom(A,Q).
-quote_atom(N,N)   :- number(N).
-quote_atom(A,Q)   :- atom(A), concat_atom(['''',A,''''],Q).
+% DCG compatible version of univ simplifies syntax
+'=..'(Term,List,T,T) :- Term =.. List.
 
-% DCG versions
 quote_atom(false) --> ['None'].  % None is Python's 'false'
 quote_atom([A])   --> quote_atom(A).
 quote_atom(N)     --> {number(N)},[N].
 quote_atom(A)     --> {atom(A)}, ['''',A,''''].
 
-quote_atoms([],[], _).
-quote_atoms([A],[Q],_) :- quote_atom(A,Q).
-quote_atoms([A|T],[Q,Spacer|QT],Spacer) :- quote_atom(A,Q), quote_atoms(T,QT,Spacer).
-
-%DCG versions
 quote_atoms([],_)         --> [].
-quote_atoms([A],_)        --> quote_atom(A).
+quote_atoms([A],_)        --> quote_atom(A),!.
 quote_atoms([A|T],Spacer) --> quote_atom(A), [Spacer], quote_atoms(T,Spacer).
 
 tabin  --> { retract(tabs(N)), NN is N + 1, assert(tabs(NN)) }.
@@ -240,29 +238,27 @@ indent(N)  --> { N>0, NN is N-1}, indentation, indent(NN).
 indentation --> ['       '].
 
 pl2py([])    --> !, [].
-pl2py(Term)  --> { supress(Term)  }, !, [].
-pl2py(A)     --> { quote_atom(A,Q)}, !, [Q].
-pl2py([H])   --> !, pl2py(H), [' \n'].
+pl2py(A)     --> quote_atom(A), !.
+pl2py([H])   --> !, indent, pl2py(H), [' \n'].
 pl2py([H|T]) --> !, indent, pl2py(H), pl2py(T).
 
-pl2py(Term) --> { Term =.. [F|[A]],   % SINGLE f(a)
-	          quote_atom(F,QF),
-	          quote_atom(A,QA),
-		  !
-                },
-		[QF, ' :  ', QA, ',\n'].
+pl2py(Term) --> Term =.. [F|[A]],   % SINGLE f(a)
+	        quote_atom(F),
+		[' :  '],
+	        quote_atom(A),
+		!,
+		[',\n'].
 
-pl2py(Term) --> { Term =.. [F|[A|As]],    % TUPLE   f(a,b,...)
-	          quote_atom(F,QF),
-	          quote_atoms([A|As], Str, ','),
-                  !
-                },
-	        [QF,' : (', Str, '),\n' ].
+pl2py(Term) --> Term =.. [F|[A|As]],    % TUPLE   f(a,b,...)
+                !,
+	        quote_atom(F),
+	        [' : ('],
+	        quote_atoms([A|As], ','),
+                [ '),\n' ].
 
-pl2py(Term) --> { Term =.. [F|Args],  % NESTED DICTIONARY  f(g(a),...)  
-	          quote_atom(F, QF)
-	        },
-		[QF, ' :  {'],
+pl2py(Term) --> Term =.. [F|Args],  % NESTED DICTIONARY  f(g(a),...)  
+	        quote_atom(F),
+		[' :  {'],
 		pl2py(Args),
 		['      }'].
                  
@@ -793,6 +789,7 @@ main(_Argv) :-
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
     
     evostat_directory(HomeDir),  % With this, the savestate
+    plog(changingDirectory(HomeDir)),
     cd(HomeDir),               % can be executed from anywhere
     assert(file_search_path(HomeDir)),
     cleanup,                   % Remove all temp_file/1 entries
@@ -818,10 +815,6 @@ main(_Argv) :-
 	param(layout(Components)),
 	Layout =.. [Root,Components],
 	assert(Layout),
-%	writeln(Layout),
-
-	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
-	assert(supress(screen(_,_,_))),       %     ''
         writePythonParams(Root),
         start_http,
         c(Root),
