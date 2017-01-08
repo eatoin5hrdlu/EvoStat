@@ -132,8 +132,6 @@ semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
     plog(asserting(webok)),
     fail.
 
-%:- load_bluetooth, writeln('BLUETOOTH loaded while consulting gbutton').
-
 :- pce_begin_class(snapshot, window).
 
 initialise(Self, Label:[name]) :->
@@ -174,12 +172,18 @@ initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
         send_super(Self, initialise(Label)),
         send(Self, myname, Label),
+	retractall(changed(Self,_,_)),
 	send(Self, slot, l,  30),
 	send(Self, slot, tl, 87),
+	assert(changed(Self,tl)),
 	send(Self, slot, levelUnits,   'mL'),
+	assert(changed(Self,levelUnits)),
 	send(Self, slot, temperatureUnits,   'C'),
+	assert(changed(Self,temperatureUnits)),
 	send(Self, slot, turbidityUnits,   'OD(600)'),
+	assert(changed(Self,turbidityUnits)),
 	send(Self, slot, fluxUnits,        'rlu'),
+	assert(changed(Self,fluxUnits)),
 	send(Self, slot, socket, @nil),
 	send(Self, connect),
 	new(Code,  message(Self, show_conversation)),
