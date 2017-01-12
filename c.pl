@@ -22,7 +22,7 @@
 
 evostat_directory(Dir) :- evoDir(Dir),!.
 evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
-evostat_directory('/home/peter/new/EvoStat/tmp') :- linux.
+evostat_directory('/home/pi/src/EvoStat/') :- linux.
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -58,7 +58,7 @@ evostat_directory('/home/peter/new/EvoStat/tmp') :- linux.
 	     config/1,       % Loaded configuration
 	     file_modtime/2, % Modification time of loaded file
 	     param/4,        % param(Name, Type, Attr, Value)
-
+	     simulator/0,
 	     toggle_auto/0 ].
 
 
@@ -332,7 +332,8 @@ initialise(W, Label:[name]) :->
 	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
 	  free(@ut),
 	  param(updateCycle(Seconds)),
-	  send(W, attribute, attribute(timer, new(@ut, timer(Seconds, Msg1)))),
+          send(W, attribute, attribute(timer, new(@ut, timer(Seconds, Msg1)))),
+	  assert(next_update(Seconds)),
 
 	  % Short update cycle for GUI
 	  new(Msg2, message(W, fastUpdate)),  % Message for fast Timer
@@ -508,6 +509,11 @@ autoUpdate(Self) :->
     send(Self,readLevels), plog(sent(readlevels)),
     send(Self,mixon),      plog(sent(mixon)),  % Send update
     prep, % refreshes assertion for Web page
+
+    param(updateCycle(Seconds)),
+    retractall(next_update(_)),
+    assert(next_update(Seconds)),
+    
     report,
     send(@gui, started).
 
@@ -563,10 +569,14 @@ readLevels(_) :->
 % Image update, time to next level detection, etc.
 % Currently only the autosampler/next cycle time indication
 
-fastUpdate(_Self) :->
+fastUpdate(Self) :->
     change_request,
-%    send(Self?graphicals, for_all,
-%	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
+    retract(next_update(Seconds)),
+    Next is Seconds - 10,
+    assert(next_update(Next)),    
+    send(Self?graphicals, for_all,
+	 if(message(@arg1,instance_of,sampler), message(@arg1,u,Next))),
+    prep,
     check_web_files.
 
 sendText(Self) :->
@@ -793,6 +803,8 @@ change_value('tt',Name,Value) :-
 change_value(_,_,_).
 
 backgroundImage(ImageFile) :-
-    gethostname(Fullname),
-    atomic_list_concat([Name|_],'.',Fullname),
+    config_name(Name,_),
     concat_atom(['./images/',Name,'.png'],ImageFile).
+%    exists_file(ImageFile),
+%    !.
+%backgroundImage('./images/platebglong.png').

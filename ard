@@ -3,8 +3,8 @@
 iface( supply, ebutton,[]).
 
 iface( sampler, ebutton,
-      [ ro( u, int:=90,   "Update every 90 seconds"),
-	ro(ns, int:=3600, "Sample once per hour"),
+      [ rw( u, int:=90,   "Update every 90 seconds"),
+	rw(ns, int:=3600, "Sample once per hour"),
         rw(i0, int:=1000, "Host Drain Valve Timing"),
         rw(i1, int:=1000, "Lagoon1 Drain Valve Timing"),
         rw(i2, int:=1000, "Lagoon2 Drain Valve Timing"),

@@ -185,7 +185,6 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, fluxUnits,        'rlu'),
 	assert(changed(Self,fluxUnits)),
 	send(Self, slot, socket, @nil),
-	send(Self, connect),
 	new(Code,  message(Self, show_conversation)),
 	send(Self, recogniser, click_gesture(right,'',single,Code)).
 
@@ -253,7 +252,7 @@ connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::
 	get(Self, myname, MyName),
 	plog(connect(MyName)),
-	( bt_device(MyName, Addr) -> true ; Addr = 'DD:DD:DD:DD:DD:DD' ),
+	bt_device(MyName, Addr),
 	get(Self, socket, OldSocket),
 	plog(oldSocket(OldSocket)),
         ( OldSocket == @nil -> true
@@ -263,19 +262,16 @@ connect(Self) :->
 	  send(Self, slot, socket, @nil)
 	),
 	plog(bt_socket(Addr)),
-	( bt_socket(Addr, BTSocket) ->
-	  plog(bt_socket(returned(BTSocket))),
-	  write(socket(BTSocket)),write(' '),
-	  ( BTSocket > -1 ->
-	    send(Self, slot, socket, BTSocket),
-	    send(Self,colour,colour(darkgreen))
-	    ;
-	    writeln(returned(MyName,bt_socket,BTSocket)),
-	    send(Self,colour,colour(red))
-	  )
-	;  plog(failed(bt_socket(MyName))),
-	   send(Self,colour,colour(red))
-	).
+	bt_socket(Addr, BTSocket),
+	plog(bt_socket(returned(BTSocket))),
+	BTSocket > -1,
+	send(Self, slot, socket, BTSocket),
+	send(Self,colour,colour(darkgreen)).
+
+connect(Self) :->
+	get(Self, myname, MyName),
+	plog(failed(bt_socket(MyName))),
+	send(Self,colour,colour(red)).
 
 insertIP(Cmd, IP, Result) :-
         atom_codes(Cmd, Cs),
