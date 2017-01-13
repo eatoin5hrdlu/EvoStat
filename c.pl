@@ -20,9 +20,25 @@
 :- use_module(library(time)).
 :- use_module(library(pce)).
 
-evostat_directory(Dir) :- evoDir(Dir),!.
-evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
-evostat_directory('/home/pi/src/EvoStat/') :- linux.
+evostat_directory(Dir) :-  % If configuration is loaded
+    evoDir(Dir),
+    exists_directory(Dir),
+    !.
+evostat_directory(Dir) :-
+   ( linux
+     -> member(Dir,[
+		   '/home/peter/src/EvoStat/',
+		   '/home/peterr/src/EvoStat/',
+		   '/home/Owner/src/EvoStat/',
+		   '/home/pi/src/EvoStat/'
+	       ])
+     ; member(Dir,[ 
+		  'C:\\cygwin\\home\\peter\\src\\EvoStat\\',
+		  'C:\\cygwin\\home\\peterr\\src\\EvoStat\\',
+		  'C:\\cygwin64\\home\\Owner\\src\\EvoStat\\'
+	      ])
+   ),
+   exists_directory(Dir).
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -294,7 +310,6 @@ get_level(Type) :-
 	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
      ; true
     ),
-    evostat_directory(Dir),
     plog(launching(Python,CmdLine)),
     process_create(Python,CmdLine,
 		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
@@ -721,10 +736,9 @@ main(Argv) :-
     ),
     open('evostat.report', write, S),
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
-    
-    evostat_directory(HomeDir),  % With this, the savestate
+    evostat_directory(HomeDir),  % With this, the savestate can
+    cd(HomeDir),                 % be invoked from anywhere
     plog(changingDirectory(HomeDir)),
-    cd(HomeDir),               % can be executed from anywhere
     assert(file_search_path(HomeDir)),
     cleanup,              % Remove temp_file/1 entries
     plog(before(logging)),
@@ -737,9 +751,9 @@ main(Argv) :-
     at_halt(pathe_report(verbose)),  % Special exit predicate to call
     ( windows
       -> load_foreign_library(foreign(plblue))
-      ;  load_foreign_library(plblue),
-	 plog(loaded(bluetooth))
+      ;  load_foreign_library(plblue)
     ),
+    plog(loaded(bluetooth)),
     update_config(Root),
     param(screen(WF,HF,Loc)),    % From configuration data
     get(@display?size,width,Width),

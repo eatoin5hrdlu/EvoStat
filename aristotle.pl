@@ -19,27 +19,26 @@ config( [
 	 darkness(60),      % Average pixel threshold to identify darkness
 	 camera(0),
 	 rotate(90),
-	 screen(40,48,point(720,1)),
+	 screen(40,52,point(120,1)),
 	 layout([
 		 supply( nutrient, below,  [Supply,levelUnits('L')]),
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
-		 cellstat(cellstat,below, [od(0.4),temp(370),shape(36,12),CF]),
+		 cellstat(cellstat,below, [tb(400),tt(370),shape(36,12),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
-		 lagoon( lagoon1, next_row, [temp(350), TL, LS, LF]),
-		 lagoon( lagoond2, right,    [temp(350), TL, LS, LF]),
-		 lagoon( lagoon3, right,   [temp(345) , TL, LS, LF]),
+		 lagoon( lagoon1, next_row, [tt(350), TL, LS, LF]),
+		 lagoon( lagoond2, right,    [tt(350), TL, LS, LF]),
+		 lagoon( lagoon3, right,   [tt(345) , TL, LS, LF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
-		 sampler(autosampler, next_row, [shape(40,12),SF]),
-		 drainage(waste, next_row, [shape(20,9),SF])
+		 sampler(autosampler, next_row, [shape(40,12),SF])
                 ])
 	 ]) :-
  Supply = shape(10,5),
  LS = shape(31,12),
- TL = targetLevel(31),
+ TL = tl(31),
  LF = font(font(times,roman,20)),
  CF = font(font(times,roman,18)),
  SF = font(font(times,roman,20)).
@@ -110,44 +109,9 @@ control(  lagoon1, level, 'v1', autosampler, 'i').
 %%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
 
 % To build stand-alone executable there are different emulators
-:- discontiguous evostat_directory/1, python/1, os_emulator/1.
+:- discontiguous python/1.
 
-% DEFAULTS FOR WINDOWS
-edir('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
 python('C:\\Python27\\python.exe')                            :- windows.
-os_emulator('C:\\cygwin\\swipl\\bin\\swipl-win.exe')          :- windows.
-
-% OPTIONS FOR WINDOWS
-% edir('C:\\cygwin64\\home\\Owner\\src\\EvoStat\\') :- windows.
-% python('C:\\cygwin\\Python27\\python.exe').
-% python('C:\\cygwin64\\Python27\\python.exe').
-% os_emulator('C:\\cygwin\\pl\\bin\\swipl-win.exe').
-
-
-% DEFAULTS FOR LINUX
-edir('/home/peter/src/EvoStat/') :- linux.
 python('/usr/bin/python')                     :- linux.
-os_emulator('/swipl/bin/swipl')        :- linux, pce_autoload_all, pce_autoload_all.
 
-% OPTIONS FOR LINUX
-% os_emulator('/usr/bin/swipl')        :- linux, pce_autoload_all, pce_autoload_all.
-% os_emulator('/home/peter/bin/swipl') :- linux, pce_autoload_all, pce_autoload_all.
-% os_emulator(swi('bin/xpce-stub.exe')):- linux, pce_autoload_all, pce_autoload_all.
-% os_emulator(swi('bin/swipl-win.exe')):- linux, pce_autoload_all, pce_autoload_all.
 
-% RUNTIME LOADING OF SHARED OBJECT
-
-load_bluetooth :- 
-  ( windows
-    -> load_foreign_library(foreign(plblue))
-    ; load_foreign_library(plblue)
-  ).
-% Windows??
-% load_foreign_library('C:\\cygwin\\home\\peter\\src\\EvoStat\\plblue'),
-
-% COMPILE TIE LOADING OF SHARED OBJECT
-% :- ( current_prolog_flag(arch,'i386-win32')
-%     -> load_foreign_library(foreign(plblue))
-%     ;  load_foreign_library(plblue)
-%   ),
-%   writeln('plblue (BLUETOOTH) loaded').
