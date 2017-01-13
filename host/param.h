@@ -18,7 +18,7 @@
 
 #define DEFAULT_CYCLETIME       20  // Seconds
 
-#define NUM_VALVES      2
+#define NUM_VALVES      3
 #define MAX_VALVES      6
 
 #define MIXERSPEED 80   // PWM value for top mixer speed
