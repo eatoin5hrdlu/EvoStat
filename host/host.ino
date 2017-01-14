@@ -47,20 +47,6 @@ void initializeT()
   if (once) { Wire.begin(); once = false; }
 }
 
-char buf[30];
-
-void printTermInt(char *f,int a)
-{
-  sprintf(buf, "%s(%d).",f,a);
-  soutln(buf);
-}
-
-void printTerm2Int(char *f,int a,int b)
-{
-  sprintf(buf, "%s(%d,%d).",f,a,b);
-  soutln(buf);
-}
-	
 
 #define MLX90614_I2CADDR 0x5A
 #define MLX90614_TOBJ1   0x07
@@ -107,6 +93,20 @@ char reply[40];
 #include "wifi.h"
 WIFI w = WIFI();
 #endif
+
+void printTermInt(char *f,int a)
+{
+  sprintf(reply, "%s(%d).",f,a);
+  soutln(reply);
+}
+
+void printTerm2Int(char *f,int a,int b)
+{
+  sprintf(reply, "%s(%d,%d).",f,a,b);
+  soutln(reply);
+}
+	
+
 
 void sout(const char *str) {
 #ifdef WIFI
@@ -481,9 +481,10 @@ byte d;
 		case 't':
 		        switch(c2) {
 			  case 't':
-			  if (value == 0) {
-			   printTermInt("tt",target_temperature);
-			   } else target_temperature = value;
+			  if (value == 0)
+			     printTermInt("tt",target_temperature);
+			  else
+			     target_temperature = value;
 			   break;
 			  case 'b':
 			  if (value == 0) {
@@ -552,7 +553,7 @@ void btRespondToRequest(void)
 		if (is.length() > 2)
 			value = atoi(&is[2]);
 		if (!cellstat_command(is[0], is[1], value)) {
-			Serial.println("bad flow command [" + is + "]");
+			Serial.println("er(" + is + ").");
 			Serial.println(EOT);
 		}
 	}
@@ -611,9 +612,12 @@ int i;
 	auto_mixer = true; // Maintain Mixer
 	auto_air = true;   // Maintain Aeration
 
-	pinMode(NUTRIENT,  OUTPUT);
-	digitalWrite(NUTRIENT,   0);
+	pinMode(NUTRIENT,  OUTPUT); digitalWrite(NUTRIENT, 0);
+	pinMode(NUTRIENT, OUTPUT);  digitalWrite(INDUCE1,  0);
+	pinMode(INDUCE2, OUTPUT);   digitalWrite(INDUCE2,  0);
 	valves.setup_valve(0,NUTRIENT,3000,INFLOW);
+	valves.setup_valve(1,INDUCE1,500,INFLOW);
+	valves.setup_valve(2,INDUCE2,400,INFLOW);
 
 	pinMode(HOSTOUT,  OUTPUT);   // Not currently used (open time = 0ms)
 	digitalWrite(HOSTOUT,   0);
@@ -625,7 +629,8 @@ int i;
 	pinMode(JARLIGHT, OUTPUT);  digitalWrite(JARLIGHT, 1);
 	pinMode(LASER, OUTPUT);  digitalWrite(LASER, 1);
 	pinMode(MIXER, OUTPUT);  // Don't need pinMode for PWM output
-        analogWrite(MIXER, 0);
+
+	analogWrite(MIXER, 0);
 
 	interval = millis();
 	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
