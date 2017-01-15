@@ -63,7 +63,6 @@ evostat_directory(Dir) :-
 	     evoDir/1,          % <evostat>.pl configuration file
 	     bt_device/2,
 	     watcher/2,
-	     debug/0,
 	     logfile/1,
 	     err/2,
 	     webok/0,  % Asserted when evostat class is initialized
@@ -82,13 +81,11 @@ evostat_directory(Dir) :-
 :- multifile [ evoDir/1,
 	       bt_device/2,
 	       watcher/2,
-	       debug/0,
 	       logfile/1,
 	       err/2,
 	       webok/0].
 	       
 
-% debug.
 % logfile(logfile).
 
 %%%% LIST ALL TEMPORARY FILES FOR CLEANUP
@@ -588,9 +585,9 @@ fastUpdate(Self) :->
     change_request,
     retract(next_update(Seconds)),
     Next is Seconds - 10,
-    assert(next_update(Next)),    
+    assert(next_update(Next)),
     send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,sampler), message(@arg1,u,Next))),
+	 if(message(@arg1,instance_of,sampler), message(@arg1,up,Next))),
     prep,
     check_web_files.
 

@@ -56,7 +56,7 @@ label(lagoon,Name) --> component(Name,lagoon,Obj), [' '],
                        label(flow, Obj).
 
 label(sampler,Name) -->  component(Name,sampler,Obj), nl,
-    [ 'Next Level Reading in '], getx(Obj,u), ['s'], nl,
+    [ 'Next Level Reading in '], getx(Obj,up), ['s'], nl,
     [ 'Next Sample '], getx(Obj,ns).
 
 
