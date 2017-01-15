@@ -44,15 +44,11 @@ compatible(T1,T2) :-
 % Lagoon name ends with <digit>: v<digit> is that lagoon's drain
 % Otherwise it must be the Cellstat's drain 'v0'
 
-% Return the name of a component's drain valve
 component_drain(Obj, Valve) :-
-    component(Lagoon,lagoon,Obj),
+    lagoon_number(Obj,N),
     !,
-    atom_codes(Lagoon, Codes),
-    append(_,[Digit],Codes),
-    atom_codes(Valve, [0'v,Digit]).
-
-component_drain(_, v0). % Cellstat
+    concat_atom([v,N],Valve).
+component_drain(_, v0).       % or cellstat
 
 adjust(Obj, Amt) :-
       Inflow is   Amt/2,
