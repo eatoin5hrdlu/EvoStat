@@ -41,21 +41,23 @@ compatible(T1,T2) :-
 	fail.
 
 % The Autosampler controls drain valves for the other components
+% Lagoon name ends with <digit>: v<digit> is that lagoon's drain
+% Otherwise it must be the Cellstat's drain 'v0'
 
-% Return the component's drain valve
+% Return the name of a component's drain valve
 component_drain(Obj, Valve) :-
     component(Lagoon,lagoon,Obj),
     !,
     atom_codes(Lagoon, Codes),
     append(_,[Digit],Codes),
-    atom_codes(Valve, [0'i,Digit]).
+    atom_codes(Valve, [0'v,Digit]).
 
-component_drain(_, i0).
+component_drain(_, v0). % Cellstat
 
 adjust(Obj, Amt) :-
       Inflow is   Amt/2,
       Outflow is -Amt/2,
-      adjust_valve(Obj,i1,Inflow),
+      adjust_valve(Obj,v1,Inflow),
       component_drain(Obj,Drain),
       component(_,sampler,S),
       adjust_valve(S,Drain,Outflow).
@@ -66,6 +68,11 @@ adjust_valve(Obj, Valve, Amt) :-
       send(Obj, Valve, New),
       assert(changed(Obj,Valve)).
 
+parse_reply(Reply, Term) :-
+      functor(Term,F,A),
+      functor(Default,F,A),
+      parse_reply(Reply,Term,Default).
+      
 parse_reply(Reply, Term, Default) :-
 	catch( atom_to_term(Reply,TmpTerm,_TMBindings),
 	       Exception,
@@ -101,36 +108,6 @@ wget( OtherFile,
       'http://192.168.2.117:88/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=scrapsec&pwd=lakewould']):-
       toggle(File,OtherFile).
 
-repeat(N) :-
-             integer(N), % type check
-             N>0,        % value check 
-%	     write(user_error,repeat(N)), nl(user_error),
-             repeatN(N).
-
-repeatN(1) :- !,plog(repeatN_exhausted),fail.
-repeatN(_).
-repeatN(N) :- M is N-1, repeatN(M).
-
-waitfor(N,Atom,_) :-
-   repeat(N),
-   ( call(Atom) -> true ; sleep(0.2), fail ),
-   !.
-
-waitfor(N,Atom,Who) :-  
-    plog(failed(waitfor(N,Atom,Who))),
-    fail.
-    
-semaphore(N,Atom,_) :- % wait for and grab it
-   repeat(N),
-   ( retract(Atom) -> true ; sleep(0.2), fail ),
-   !.
-
-semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
-    plog(failed(semaphore(Who,N,Atom))),
-    retractall(webok),  % In case we failed for another reason.
-    assert(webok),
-    plog(asserting(webok)),
-    fail.
 
 :- pce_begin_class(snapshot, window).
 
@@ -190,10 +167,12 @@ initialise(Self, Label:[name]) :->
 
 update(_Self) :-> true. % Anything that all buttons do
 	
-show_conversation(Self) :->
-        Self = @Name,
-        get(Self, socket, Socket),
-	new(_, dialin(Name,Socket)).
+show_conversation(@Name) :->
+        get(@Name, socket, Socket),
+	(Socket == @nil
+	    -> send(@Name, connect)
+	    ; new(_, dialin(Name,Socket))
+	).
 	
 compute(_) :-> true.
 

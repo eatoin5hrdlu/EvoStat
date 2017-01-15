@@ -166,3 +166,34 @@ run_external(Cmd, Stream) :-
 	system(Redirected),
 	open('/tmp/bpipe', read, Stream, []),
 	system('rm /tmp/bpipe').
+
+repeat(N) :-
+             integer(N), % type check
+             N>0,        % value check 
+%	     write(user_error,repeat(N)), nl(user_error),
+             repeatN(N).
+
+repeatN(1) :- !,plog(repeatN_exhausted),fail.
+repeatN(_).
+repeatN(N) :- M is N-1, repeatN(M).
+
+waitfor(N,Atom,_) :-
+   repeat(N),
+   ( call(Atom) -> true ; sleep(0.2), fail ),
+   !.
+
+waitfor(N,Atom,Who) :-  
+    plog(failed(waitfor(N,Atom,Who))),
+    fail.
+    
+semaphore(N,Atom,_) :- % wait for and grab it
+   repeat(N),
+   ( retract(Atom) -> true ; sleep(0.2), fail ),
+   !.
+
+semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
+    plog(failed(semaphore(Who,N,Atom))),
+    retractall(webok),  % In case we failed for another reason.
+    assert(webok),
+    plog(asserting(webok)),
+    fail.

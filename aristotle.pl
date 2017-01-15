@@ -25,7 +25,7 @@ config( [
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
-		 cellstat(cellstat,below, [tb(400),tt(370),shape(36,12),CF]),
+		 cellstat(newcellstat,below, [tb(400),tt(370),shape(36,12),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
@@ -46,11 +46,17 @@ config( [
 % When testing with no devices, uncomment next line for fast startup.
 % bt_address(Name, Addr) :- !, fail.
 
-bt_device(cellstat,    '98:D3:31:50:12:F4'). % HC-06
+bt_device(nutrient,    '98:D3:31:30:2A:D1').
+    
+%bt_device(cellstat,    '98:D3:31:30:2A:D1'). % HC-06
+%current bt_device(cellstat,    '98:D3:31:50:12:F4'). % HC-06
+
+bt_device(newcellstat,  '98:D3:31:70:2B:75'). % New Cellstat
 %bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
 %bt_device(cellstat,    '98:D3:31:90:29:0E').
 bt_device( lagoon1,    '98:D3:31:80:34:39'). % was d3
 bt_device( lagoond2,   '98:D3:31:30:95:60').
+bt_device( lagoon3,    '98:D3:31:70:3B:2B').
 bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 %bt_device(labcellstat,  '98:D3:31:90:29:0E').
@@ -86,7 +92,7 @@ watcher(laurie,  'vp 9196987470', 24).   % Laurie Betts
 %watcher(howell, 'vp 7723215578', 48).  % Finn Howell
 
 % Fake Level Data for PID debugging
-% simulator.
+simulator.
 input(lagoon1, 41).
 
 % pid(Component,
@@ -103,15 +109,17 @@ pid_controllers([
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    
 %  control(Component, level, InflowTime, Alt-Component, OutflowTime)
-control( cellstat, level, 'v0', autosampler, 'm').
-control(  lagoon1, level, 'v1', autosampler, 'i').
+control( cellstat, level, 'v0', autosampler, 'v0').
+control(  lagoon1, level, 'v1', autosampler, 'v1').
+control(  lagoon2, level, 'v1', autosampler, 'v2').
+control(  lagoon3, level, 'v1', autosampler, 'v3').
+control(  lagoon4, level, 'v1', autosampler, 'v4').
 
 %%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
 
 % To build stand-alone executable there are different emulators
 :- discontiguous python/1.
 
-python('C:\\Python27\\python.exe')                            :- windows.
-python('/usr/bin/python')                     :- linux.
-
+python('C:\\Python27\\python.exe') :- windows.
+python('/usr/bin/python')          :- linux.
 
