@@ -1,7 +1,24 @@
 // Sample Collector and Drain Valves
+
+const char iface[] PROGMEM = {
+   "i( sampler, ebutton,\n\
+      [ rw(up, int:=90,   \"Update every 90 seconds\"),\n\
+	rw(al, int:=10,   \"Aliquot time in seconds\"),\n\
+	rw(ns, int:=24,   \"Number of samples\"),\n\
+	rw(ts, int:=3600, \"Time to next sample\"),\n\
+	rw(pd, int:=90,   \"Drain Timing Interval\"),\n\
+	rw(gt, int:=3600, \"Group Time\"),\n\
+	rw(gn, int:=1,    \"Group Number\"),\n\
+        rw(v0, int:=1000, \"Host Drain Valve Timing\"),\n\
+        rw(v1, int:=1000, \"Lagoon1 Drain Valve Timing\"),\n\
+        rw(v2, int:=1000, \"Lagoon2 Drain Valve Timing\"),\n\
+        rw(v3, int:=1000, \"Lagoon3 Drain Valve Timing\"),\n\
+        rw(v4, int:=1000, \"Lagoon4 Drain Valve Timing\")\n\
+      ])."};
+      
 // Requires Arduino with:
-// Two interrupt capable input pins for Home position photo-interruptor(pin 2) and Encoder A input (pin 3)
-// Two additional input pins for Encoder B (pin 4) and the sample platform endstop (pin 6).
+// Two interrupt pins: Home photo-interruptor(pin 2) and Encoder A input (pin 3)
+// Two inputs for Encoder B (pin 4) and sample platform endstop (pin 6).
 // Four outputs for the phases of the sample platform stepper (8-11)
 // Five outputs for the drains of Lagoons 1-4 and the CellStat (A1-A5).
 // 
@@ -121,6 +138,7 @@ int aliquot;       // Milliseconds for sample taking
 unsigned int valveInterval;
 int valveTime[6]; // Valve open time in milliseconds per interval
 int valvePin[6]; // Valve open time in milliseconds per interval
+int updateTime;
 
 int sampleCountdown; // Set to SampleNum after RESET
 unsigned long int sampleTimeMS;
@@ -341,8 +359,8 @@ void respondToRequest(void)
 	if ( is.length() > 0 )  {   // process the command
 		int value = 0;
 		if (is.length() > 2)
-			value = atoi(&is[1]);
-		process(is[0], value);
+			value = atoi(&is[2]);
+		process(is[0], is[1], value);
 	}
 }
 
@@ -361,80 +379,104 @@ void printTerm2Int(char *functor, int arg1, int arg2)
 void printTermChar(char *functor, char arg)
 { Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
 
-void process(char c, int value)
+void process(char c, char c2, int value)
 {
 unsigned long time_left;
 unsigned int temp;
 int i;
+int vnum;
+char vn[3];
+
+  vn[0] = 'v';
+  vn[1]= c2,
+  vn[2] = 0;
+  vnum = (int) c2 -'0';
+
 	switch(c) {
-		case 'a':
+		case 'a': /* al for aliquot */
+		     if (value == 0)
+		     	printTermInt("al",aliquot);
+		     else  {
 			aliquot = value;
 			openInterval = aliquot;
-			break;
+		     }
+		     break;
 		case 'c':
 			reset();
 			break;
 		case 'd':
 			dump();
 			break;
-
-		case 'e':
-			groupTime = value;
-			break;
 		case 'g':
-			groupNum = value;
-			break;
+		     switch (c2) {
+		     	    case 't':
+			    	 if (value == 0)
+				    printTermInt("et",groupTime);
+				 else
+				    groupTime = value;
+			    break;
+			    case 'n':
+			    	 if (value == 0)
+				    printTermInt("gt",groupNum);
+				 else
+				    groupNum = value;
+			    break;
+			    default:
+				printTermInt("e",(int)c2);
+		     }
+		     break;
 		case 'h':
 			printHelp();
 			break;
-		case 'i': 
-			if (value == 0) printTerm2Int("valve",0,valveTime[0]);
-			else		valveTime[0] = value;
+		case 'i':
+			Serial.println(iface);
 			break;
-		case 'j': 
-			if (value == 0) printTerm2Int("valve",1,valveTime[1]);
-			else 		valveTime[1] = value;
-			break;
-		case 'k': 
-			if (value == 0) printTerm2Int("valve",2,valveTime[2]);
-			else 		valveTime[2] = value;
-			break;
-		case 'l': 
-			if (value == 0) printTerm2Int("valve",3,valveTime[3]);
-			else 		valveTime[3] = value;
-			break;
-		case 'm': 
-			if (value == 0) printTerm2Int("valve",4,valveTime[4]);
-			else 		valveTime[4] = value;
-			break;
-		case 'n':
-			if (value == 0) printTermInt("samples",sampleNum);
+		case 'v':
+		     if (vnum<0 || vnum > NUM_VALVES-1)
+		     	printTermInt("e",(int)c2);
+		     else {
+			if (value == 0)
+			   printTermInt(vn,valveTime[vnum]);
+			else
+			   valveTime[vnum] = value;
+		     }
+		     break;
+		case 'n': /* ns for number of samples */
+			if (value == 0) printTermInt("ns",sampleNum);
 			else 		sampleNum = value;
 			break;
 		case 'r' :
 			saveRestore(RESTORE);
 			break;
-		case 'p':
-			if (value == 0) printTermUInt("period",valveInterval);
+		case 'p': /* pd for Period Drain Timing Interval */
+			if (value == 0) printTermUInt("pd",valveInterval);
 			else 		valveInterval = value;
 			break;
-		case 't' :        // Set Value or Report Time to next Sample
+		case 't' :  // ts for Time to next Sample
 		     	if (value == 0) {
 			   time_left = sampleTimeMS - (millis()-lastSampleTime);
 			   temp = (int) ( time_left/1000UL );
-			   printTermInt("remaining", temp);
+			   printTermInt("ts", temp);
 			}
 			else 
 			     sampleTime = value;
+			break;
+		case 'u' :
+		     	if (value == 0) {
+			   printTermInt("up", updateTime);
+			}
+			else 
+			   updateTime = value;
 			break;
 		case 's' :
 			saveRestore(SAVE);
 			break;
 		case 'z' :
 			EEPROM.write(0,0);
+			printTermInt("z",0);
 			break;
 		default :
-			printTermChar("ignored",c);
+			printTermChar("e",(int)c);
 	}
         Serial.println(EOT);
 }
