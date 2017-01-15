@@ -1,15 +1,20 @@
 
-
-iface( supply, ebutton,[]).
+iface( supply, ebutton,
+       [ ro( v, int:=100, "Current Volume"),
+         rw(vt, int:=100, "Total (Full) Volume")
+       ]).
 
 iface( sampler, ebutton,
-      [ ro( u, int:=90,   "Update every 90 seconds"),
-	ro(ns, int:=3600, "Sample once per hour"),
-        rw(i0, int:=1000, "Host Drain Valve Timing"),
-        rw(i1, int:=1000, "Lagoon1 Drain Valve Timing"),
-        rw(i2, int:=1000, "Lagoon2 Drain Valve Timing"),
-        rw(i3, int:=1000, "Lagoon3 Drain Valve Timing"),
-        rw(i4, int:=1000, "Lagoon4 Drain Valve Timing")
+      [ rw(up, int:=90,   "Update every 90 seconds"),
+	rw(al, int:=10,   "Aliquot time in seconds"),
+	rw(ns, int:=24,   "Number of samples"),
+	rw(ts, int:=3600, "Time to next sample"),
+	rw(pd, int:=90,   "Drain Valve Interval"),
+	rw(v0, int:=1000, "Host Drain Valve Timing"),
+        rw(v1, int:=1000, "Lagoon1 Drain Valve Timing"),
+        rw(v2, int:=1000, "Lagoon2 Drain Valve Timing"),
+        rw(v3, int:=1000, "Lagoon3 Drain Valve Timing"),
+        rw(v4, int:=1000, "Lagoon4 Drain Valve Timing")
       ]).
 
 iface( cellstat, ebutton,
@@ -18,16 +23,17 @@ iface( cellstat, ebutton,
 	ro( b, int:=400, "Turbidity"),
 	rw(tb, int:=400, "Target Turbidity"),
 	ro( w, int:=500, "Leak Detection"),
-        rw(i1, int:=1000, "Host Supply 1 Valve Timing"),
-        rw(i2, int:=1000, "Host Supply 2 Valve Timing"),
-        rw(i3, int:=1000, "Host Supply 3 Valve Timing")
+        rw(v1, int:=1000, "Host Supply 1 Valve Timing"),
+        rw(v2, int:=1000, "Host Supply 2 Valve Timing"),
+        rw(v3, int:=1000, "Host Supply 3 Valve Timing")
       ]).
 
 iface( lagoon, ebutton,
       [ ro( t, int:=369, "Temperature"),
 	rw(tt, int:=350, "Target Temperature"),
-        rw(i1, int:=1000, "Host Cell Valve Timing"),
-        rw(i2, int:=1000, "Supply 2 Valve Timing"),
-        rw(i3, int:=1000, "Supply 3 Valve Timing"),
-        rw(i4, int:=1000, "Supply 4 Valve Timing")
+        rw(v1, int:=1000, "Host Cell Valve Timing"),
+        rw(v2, int:=1000, "Lagoon Valve 2 Timing"),
+        rw(v3, int:=1000, "Lagoon Valve 3 Timing"),
+        rw(v4, int:=1000, "Lagoon Valve 4 Timing")
       ]).
+

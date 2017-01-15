@@ -37,7 +37,6 @@ int OD;
 
 int interval;   // Variable to keep track of the time
 int mixerspeed;
-
 int reading[10];
 /*
  * Temperature Stuff
@@ -47,6 +46,7 @@ void initializeT()
   static boolean once = true;
   if (once) { Wire.begin(); once = false; }
 }
+
 
 #define MLX90614_I2CADDR 0x5A
 #define MLX90614_TOBJ1   0x07
@@ -93,6 +93,20 @@ char reply[40];
 #include "wifi.h"
 WIFI w = WIFI();
 #endif
+
+void printTermInt(char *f,int a)
+{
+  sprintf(reply, "%s(%d).",f,a);
+  soutln(reply);
+}
+
+void printTerm2Int(char *f,int a,int b)
+{
+  sprintf(reply, "%s(%d,%d).",f,a,b);
+  soutln(reply);
+}
+	
+
 
 void sout(const char *str) {
 #ifdef WIFI
@@ -379,8 +393,7 @@ byte d;
 			}
 			break;
 		case 'b':
-			sprintf(reply,"turbidity(%d).",turbidity());
-			soutln(reply);
+			printTermInt("b",turbidity());
 			break;
 		case 'c':
 			valves.closeValve(c2);
@@ -403,11 +416,14 @@ byte d;
 			}
 			break;
 		case 'i':
-			if (c2 != 0)
-				id = c2;
-			else {
-			     sprintf(reply,"%c.",id);
-			     soutln(reply);
+			if (c2 == 'd') {
+			   if (value==0)
+			      printTermInt("id",id);
+			   else
+			      id = (byte)value;
+			} else {
+			  
+
 			}
 			break;
 		case 'l':
@@ -416,18 +432,17 @@ byte d;
 			break;
 		case 'm':
 		     if (c2 == 's') {
-			if (value == 0) {
-				sprintf(reply,"mixer(%d).",mixerspeed);
-				soutln(reply);
-			} else {
+			if (value == 0)
+				printTermInt("ms",mixerspeed);
+			else {
 				mixerspeed = value;
 				analogWrite(MIXER, mixerspeed);
 			}
 		     }
-		     else if (d == 9) {
-		     	  sprintf(reply,"mixer(%d).",auto_mixer);
-			  soutln(reply);
-		     } else mixer(d);
+		     else if (d == 9)
+		     	  printTermInt("m",auto_mixer);
+		     else
+			mixer(d);
 		     break;
 		case 'n':
 			forceTurbidity(value);
@@ -443,16 +458,8 @@ byte d;
 			 case '0':
 				digitalWrite(AIR,0);
 				break;
-                         case 'd':
-				if (value == 0) {
-					sprintf(reply,"turbidity(%d).",turbidity());
-					soutln(reply);
-				} else 
-					target_turbidity = value;
-				break;
 			default: 
-		     	  sprintf(reply,"air(%d,%d).",auto_air,digitalRead(AIR));
-			  soutln(reply);
+		     	  printTerm2Int("o2",auto_air,digitalRead(AIR));
 			}
 			break;
 		case 'p':
@@ -474,38 +481,43 @@ byte d;
 		case 't':
 		        switch(c2) {
 			  case 't':
+			  if (value == 0)
+			     printTermInt("tt",target_temperature);
+			  else
+			     target_temperature = value;
+			   break;
+			  case 'b':
 			  if (value == 0) {
-			   sprintf(reply,"target_temperature(%d).",
-                                          target_temperature);
-			   soutln(reply);
-			   } else target_temperature = value;
+			   printTermInt("tb",target_turbidity);
+			   } else target_turbidity = value;
 			   break;
 			 default:
-			   sprintf(reply,"temperature(%d).",get_temperature());
-		   	   soutln(reply);
+			   printTermInt("t",get_temperature());
 			}
 			break;
 		case 'v':
-			vn = (int)(c2 - '0');
-			if (vn > -1 && vn < NUM_VALVES) {
-				if (value == 0) {
-				 sprintf(reply,"valve(%d,%d).",vn,valves.getTime(vn));
-		   		 soutln(reply);
-				} else
-				 valves.setTime(vn,value);
-			} else {
-			        sprintf(reply, "valveRangeError(%c).", c2);
-				sout(reply);
-			}
+		        vn = (int)(c2 - '0');
+			if (vn > -1 && vn < NUM_VALVES)
+			{
+			  if (value > 0) 
+			     valves.setTime(vn,value);
+			  else {
+			  char v[3];
+			   v[0] = 'v';
+			   v[1] = c2;
+			   v[2] = 0;
+			   printTermInt(v,valves.getTime(vn));
+			   }
+			} else
+			  printTermInt("e",(int)(c2-'0'));
 			break;
 		case 'w':
-		        sprintf(reply, "leak(%d).", leakage());
-			soutln(reply);
+		        printTermInt("w", leakage());
 			break;
 		case 'z':
 			int i;
 			EEPROM.write(0,0); // setup() will overwrite on reset
-			strcpy(reply, "eeprom(0).");
+			printTermInt("z",0);
 			break;
 		
 		default:
@@ -541,7 +553,7 @@ void btRespondToRequest(void)
 		if (is.length() > 2)
 			value = atoi(&is[2]);
 		if (!cellstat_command(is[0], is[1], value)) {
-			Serial.println("bad flow command [" + is + "]");
+			Serial.println("er(" + is + ").");
 			Serial.println(EOT);
 		}
 	}
@@ -600,9 +612,12 @@ int i;
 	auto_mixer = true; // Maintain Mixer
 	auto_air = true;   // Maintain Aeration
 
-	pinMode(NUTRIENT,  OUTPUT);
-	digitalWrite(NUTRIENT,   0);
+	pinMode(NUTRIENT,  OUTPUT); digitalWrite(NUTRIENT, 0);
+	pinMode(NUTRIENT, OUTPUT);  digitalWrite(INDUCE1,  0);
+	pinMode(INDUCE2, OUTPUT);   digitalWrite(INDUCE2,  0);
 	valves.setup_valve(0,NUTRIENT,3000,INFLOW);
+	valves.setup_valve(1,INDUCE1,500,INFLOW);
+	valves.setup_valve(2,INDUCE2,400,INFLOW);
 
 	pinMode(HOSTOUT,  OUTPUT);   // Not currently used (open time = 0ms)
 	digitalWrite(HOSTOUT,   0);
@@ -614,7 +629,8 @@ int i;
 	pinMode(JARLIGHT, OUTPUT);  digitalWrite(JARLIGHT, 1);
 	pinMode(LASER, OUTPUT);  digitalWrite(LASER, 1);
 	pinMode(MIXER, OUTPUT);  // Don't need pinMode for PWM output
-        analogWrite(MIXER, 0);
+
+	analogWrite(MIXER, 0);
 
 	interval = millis();
 	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
