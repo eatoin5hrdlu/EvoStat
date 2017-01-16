@@ -363,7 +363,8 @@ initialise(W, Label:[name]) :->
 
 	  send(MB, append, new(File, popup(file))),
           free(@action),
-	  (standalone
+          ( current_prolog_flag(argv,[Exe|_]),
+	    atom_concat(_,'evostat',Exe)
 	   -> DBOK = []
             ; DBOK = [menu_item(ok,message(W, ok))] % Back to ?- prompt
 	  ),
@@ -720,13 +721,8 @@ reportTurbidity(What,S) :-
     fail.
 reportTurbidity(_,_).
 
-main :-
-    plog(pce_main_loop),
-    pce_main_loop(main),         % calls main(Argv)
-    plog(after(pce_main_loop)).
-
-main(Argv) :-
-    plog(evostat(main,called_with(Argv))),
+main(_Argv) :-
+    sleep(10),
     ( shell('./multiples',1)
      -> plog('EvoStat is already running'), halt
      ; assert(cycle(0))
@@ -735,10 +731,8 @@ main(Argv) :-
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
     evostat_directory(HomeDir),  % With this, the savestate can
     cd(HomeDir),                 % be invoked from anywhere
-    plog(changingDirectory(HomeDir)),
     assert(file_search_path(HomeDir)),
     cleanup,              % Remove temp_file/1 entries
-    plog(before(logging)),
     logging,              % stderr to F if logfile(F)
 
     % Delay 30s if the computer is just starting up (low PID)

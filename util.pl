@@ -24,10 +24,8 @@ message(F,L) :- format(user_error, F, L).
 :- dynamic bt_device/2, watcher/2.
 :- multifile bt_device/2, watcher/2.
 
-:- dynamic debug/0, logfile/1.
-:- multifile debug/0, logfile/1.
-% debug.
-% logfile(logfile).
+:- dynamic logfile/1.
+:- multifile logfile/1.
 
 :- dynamic err/2.
 :- multifile err/2.
@@ -139,12 +137,9 @@ count(ErrorType, Who) :-
     Result =.. [ErrorType, Now, NErrors],
     assert(err(Who,Result)).
 
-:- dynamic standalone.
 save_evostat :-
-    retractall(debug),
-    assert(standalone),
     current_prolog_flag(executable,E),
-    Options = [stand_alone(true), goal(main)],
+    Options = [stand_alone(true), goal(pce_main_loop(main))],
     qsave_program(evostat, [emulator(E)|Options]).
 
 % Given a Cbhdir path of depth N,
