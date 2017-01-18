@@ -23,7 +23,8 @@ unix    :- current_prolog_flag(unix,true).
 linux   :- unix.
 
 evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
-evostat_directory('/home/peter/new/EvoStat/') :- linux.
+evostat_directory('/home/pi/src/EvoStat/') :- linux.
+%evostat_directory('/home/peter/new/EvoStat/') :- linux.
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
