@@ -302,11 +302,6 @@ reportDeltaT(Who, Old, New) :-
 	retractall(err(Who,deltaT(_))),
 	(DeltaT > 5 -> assert(err(Who,deltaT(DeltaT))) ; true).
 
-reportTemp(Who, What,Target,Temp) :-  % Temp in 1/10 degC
-	condition(Temp, Target, 20, Cond),
-	retractall(temperature(Who,_,_,_)),
-	assert(temperature(Who,What,Cond,Temp)).
-
 reportTurb(Who,What,Target,Turb) :- 
 	condition(Turb, Target, 50, Cond),
 	retractall(turbidity(Who,What,   _,   _)),

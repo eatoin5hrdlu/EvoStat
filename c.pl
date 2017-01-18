@@ -27,6 +27,7 @@ evostat_directory(Dir) :-  % If configuration is loaded
 evostat_directory(Dir) :-
    ( linux
      -> member(Dir,[
+		   '/home/skynet/Desktop/peter/src/EvoStat/',
 		   '/home/peter/src/EvoStat/',
 		   '/home/peterr/src/EvoStat/',
 		   '/home/Owner/src/EvoStat/',
@@ -57,13 +58,11 @@ evostat_directory(Dir) :-
 
 :- dynamic [ component/3,
              leak/1,
-	     temperature/3,
-	     last_level/2,
-	     cycle/1,
-	     evoDir/1,          % <evostat>.pl configuration file
-	     bt_device/2,
-	     watcher/2,
-	     logfile/1,
+	     textCycle/1,
+	     evoDir/1,          % In <evostat>.pl configuration file
+	     bt_device/2,       % 
+	     watcher/2,         %
+	     logfile/1,         %
 	     err/2,
 	     webok/0,  % Asserted when evostat class is initialized
 	     screen/5,
@@ -342,9 +341,9 @@ initialise(W, Label:[name]) :->
 
 	  % Long update cycle for communication with subsystems
 	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
-	  free(@ut),
+	  free(@update),
 	  param(updateCycle(Seconds)),
-          send(W, attribute, attribute(timer, new(@ut, timer(Seconds, Msg1)))),
+          send(W, attribute, attribute(timer, new(@update, timer(Seconds, Msg1)))),
 	  assert(next_update(Seconds)),
 
 	  % Short update cycle for GUI
@@ -357,9 +356,9 @@ initialise(W, Label:[name]) :->
 	
 	  % Status updates via Text Messaging
 	  new(Msg3, message(W, sendTexts)),
-	  free(@tt),
+	  free(@texting),
 	  param(textMessages(TextSeconds)),
-	  send(W,attribute,attribute(timer,new(@tt,timer(TextSeconds,Msg3)))),
+	  send(W,attribute,attribute(timer,new(@texting,timer(TextSeconds,Msg3)))),
 
 	  send(MB, append, new(File, popup(file))),
           free(@action),
@@ -374,13 +373,13 @@ initialise(W, Label:[name]) :->
 					message(W, drain, lagoons)),
 				    menu_item('Drain Cellstat',
 				        message(W, drain, cellstat)),
-				    menu_item(stop,
+				    menu_item('no update',
 					      message(W, stopped)),
-				    menu_item(start,
+				    menu_item(update,
 					      message(W, started)),
-				    menu_item(pIDoff,
+				    menu_item('no pid',
 					      message(W, stopPID)),
-				    menu_item(pIDon,
+				    menu_item(pid,
 					      message(W, startPID)),
 				    menu_item(texting,
 					      message(W, sendText)),
@@ -410,38 +409,24 @@ initialise(W, Label:[name]) :->
 drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
-       send(@ft,stop),  % Stop the GUI update timer as well
+       send(@ft,stop),  % Stop the GUI (fast) update timer as well
        plog('Stopping Level Detection (image processing)'),
-       send(@ut, stop),
-       send(@action?members, for_all,
-	    if(@arg1?value==stop,message(@arg1, active, @off))),
-       send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @on))),
+       control_timer(update, stop),
        plog(stopped).
 
 started(_W) :->
        plog('                      STARTING Level Detection'),
-       send(@ut, start),
-       send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @off))),
-       send(@action?members, for_all,
-	    if(@arg1?value==stop, message(@arg1, active, @on))),
+       control_timer(update, start),
        send(@ft,start),       % Now restart the fast GUI update timer
        plog('Starting Level Detection (Image processing)').
 
 stopPID(_W) :-> 
     pidstop,
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDoff,message(@arg1, active, @off))),
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDon,message(@arg1, active, @on))).
+    ghost_state(pid,stop).
 
 startPID(_W) :->
     pidstart,
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDon,message(@arg1, active, @off))),
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDoff,message(@arg1, active, @on))).
+    ghost_state(pid, start).
 
 cellstat(Self) :-> "User pressed the CellStat button"::
                    send(Self,stopped),
@@ -498,17 +483,7 @@ prompt(W, Value:name) :<-
         "Open it, destroy it and return the result"::
         get(W, confirm, Value).
 
-% Green when within 5% of Target magnitude
-range_color(Target, Current, Color) :-
-    Delta is Target/20,
-    Max is Target + Delta,
-    Min is Target - Delta,
-    (  Current > Max -> Color = red
-     ; Current < Min -> Color = blue
-     ;                  Color = darkgreen
-    ).
-
-% Updating can take a long time, so we must:
+% Updating can take a while, so we must:
 % 1) Stop auto-update
 % 2) Reload the  <hostname>.pl user parameter file if it changed
 % 3) Perform the update on all components
@@ -521,10 +496,10 @@ autoUpdate(Self) :->
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     send(Self,mixon),      plog(sent(mixon)),  % Send update
-    prep, % refreshes assertion for Web page
+    prep,              % refreshes assert with Web page data
 
     param(updateCycle(Seconds)),
-    retractall(next_update(_)),
+    retractall(next_update(_)), % this is the count-down
     assert(next_update(Seconds)),
     
     report,
@@ -532,11 +507,9 @@ autoUpdate(Self) :->
 
 quiet(Self) :->
     simulator -> true ;
-    send(Self?graphicals, for_all,  % Lagoon mixers OFF
-	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
-    component(_,cellstat,Cellstat),
-    send(Cellstat,converse,'m0'),
-    send(Cellstat,converse,'o-').
+    send_to_type( Self?graphicals, lagoon,  [converse,m0] ), % Mixers OFF
+    send_to_type( Self?graphicals, cellstat, [converse,m0] ), % Mixers OFF
+    send_to_type( Self?graphicals, cellstat, [converse,'o-'] ). % Air OFF
 
 new_snapshot(Self) :->
     param(layout(Components)),
@@ -555,17 +528,12 @@ new_snapshot(Self) :->
     plog(update(snapShot)).
 
 mixon(Self) :->
-    plog('Updating ebuttons'),
-    send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
+    plog('Updating all ebuttons'),
+    send_to_type(Self?graphicals, ebutton, [update]),
     plog('Updating snapshot'),
-%    send(Self,new_snapshot),
-    send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-    
+    send_to_type(Self?graphicals, snapshot, [update]),
     plog('Turning noisy stuff back on'),
-    send(Self?graphicals, for_all,  % Lagoon mixers OFF
-	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
+    send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
     plog('Lagoon mixers on'),
     component(_,cellstat,CellStat),
     send(CellStat,converse,'m1'),
@@ -578,49 +546,38 @@ readLevels(_) :->
     get_level(alllevels),
     plog(read_levels(finished)).
 
-% Put things to be refreshed more often here:
-% Image update, time to next level detection, etc.
-% Currently only the autosampler/next cycle time indication
+% Things to be refreshed often (e.g. GUI) such as
+% the Next Update countdown in Sampler label.
 
 fastUpdate(Self) :->
     change_request,
     retract(next_update(Seconds)),
     Next is Seconds - 10,
     assert(next_update(Next)),
-    send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,sampler), message(@arg1,up,Next))),
+    send_to_type(Self?graphicals, sampler, [up,Next]),
+%    send(Self?graphicals, for_all,
+%	 if(message(@arg1,instance_of,sampler), message(@arg1,up,Next))),
     prep,
     check_web_files.
 
 sendText(Self) :->
-    send(Self,sendTexts),
-    send(@tt,start),
-    send(@action?members, for_all,
-	 if(@arg1?value=='No Texting',message(@arg1, active, @on))),
-    send(@action?members, for_all,
-	 if(@arg1?value==texting,message(@arg1, active, @off))).
+    send(Self, sendTexts), % Send first text message
+    control_timer(texting, start).
 
 stopText(_S)   :->
-    send(@tt,stop),
-    send(@action?members, for_all,
-	 if(@arg1?value==texting,message(@arg1, active, @on))),
-    send(@action?members, for_all,
-	 if(@arg1?value=='No Texting',message(@arg1, active, @off))).
-    
+    control_timer(texting, stop).
     
 sendTexts(_Self) :->
-    retract(cycle(Last)),
-    Next is Last + 1,
-    assert(cycle(Next)),
-    ( watcher(Who, Where, When),
-      MyTime is Last mod When,
-      MyTime =:= 0,
-      concat_atom(['./smstext.py ',Where],Cmd),
-      shell(Cmd),
-      plog('                             TEXTING'(Who)),
-      fail
-    ; true
-    ).
+    retract(textCycle(Now)),
+    Next is Now + 1,
+    assert(textCycle(Next)),
+    findall(_,sending_text(Now),_).
+
+sending_text(Now) :-
+    watcher(_Who, Where, When),
+    0 is Now mod When,
+    concat_atom(['./smstext.py ',Where], Cmd),
+    shell(Cmd).
     
 :- pce_end_class.  % End of evostat
 
@@ -685,7 +642,7 @@ c(Name) :-
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@ft, stop),
-         send(@ut, stop),
+         send(@update, stop),
          send(@gui, destroy),
 	 stop_http,
 	 plog(http(stopped)),
@@ -721,12 +678,15 @@ reportTurbidity(What,S) :-
     fail.
 reportTurbidity(_,_).
 
+evostat_running :-
+    shell('./multiples',1),
+    plog('EvoStat is already running'),
+    halt.
+
 main(_Argv) :-
     sleep(10),
-    ( shell('./multiples',1)
-     -> plog('EvoStat is already running'), halt
-     ; assert(cycle(0))
-    ),
+    \+ evostat_running,
+    assert(textCycle(0)),
     open('evostat.report', write, S),
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
     evostat_directory(HomeDir),  % With this, the savestate can
@@ -745,6 +705,7 @@ main(_Argv) :-
       ;  load_foreign_library(plblue)
     ),
     plog(loaded(bluetooth)),
+trace,
     update_config(Root),
     param(screen(WF,HF,Loc)),    % From configuration data
     get(@display?size,width,Width),

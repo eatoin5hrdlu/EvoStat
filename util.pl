@@ -12,28 +12,23 @@ linux   :- unix.
 
 message(F,L) :- format(user_error, F, L).
 
-:- dynamic component/3,
+:- dynamic config/1,
+           component/3,
+           file_modtime/2, % Modification time of loaded file
+           param/4,        % param(Name, Type, Attr, Value)
            leak/1,
-	   temperature/3,
-	   last_level/2,
-	   cycle/1.
+	   cycle/1,
+           evoDir/1,       % In <evostat>.pl configuration file
+           bt_device/2,    %
+           watcher/2,      %
+           logfile/1,      %
+           webok.
 
-:- dynamic evoDir/1.               % <evostat>.pl configuration file
-:- multifile evoDir/1.
+:- multifile evoDir/1,       % In <evostat>.pl configuration file
+             bt_device/2,    %
+             watcher/2,      %
+             logfile/1.      %
 
-:- dynamic bt_device/2, watcher/2.
-:- multifile bt_device/2, watcher/2.
-
-:- dynamic logfile/1.
-:- multifile logfile/1.
-
-:- dynamic err/2.
-:- multifile err/2.
-
-:- dynamic webok/0.  % Asserted when evostat class is initialized
-:- multifile webok/0.
-
- 
 cleanup :- findall(F,(temp_file(F),exists_file(F),delete_file(F)),_).
 
 %%%%% TIME STUFF
@@ -71,10 +66,6 @@ logging :- ( logfile(File)
 
 :- use_module(library(lists), [ flatten/2 ] ).
 
-:- dynamic config/1.       % Loaded configuration
-:- dynamic file_modtime/2. % Modification time of loaded file
-:- dynamic param/4.        % param(Name, Type, Attr, Value)
-
 param(P) :- config(List), memberchk(P,List).
 
 check_file(Root,File) :-  % consult(foo) works files 'foo' or 'foo.pl'
@@ -89,28 +80,34 @@ freeall :-
     chain_list(Chain, CList),
     maplist(free,CList).
 
-send_to(Recv,List) :-
+send_to(Recv, List) :-
     if(message(Recv,instance_of,chain),
        ( MSG =.. [message,@arg1|List], send(Recv,for_all,MSG) ),
        ( MSG =.. List, send(Recv,MSG))  ).
 
+send_to_type(Recv,Type,List) :-
+    MSG =.. [message,@arg1|List],
+    send(Recv, for_all, if(message(@arg1,instance_of,Type), MSG)).
 
 % E.g. control_timer(texting,  {start,stop} ).
 %      control_timer(    pid,  {start,stop} ).
 %      control_timer( update,  {start,stop} ).
+
+control_timer(Thing,StartStop) :-
+    ghost_state(Thing, StartStop),
+    concat_atom([Thing,timer], TimerName),
+    send(@TimerName,StartStop).
+
 condition(start, on, off).
 condition(stop,  off, on).
 
-control_timer(Thing,StartStop) :-
-    concat_atom([Thing,timer], TimerName),
+ghost_state(Thing, Condition) :-
     concat_atom(['no ', Thing], NoThing),
-    send(Thing, StartStop),
-    condition(StartStop, A, B), % Ghost-out other menu item
+    condition(Condition, A, B), % Ghost-out other menu item
     send(@action?members, for_all,
 	 if(@arg1?value==Thing,message(@arg1, active, @A))),
     send(@action?members, for_all,
-	 if(@arg1?value==NoThing,message(@arg1, active, @B))),
-    send(@TimerName,StartStop).
+	 if(@arg1?value==NoThing,message(@arg1, active, @B))).
     
 % gethostname returns the full domain name on some systems
 hostname_root(H) :-
@@ -174,11 +171,14 @@ repeatN(N) :- M is N-1, repeatN(M).
 
 waitfor(N,Atom,_) :-
    repeat(N),
-   ( call(Atom) -> true ; sleep(0.2), fail ),
-   !.
+   ( call(Atom)
+     -> !
+   ; sleep(0.2),
+     fail
+   ).
 
-waitfor(N,Atom,Who) :-  
-    plog(failed(waitfor(N,Atom,Who))),
+waitfor(_,Atom,Who) :-
+    plog(failed(Who,waitfor,Atom)),
     fail.
     
 semaphore(N,Atom,_) :- % wait for and grab it
@@ -186,9 +186,7 @@ semaphore(N,Atom,_) :- % wait for and grab it
    ( retract(Atom) -> true ; sleep(0.2), fail ),
    !.
 
-semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
-    plog(failed(semaphore(Who,N,Atom))),
-    retractall(webok),  % In case we failed for another reason.
-    assert(webok),
-    plog(asserting(webok)),
+semaphore(_,Atom,Who) :- % Report failure and reassert
+    plog(failed(Who,semaphore,Atom)),
+    assert(Atom),
     fail.
