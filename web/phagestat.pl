@@ -4,7 +4,7 @@ phagestat(_) :-
     title('Inside Phagestat'),
     meta(['http-equiv'(refresh),content(90)],[]), % Make it an active page
     script([ language(javascript) ],[])],
-    body([background('./phagestat.png')],[])).
+    body([background('./phagestat.jpg')],[])).
 
 phagestat(Request) :-
     errorPage(Request, 'Error creating PhageStat image').

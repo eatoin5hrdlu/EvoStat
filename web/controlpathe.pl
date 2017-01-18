@@ -26,7 +26,7 @@ inputItems(Type) --> {findall(I,inputItem(Type,I,[]),Is)}, Is.
 evoStatFields --> inputItem(cellstat), inputItems(lagoon).
 
 controlpathe(_Req) :-
-    backgroundImage(BackPlate),
+    backgroundSettings(BackPlate),
     assert(html_syntax),
     evoStatFields(Fields,[]),
     flatten([Fields, input([type=submit,name=submit]),

@@ -13,6 +13,9 @@ component(Name, Type, Obj) --> {component(Name,Type,Obj)}, [Name].
 nl --> html_syntax, !, [br([])].
 nl --> ['\n'].
 
+od600 --> html_syntax, !, ['OD', sub(600)].
+od600 --> ['OD600'].
+
 % Divide by 10 and present as 4-digit float because
 % Internal temperatures integral tenths of degrees C.
 
@@ -20,6 +23,7 @@ float_tenths(Obj,Thing) --> [Display],
     { get(Obj,Thing,InTenths),
       DispTemp is float(InTenths)/10.0,
       format(atom(Display), '~4g', [DispTemp]) }.
+
 
 label(temperature, Obj) --> ['Temperature '],
     float_tenths(Obj,tt), [' / '], float_tenths(Obj,t),
@@ -31,7 +35,7 @@ label(level, Obj) -->
                       getx(Obj,l),
 		      getx(Obj,levelUnits).
 
-label(od, Obj) --> ['OD',sub(600)],
+label(od, Obj) --> od600,
                    ['  .'], getx(Obj,tb),
                    ['/.'],  getx(Obj,b).
 

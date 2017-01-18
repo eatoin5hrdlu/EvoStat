@@ -5,7 +5,7 @@ iface( supply, ebutton,
        ]).
 
 iface( sampler, ebutton,
-      [ rw(up, int:=90,   "Update every 90 seconds"),
+      [ rw(up, int:=90,   "Countdown for global update"),
 	rw(al, int:=10,   "Aliquot time in seconds"),
 	rw(ns, int:=24,   "Number of samples"),
 	rw(ts, int:=3600, "Time to next sample"),
