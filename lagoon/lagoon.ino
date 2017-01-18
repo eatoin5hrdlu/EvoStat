@@ -1,7 +1,18 @@
 /*
  * Lagoon controller
- *
- * 1) Create valve controller
+ */
+
+const char iface[] PROGMEM = {
+   "i( lagoon, ebutton,\n\
+      [ ro( t, int:=369, \"Temperature\"),\n\
+	rw(tt, int:=350, \"Target Temperature\"),\n\
+        rw(v1, int:=1000, \"Host Cell Valve Timing\"),\n\
+        rw(v2, int:=1000, \"Lagoon Valve 2 Timing\"),\n\
+        rw(v3, int:=1000, \"Lagoon Valve 3 Timing\"),\n\
+        rw(v4, int:=1000, \"Lagoon Valve 4 Timing\")\n\
+      ])." };
+      
+/* 1) Create valve controller
  * 2) Accept commands from main computer to:
  *     a) adjust timings
  *     b) control meniscus light
@@ -182,7 +193,7 @@ boolean lagoon_command(char c1, char c2, int value)
 char reply[80];
 byte d;
 int tmp;
-     reply[0] = 0;  
+     reply[0] = 0;
 	switch(c2)
 	{
 		case '1': d = 1; break;
@@ -204,9 +215,7 @@ int tmp;
 			     auto_mixer = true;
 			     break;
 			default:
-			     printTermInt("auto_temp", auto_temp);
-			     printTermInt("auto_valve", auto_valve);
-			     printTermInt("auto_mixer", auto_mixer);
+			     printTermInt("a", auto_valve);
 			}
 			break;
 	   	case 'c':
@@ -246,8 +255,13 @@ int tmp;
 			     printHelp();
 			}
 		case 'i':
-			if (c2 != 0)	id = c2;
-			else   	  	printTermInt("id",id);
+			if (c2 == 'd') {
+			   if (value == 0)
+			      printTermInt("id",id);
+			   else
+				id = (char) value;
+			} else
+			  Serial.println(iface);
 			break;
 		case 'l':
 		     switch(d) {
@@ -298,32 +312,32 @@ int tmp;
 		case 's':
 			strcpy(reply,saveRestore(SAVE));
 			break;
-		case 't': // set target(ts), get target(tt) or get current temp (t)
+		case 't': 
 		        if (c2 == 't') {
 			   if (value == 0)
-			      printTermInt("ttemperature",target_temperature);
+			      printTermInt("tt",target_temperature);
 			   else
 			     target_temperature = value;
 			}
 		        else {
-			    printTermInt("temperature",temp.celcius());
+			    printTermInt("t",temp.celcius());
 			}
 			break;
 		case 'v':
 		     if (valveRange(c2)) {
 		     	int vnum = c2-'0';
-		        if (value == 0) 
-			   sprintf(reply,"valve(%d,%d).",vnum,valve.getTime(vnum));
-			else if (value == 1)
+		        if (value == 0) {
+			   sprintf(reply,"v%c(%d).",c2,valve.getTime(vnum));
+			} else if (value == 1)
 			   valve.setup_valve(vnum, 0);
 			else
 			   valve.setup_valve(vnum, value);
 	             } else
-		     	valve.report(reply);
+		           printTermInt("e",(int)c2);
 		     break;
 		case 'z':
 		     EEPROM.write(0,0);
-		     strcpy(reply, "eeprom(0).");
+		     strcpy(reply, "z(0).");
 		     break;
 		default:
 			return false;
@@ -349,7 +363,7 @@ void respondToRequest(void)
 		if (is.length() > 2)
 			value = atoi(&is[2]);
 		if (!lagoon_command(is[0], is[1], value))
-			Serial.println("bad_command('" + is + "').\nend_of_data");
+			Serial.println("e('" + is + "').\nend_of_data");
 	}
 }
 
@@ -437,3 +451,5 @@ int t;
 	}
 	else if (auto_valve) valve.checkValve();
 }
+
+

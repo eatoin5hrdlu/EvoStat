@@ -1,150 +1,4 @@
-%:- use_module(library('http/httpd')).        
-%:- use_module(library(semweb/rdf_db)).
-%:- use_foreign_library(dlltest). 
-%:- rlc_color(window, 150,150,200).
-
-:- set_prolog_flag(double_quotes,codes).
-:- use_module(library(time)).
-:- use_module(library(pce)).
-
-%%%%%%%%%%% INTERNAL WEB SERVER 
-:- use_module(library(http/thread_httpd)).   % Server loop
-:- use_module(library(http/http_dispatch)).  % dispatch table
-:- use_module(library(http/http_header)).    % Terms -> HTML
-:- use_module(library(http/html_write)).     % Terms -> HTML
-:- use_module(library(http/html_head)).      % html_requires//1
-
-:- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
-html_syntax --> {html_syntax}. % Also callable as a grammar rule
-
-%%%%%%%%%%% OS IDENTIFICATION
-windows :- current_prolog_flag(windows,true).
-unix    :- current_prolog_flag(unix,true).
-linux   :- unix.
-
-evostat_directory('C:\\cygwin\\home\\peterr\\src\\EvoStat\\') :- windows.
-evostat_directory('/home/pi/src/EvoStat/') :- linux.
-%evostat_directory('/home/peter/new/EvoStat/') :- linux.
-
-%%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
-:- use_module(library(process)).
-:- use_module(library(charsio)).
-:- use_module(library(helpidx)).
-:- use_module(library(lists)).
-:- use_module(library(ctypes)).
-
-:- ensure_loaded(webspec).           % HTTP Request handlers
-:- ensure_loaded(et).                % Term Expansion for XPCEgen
-
-:- free(@'_dialog_bg'),  % This should make the background light-blue steel
-   XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
-   new(@'_dialog_bg', colour(@default,XR,XG,XB)).
-
-
-message(F,L) :- format(user_error, F, L).
-
-:- dynamic component/3,
-           leak/1,
-	   temperature/3,
-	   last_level/2,
-	   cycle/1.
-
-:- dynamic bt_device/2, watcher/2.
-:- multifile bt_device/2, watcher/2.
-
-:- dynamic debug/0, logfile/1.
-:- multifile debug/0, logfile/1.
-% debug.
-% logfile(logfile).
-
-:- dynamic err/2.
-:- multifile err/2.
-
-:- dynamic webok/0.  % Asserted when evostat class is initialized
-:- multifile webok/0.
-
-%%%% LIST ALL TEMPORARY FILES FOR CLEANUP
-
-temp_file('mypic1.jpg').
-temp_file('mypic2.jpg').
-temp_file('dbg.txt').
-temp_file(File)       :- logfile(File).
-
-cleanup :- temp_file(F), exists_file(F), delete_file(F), fail.
-cleanup.
-
-%%%%% TIME STUFF
-
-timestring(TString):- get_time(Now), convert_time(Now,TString).
-timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
-
-:- dynamic timer_time/1.
-timer_left(T) :-
-    get_time(Now),
-    timer_time(Last),
-    T is integer(Now-Last).
-
-timer_reset :-
-    get_time(Now),
-    INow is integer(Now), % One second resolution
-    retractall(timer_time(_)),
-    assert(timer_time(INow)).
-    
-%%%%%% LOGGING
-% All messages to logfile (otherwise, message window)
-% Never use logfile on Windows
-logging :- windows, !, retractall(logfile(_)).
-logging :- ( logfile(File)
-            -> tell(File),
-	       telling(S),
-	       set_stream(S,buffer(line)),
-	       set_stream(user_error,buffer(line)),
-	       set_stream(S,alias(user_error))
-	    ; write(user_error,'No Logging at this time'),nl(user_error)
-	   ).
-
-%%%%%%%%%%%%%%%% CAMERA
-camera_device(Device) :-
-    param(camera(Num)),
-    integer(Num),
-    !,
-    concat_atom(['/dev/video',Num],Device).
-
-camera_device(_) :-
-    write(user_error,'No Camera Device'),nl(user_error),
-    fail.
-
-camera_exists :-
-    camera_device(Device),
-    access_file(Device,exist).
-    
-camera_reset :- windows, !.   % Null camera reset on Windows
-camera_reset :- \+ camera_exists,  % No camera to reset
-		write(user_error,no_camera),nl(user_error),
-		!.
-camera_reset :-
-    evostat_directory(Dir),
-    Cmd = '/usr/bin/uvcdynctrl',
-    config_name(Config,_),    % Hostname or evostat argument
-    concat_atom([Config,'.gpfl'], Settings),
-    camera_device(Device),
-    concat_atom(['--device=',Device],Option),
-    Args = ['-L', Settings, Option],
-    writeln(resettingCamera(Dir, Cmd, Args)),
-    process_create(Cmd,Args,[cwd(Dir)]),
-    writeln(resetCamera).
-%%%%%%%%%%%%%CAMERA
-%% SUBSYSTEMS
-
-:- [gbutton]. % XPCE parent class [ebutton] etc.
-
-:- [adjust].  % PID controller <-> PCE interface
-
-:- dynamic screen/5.
-:- dynamic levelStream/2,
-	   air/0,
-	   mix/0,
-	   toggle_auto/0.
+% PROLOG FILES [c,gbutton,adjust,newpid,iface,dialin,prephtml,webspec,util].
 %
 % Create configuration file <hostname>.pl from  template.pl
 % (or <evostatname>.pl if more than one on the same computer).
@@ -160,21 +14,121 @@ camera_reset :-
 %   Orange when values are high
 %   Green when in the target range
 %
+
+:- set_prolog_flag(double_quotes,codes).
 :- use_module(library(lists), [ flatten/2 ] ).
+:- use_module(library(time)).
+:- use_module(library(pce)).
 
-:- dynamic config/1.       % Loaded configuration
-:- dynamic file_modtime/2. % Modification time of loaded file
-:- dynamic supress/1.      % Exclude terms from Python dictionary
-:- dynamic param/4.        % param(Name, Type, Attr, Value)
+evostat_directory(Dir) :-  % If configuration is loaded
+    evoDir(Dir),
+    exists_directory(Dir),
+    !.
+evostat_directory(Dir) :-
+   ( linux
+     -> member(Dir,[
+		   '/home/skynet/Desktop/peter/src/EvoStat/',
+		   '/home/peter/src/EvoStat/',
+		   '/home/peterr/src/EvoStat/',
+		   '/home/Owner/src/EvoStat/',
+		   '/home/pi/src/EvoStat/'
+	       ])
+     ; member(Dir,[ 
+		  'C:\\cygwin\\home\\peter\\src\\EvoStat\\',
+		  'C:\\cygwin\\home\\peterr\\src\\EvoStat\\',
+		  'C:\\cygwin64\\home\\Owner\\src\\EvoStat\\'
+	      ])
+   ),
+   exists_directory(Dir).
+>>>>>>> a02053f5acbc7f2e2e82e13f423f61d2f4c1c200
 
-param(P) :- config(List), memberchk(P,List).
+%%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
+:- use_module(library(process)).
+:- use_module(library(charsio)).
+:- use_module(library(helpidx)).
+:- use_module(library(lists)).
+:- use_module(library(ctypes)).
 
-check_file(Root,File) :-  % consult(foo) works files 'foo' or 'foo.pl'
-	( exists_file(Root)
-        -> true
-        ; concat_atom([Root,'.pl'],File),
-	  exists_file(File)
-        ).
+:- ensure_loaded(util).    % Utilities
+:- ensure_loaded(webspec). % HTTP Request handlers
+:- ensure_loaded(et).      % Term Expansion for XPCEgen g
+
+:- free(@'_dialog_bg'),  % This should make the background light-blue steel
+   XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
+   new(@'_dialog_bg', colour(@default,XR,XG,XB)).
+
+:- dynamic [ component/3,
+             leak/1,
+	     textCycle/1,
+	     evoDir/1,          % In <evostat>.pl configuration file
+	     bt_device/2,       % 
+	     watcher/2,         %
+	     logfile/1,         %
+	     err/2,
+	     webok/0,  % Asserted when evostat class is initialized
+	     screen/5,
+	     levelStream/2,
+	     air/0,
+	     mix/0,
+	     config/1,       % Loaded configuration
+	     file_modtime/2, % Modification time of loaded file
+	     param/4,        % param(Name, Type, Attr, Value)
+	     simulator/0,
+	     toggle_auto/0 ].
+
+
+
+:- multifile [ evoDir/1,
+	       bt_device/2,
+	       watcher/2,
+	       logfile/1,
+	       err/2,
+	       webok/0].
+	       
+
+% logfile(logfile).
+
+%%%% LIST ALL TEMPORARY FILES FOR CLEANUP
+
+temp_file('mypic1.jpg').
+temp_file('mypic2.jpg').
+temp_file('dbg.txt').
+temp_file(File)       :- logfile(File).
+
+%%%%%%%%%%%%%%%% CAMERA
+camera_device(Device) :-
+    param(camera(Num)),
+    integer(Num),
+    !,
+    concat_atom(['/dev/video',Num],Device).
+
+camera_exists :-
+    camera_device(Device),
+    access_file(Device,exist).
+    
+camera_reset :- windows, !.   % Null camera reset on Windows
+camera_reset :- \+ camera_exists,  % No camera to reset
+		plog(no_camera),
+		!.
+camera_reset :-
+    evostat_directory(Dir),
+    Cmd = '/usr/bin/uvcdynctrl',
+    config_name(Config,_),    % Hostname or evostat argument
+    concat_atom([Config,'.gpfl'], Settings),
+    camera_device(Device),
+    concat_atom(['--device=',Device],Option),
+    Args = ['-L', Settings, Option],
+    plog(resettingCamera(Dir, Cmd, Args)),
+%    open('/dev/null', write, Null),
+    process_create(Cmd,Args,[cwd(Dir)]),
+    plog(resetCamera).
+%%%%%%%%%%%%%CAMERA
+
+%% SUBSYSTEMS
+
+:- [gbutton]. % XPCE parent class [ebutton] etc.
+
+:- [adjust].  % PID controller <-> PCE interface
 
 % config_name(-Root,-File) is on command line or <hostname>
 config_name(Root,File) :-
@@ -198,7 +152,11 @@ tabs(1).
 
 writePythonParams(EvoStat) :-    
     config(List),
-    pl2PythonDict(List, PyString),        % Convert to Python Dictionary
+    findall(H, ( member(H, List),
+                 functor(H, F, A),
+                 \+ memberchk(F/A,[layout/1,screen/3])), % Remove
+            PyTerms),
+    pl2PythonDict(PyTerms, PyString),        % Convert to Python Dictionary
     concat_atom([EvoStat,'.settings'],File), % Write it out
     tell(File),
     write(PyString),
@@ -211,24 +169,16 @@ pl2PythonDict(Data, PyAtom) :-       % Generate a Python dictionary string
 	flatten(['{\n',PythonDict,'}\n'], Flat),
 	concat_atom(Flat, PyAtom).
 
-quote_atom(false,'None') :- !.
-quote_atom([A],Q) :- quote_atom(A,Q).
-quote_atom(N,N)   :- number(N).
-quote_atom(A,Q)   :- atom(A), concat_atom(['''',A,''''],Q).
+% DCG compatible version of univ simplifies syntax
+'=..'(Term,List,T,T) :- Term =.. List.
 
-% DCG versions
-quote_atom(false) --> ['None'].  % None is Python's 'false'
-quote_atom([A])   --> quote_atom(A).
-quote_atom(N)     --> {number(N)},[N].
-quote_atom(A)     --> {atom(A)}, ['''',A,''''].
+quote_atom(false) --> !, ['None'].  % Python's false = None
+quote_atom([A])   --> !, quote_atom(A).
+quote_atom(N)     --> { number(N)}, !, [N].
+quote_atom(A)     --> { atom(A) }, ['''',A,''''].
 
-quote_atoms([],[], _).
-quote_atoms([A],[Q],_) :- quote_atom(A,Q).
-quote_atoms([A|T],[Q,Spacer|QT],Spacer) :- quote_atom(A,Q), quote_atoms(T,QT,Spacer).
-
-%DCG versions
 quote_atoms([],_)         --> [].
-quote_atoms([A],_)        --> quote_atom(A).
+quote_atoms([A],_)        --> quote_atom(A),!.
 quote_atoms([A|T],Spacer) --> quote_atom(A), [Spacer], quote_atoms(T,Spacer).
 
 tabin  --> { retract(tabs(N)), NN is N + 1, assert(tabs(NN)) }.
@@ -241,52 +191,49 @@ indent(N)  --> { N>0, NN is N-1}, indentation, indent(NN).
 indentation --> ['       '].
 
 pl2py([])    --> !, [].
-pl2py(Term)  --> { supress(Term)  }, !, [].
-pl2py(A)     --> { quote_atom(A,Q)}, !, [Q].
-pl2py([H])   --> !, pl2py(H), [' \n'].
+pl2py(A)     --> quote_atom(A), !.
+pl2py([H])   --> !, indent, pl2py(H), [' \n'].
 pl2py([H|T]) --> !, indent, pl2py(H), pl2py(T).
 
-pl2py(Term) --> { Term =.. [F|[A]],   % SINGLE f(a)
-	          quote_atom(F,QF),
-	          quote_atom(A,QA),
-		  !
-                },
-		[QF, ' :  ', QA, ',\n'].
+pl2py(Term) --> Term =.. [F|[A]],   % SINGLE f(a)
+	        quote_atom(F),
+		[' :  '],
+	        quote_atom(A),
+		!,
+		[',\n'].
 
-pl2py(Term) --> { Term =.. [F|[A|As]],    % TUPLE   f(a,b,...)
-	          quote_atom(F,QF),
-	          quote_atoms([A|As], Str, ','),
-                  !
-                },
-	        [QF,' : (', Str, '),\n' ].
+pl2py(Term) --> Term =.. [F|[A|As]],    % TUPLE   f(a,b,...)
+                !,
+	        quote_atom(F),
+	        [' : ('],
+	        quote_atoms([A|As], ','),
+                [ '),\n' ].
 
-pl2py(Term) --> { Term =.. [F|Args],  % NESTED DICTIONARY  f(g(a),...)  
-	          quote_atom(F, QF)
-	        },
-		[QF, ' :  {'],
+pl2py(Term) --> Term =.. [F|Args],  % NESTED DICTIONARY  f(g(a),...)  
+	        quote_atom(F),
+		[' :  {'],
 		pl2py(Args),
 		['      }'].
                  
 % Additional messages: pathe_report/1 called on exit.
 % Call append/1 because output logfile has been closed.
 
+pathe_report(_) :- plog(final_report),fail.
+
 pathe_report(verbose) :-
     logfile(File),
     append(File),
-    writeln(verbose_test_report1).
+    writeln(verbose_test_report1),
+    told.
 
 pathe_report(moderate) :-
     logfile(File),
     append(File),
-    writeln(moderate_test_report).
+    writeln(moderate_test_report),
+    told.
 
 pathe_report(_) :-
-    writeln('No Logging Enabled').
-
-freeall :-
-    get(@gui, graphicals, Chain),
-    chain_list(Chain, CList),
-    maplist(free,CList).
+    plog('no_logging').
 
 %
 % Find the Nth lagoon(object), names can be complex
@@ -316,18 +263,18 @@ sendLevel(1,Level) :-
     !,
     component(_, cellstat, Cellstat),
     send(Cellstat, l, Level),
-    writeln(sentCellstatLevel(Level)).
+    plog(sentCellstatLevel(Level)).
 sendLevel(Num,Level) :-
     Num > 1,
     Level > 0,
     LNum is Num-1,
     lagoon_number(Object, LNum),
     send(Object, l, Level),
-    writeln(sentLagoonLevel(LNum, Level)).
+    plog(sentLagoonLevel(LNum, Level)).
 
 send_info(end_of_file,_) :-
-   write('Is debugging on? Possibly calling Cellstat '),
-   writeln('level detection while working on Lagoons'),
+   plog('Is debugging on? Possibly called Cellstat'),
+   plog('level detection while working on Lagoons'),
    fail.
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
@@ -360,7 +307,6 @@ get_level(Type) :-
 	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
      ; true
     ),
-    evostat_directory(Dir),
     plog(launching(Python,CmdLine)),
     process_create(Python,CmdLine,
 		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
@@ -396,9 +342,10 @@ initialise(W, Label:[name]) :->
 
 	  % Long update cycle for communication with subsystems
 	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
-	  free(@ut),
+	  free(@update),
 	  param(updateCycle(Seconds)),
-	  send(W, attribute, attribute(timer, new(@ut, timer(Seconds, Msg1)))),
+          send(W, attribute, attribute(timer, new(@update, timer(Seconds, Msg1)))),
+	  assert(next_update(Seconds)),
 
 	  % Short update cycle for GUI
 	  new(Msg2, message(W, fastUpdate)),  % Message for fast Timer
@@ -410,26 +357,30 @@ initialise(W, Label:[name]) :->
 	
 	  % Status updates via Text Messaging
 	  new(Msg3, message(W, sendTexts)),
-	  free(@tt),
+	  free(@texting),
 	  param(textMessages(TextSeconds)),
-	  send(W,attribute,attribute(timer,new(@tt,timer(TextSeconds,Msg3)))),
+	  send(W,attribute,attribute(timer,new(@texting,timer(TextSeconds,Msg3)))),
 
 	  send(MB, append, new(File, popup(file))),
           free(@action),
-	  send_list(File, append, [ menu_item(ok,message(W, return, ok)),
-				    menu_item(quit,message(W, quit)) ]),
+          ( current_prolog_flag(argv,[Exe|_]),
+	    atom_concat(_,'evostat',Exe)
+	   -> DBOK = []
+            ; DBOK = [menu_item(ok,message(W, ok))] % Back to ?- prompt
+	  ),
+	  send_list(File, append,[menu_item(quit,message(W, quit))|DBOK] ),
 	  send(MB, append, new(@action, popup(action))),
 	  send_list(@action, append,[ menu_item('Drain Lagoons',
 					message(W, drain, lagoons)),
 				    menu_item('Drain Cellstat',
 				        message(W, drain, cellstat)),
-				    menu_item(stop,
+				    menu_item('no update',
 					      message(W, stopped)),
-				    menu_item(start,
+				    menu_item(update,
 					      message(W, started)),
-				    menu_item(pIDoff,
+				    menu_item('no pid',
 					      message(W, stopPID)),
-				    menu_item(pIDon,
+				    menu_item(pid,
 					      message(W, startPID)),
 				    menu_item(texting,
 					      message(W, sendText)),
@@ -459,38 +410,24 @@ initialise(W, Label:[name]) :->
 drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
-       send(@ft,stop),  % Stop the GUI update timer as well
+       send(@ft,stop),  % Stop the GUI (fast) update timer as well
        plog('Stopping Level Detection (image processing)'),
-       send(@ut, stop),
-       send(@action?members, for_all,
-	    if(@arg1?value==stop,message(@arg1, active, @off))),
-       send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @on))),
+       control_timer(update, stop),
        plog(stopped).
 
 started(_W) :->
        plog('                      STARTING Level Detection'),
-       send(@ut, start),
-       send(@action?members, for_all,
-	    if(@arg1?value==start,message(@arg1, active, @off))),
-       send(@action?members, for_all,
-	    if(@arg1?value==stop, message(@arg1, active, @on))),
+       control_timer(update, start),
        send(@ft,start),       % Now restart the fast GUI update timer
        plog('Starting Level Detection (Image processing)').
 
 stopPID(_W) :-> 
     pidstop,
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDoff,message(@arg1, active, @off))),
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDon,message(@arg1, active, @on))).
+    ghost_state(pid,stop).
 
 startPID(_W) :->
     pidstart,
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDon,message(@arg1, active, @off))),
-    send(@action?members, for_all,
-	 if(@arg1?value==pIDoff,message(@arg1, active, @on))).
+    ghost_state(pid, start).
 
 cellstat(Self) :-> "User pressed the CellStat button"::
                    send(Self,stopped),
@@ -547,17 +484,7 @@ prompt(W, Value:name) :<-
         "Open it, destroy it and return the result"::
         get(W, confirm, Value).
 
-% Green when within 5% of Target magnitude
-range_color(Target, Current, Color) :-
-    Delta is Target/20,
-    Max is Target + Delta,
-    Min is Target - Delta,
-    (  Current > Max -> Color = red
-     ; Current < Min -> Color = blue
-     ;                  Color = darkgreen
-    ).
-
-% Updating can take a long time, so we must:
+% Updating can take a while, so we must:
 % 1) Stop auto-update
 % 2) Reload the  <hostname>.pl user parameter file if it changed
 % 3) Perform the update on all components
@@ -570,17 +497,20 @@ autoUpdate(Self) :->
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     send(Self,mixon),      plog(sent(mixon)),  % Send update
-    prep, % refreshes assertion for Web page
+    prep,              % refreshes assert with Web page data
+
+    param(updateCycle(Seconds)),
+    retractall(next_update(_)), % this is the count-down
+    assert(next_update(Seconds)),
+    
     report,
     send(@gui, started).
 
 quiet(Self) :->
     simulator -> true ;
-    send(Self?graphicals, for_all,  % Lagoon mixers OFF
-	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m0'))),
-    component(_,cellstat,Cellstat),
-    send(Cellstat,converse,'m0'),
-    send(Cellstat,converse,'o-').
+    send_to_type( Self?graphicals, lagoon,  [converse,m0] ), % Mixers OFF
+    send_to_type( Self?graphicals, cellstat, [converse,m0] ), % Mixers OFF
+    send_to_type( Self?graphicals, cellstat, [converse,'o-'] ). % Air OFF
 
 new_snapshot(Self) :->
     param(layout(Components)),
@@ -599,17 +529,12 @@ new_snapshot(Self) :->
     plog(update(snapShot)).
 
 mixon(Self) :->
-    plog('Updating ebuttons'),
-    send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,ebutton),message(@arg1,update))),
+    plog('Updating all ebuttons'),
+    send_to_type(Self?graphicals, ebutton, [update]),
     plog('Updating snapshot'),
-%    send(Self,new_snapshot),
-    send(Self?graphicals, for_all,
-	 if(message(@arg1,instance_of,snapshot),message(@arg1,update))),
-    
+    send_to_type(Self?graphicals, snapshot, [update]),
     plog('Turning noisy stuff back on'),
-    send(Self?graphicals, for_all,  % Lagoon mixers OFF
-	 if(message(@arg1,instance_of,lagoon),message(@arg1,converse,'m1'))),
+    send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
     plog('Lagoon mixers on'),
     component(_,cellstat,CellStat),
     send(CellStat,converse,'m1'),
@@ -622,45 +547,38 @@ readLevels(_) :->
     get_level(alllevels),
     plog(read_levels(finished)).
 
-% Put things to be refreshed more often here:
-% Image update, time to next level detection, etc.
-% Currently only the autosampler/next cycle time indication
+% Things to be refreshed often (e.g. GUI) such as
+% the Next Update countdown in Sampler label.
 
-fastUpdate(_Self) :->
+fastUpdate(Self) :->
     change_request,
+    retract(next_update(Seconds)),
+    Next is Seconds - 10,
+    assert(next_update(Next)),
+    send_to_type(Self?graphicals, sampler, [up,Next]),
 %    send(Self?graphicals, for_all,
-%	 if(message(@arg1,instance_of,sampler),message(@arg1,fast_update))),
+%	 if(message(@arg1,instance_of,sampler), message(@arg1,up,Next))),
+    prep,
     check_web_files.
 
 sendText(Self) :->
-    send(Self,sendTexts),
-    send(@tt,start),
-    send(@action?members, for_all,
-	 if(@arg1?value=='No Texting',message(@arg1, active, @on))),
-    send(@action?members, for_all,
-	 if(@arg1?value==texting,message(@arg1, active, @off))).
+    send(Self, sendTexts), % Send first text message
+    control_timer(texting, start).
 
 stopText(_S)   :->
-    send(@tt,stop),
-    send(@action?members, for_all,
-	 if(@arg1?value==texting,message(@arg1, active, @on))),
-    send(@action?members, for_all,
-	 if(@arg1?value=='No Texting',message(@arg1, active, @off))).
-    
+    control_timer(texting, stop).
     
 sendTexts(_Self) :->
-    retract(cycle(Last)),
-    Next is Last + 1,
-    assert(cycle(Next)),
-    ( watcher(Who, Where, When),
-      MyTime is Last mod When,
-      MyTime =:= 0,
-      concat_atom(['./smstext.py ',Where],Cmd),
-      shell(Cmd),
-      plog('                             TEXTING'(Who)),
-      fail
-    ; true
-    ).
+    retract(textCycle(Now)),
+    Next is Now + 1,
+    assert(textCycle(Next)),
+    findall(_,sending_text(Now),_).
+
+sending_text(Now) :-
+    watcher(_Who, Where, When),
+    0 is Now mod When,
+    concat_atom(['./smstext.py ',Where], Cmd),
+    shell(Cmd).
     
 :- pce_end_class.  % End of evostat
 
@@ -693,12 +611,6 @@ about_atom(About) :-
 	read_pending_input(Handle,FileContent,[]),
 	atom_chars(About,FileContent).
 
-% gethostname returns the full domain name on some systems
-hostname_root(H) :-
-     gethostname(Name),
-     atom_chars(Name,Cs),
-     ( append(RCs,['.'|_],Cs) -> atom_chars(H,RCs) ; H = Name ).
-
 % Bluetooth interface, with error checking and fail messages
 % bluetalk(+Socket, +Cmd, -Reply).
 
@@ -707,45 +619,38 @@ bluetalk(   _,  '', 'nothing_to_send.').
 bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
 bluetalk(   _,   _, 'send_failed.'    ).
 
-
-% Create executable (saved-state) with goal [c],save_evostat.
+% Create executable (saved-state) with goals:  [c],save_evostat.
 % <name> of configuration is a command-line argument or <hostname>
+%
 % The corresponding Prolog file: <name>.pl,  must exist.
+% (Copy template.pl and then edit for your configuration)
+% 
 % Load config and generate Python .settings (dictionary) file.
-% Many dynamic predicates (config, debug options ) from <hostname>.pl
+% Dynamic predicates (config, debug options ) in <hostname>.pl
 
-update_config(Config) :-      % Load or reload when file changes
-    config_name(Config,File),  %  Find configuration name (hostname or cmd arg)
-    load_newest(Config,File).
+update_config(Config) :-      % Load/reload when file changes
+    config_name(Config,File), % Config is hostname or Argv[1]
+    load_newest(File).
 
-load_newest(_,File) :-
-    file_modtime(File, Time),                  % Mod time when File was loaded
-    source_file_property(File,modified(Time)), % Matches!
-    !.
-
-load_newest(Config,File) :-
-    plog(consulting(File)),
-    consult(Config),
-    plog(consulted(Config)),
-    source_file_property(File,modified(Time)),
-    retractall(file_modtime(File,_)),
-    assert(file_modtime(File, Time)).
-
-c :- main([]).
+c :- main([]),!. % This calls c(EvoStatName) (choicepoint somewhere?)
 
 c(Name) :-
     free(@gui),
     new(@gui, evostat(Name)),
     send(@gui?frame, icon, bitmap('./evo.xpm')),
-    prep,
+    prep, % Prepare initial data for web pages
+    start_http,
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@ft, stop),
-         send(@ut, stop),
+         send(@update, stop),
          send(@gui, destroy),
-         stop_http
-     ;   plog(Reply)
-    ).
+	 stop_http,
+	 plog(http(stopped)),
+	 halt % c/1 called at end of main/1, so halt is okay.
+     ;   plog(Reply) % GUI and webserver still runnning
+    ),
+    plog(c(done)).
 
 report :-
 %    config_name(Root,_),
@@ -774,111 +679,45 @@ reportTurbidity(What,S) :-
     fail.
 reportTurbidity(_,_).
 
-count(ErrorType, Who) :-
-    Prev =.. [ErrorType, _When, HowMany],
-    ( retract(err(Who,Prev)) -> NErrors is HowMany+1 ;  NErrors=1 ),
-    timestring(Now),
-    Result =.. [ErrorType, Now, NErrors],
-    assert(err(Who,Result)).
-
-main :-
-    pce_main_loop(main). % This calls main(Argv)
+evostat_running :-
+    shell('./multiples',1),
+    plog('EvoStat is already running'),
+    halt.
 
 main(_Argv) :-
-    ( shell('./multiples',1)
-     -> plog('EvoStat is already running'), halt
-     ; assert(cycle(0))
-    ),
-
+    sleep(10),
+    \+ evostat_running,
+    assert(textCycle(0)),
     open('evostat.report', write, S),
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
-    
-    evostat_directory(HomeDir),  % With this, the savestate
-    cd(HomeDir),               % can be executed from anywhere
+    evostat_directory(HomeDir),  % With this, the savestate can
+    cd(HomeDir),                 % be invoked from anywhere
     assert(file_search_path(HomeDir)),
-    cleanup,                   % Remove all temp_file/1 entries
-    logging,                   % Send output to F if logfile(F) defined
+    cleanup,              % Remove temp_file/1 entries
+    logging,              % stderr to F if logfile(F)
 
-	% Delay a bit if the computer is just starting up (low PID)
-        current_prolog_flag(pid, PID),
-        (PID < 900 -> sleep(30) ; true),
-
-        set_prolog_flag(save_history,false),
-	at_halt(pathe_report(verbose)),  % Special exit predicate to call
-        ( windows
-        -> load_foreign_library(foreign(plblue))
-        ;  load_foreign_library(plblue),
-	   plog(loaded(bluetooth))
-        ),
-	update_config(Root),
-	param(screen(WF,HF,Loc)),    % From configuration data
-        get(@display?size,width,Width),
-        get(@display?size,height,Height),
-        assert(screen(Width,Height,WF,HF,Loc)),
-        camera_reset,
-	param(layout(Components)),
-	Layout =.. [Root,Components],
-	assert(Layout),
-%	writeln(Layout),
-
-	assert(supress(layout(_))),           % Leave this out of the Python "settings" dictionary
-	assert(supress(screen(_,_,_))),       %     ''
-        writePythonParams(Root),
-        start_http,
-        c(Root),
-        sleep(10),
-        !,
-	stop_http.
-
-save_evostat :-
-    os_emulator(Emulator),
-%    retractall(debug),
-    Options = [stand_alone(true), goal(main)],
-    qsave_program(evostat, [emulator(Emulator)|Options]).
-
-% SIGNAL HANDLING
-% :- on_signal(int, _, cint).
-%
-% cint(_Signal) :- writeln('Caught a signal'),
-%                  thread_send_message(main, cinter).
-
-running   :- catch(thread_httpd:http_workers(21847,N),_,fail), N>0.
-
-reload    :- stop_http, reconsult(webspec), start_http.
-
-stop_http  :- catch(http_stop_server(21847,[]),_,true).
-
-start_http :-
-    ( running -> true
-     ;
-     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
-%     process_files('web/*',        [] ),
-     process_files('web/*.html', [] ),
-     process_files('web/css/*',    [] ),
-     process_files('web/js/*',     [] ),
-     process_files('web/images/*', [] ),
-     http_server( http_dispatch, [ port(21847) ] )
-    ).
-
-% Given a Chdir path of depth N,
-% create a ladder back to original location
-
-return_path(Path,Return) :-
-    atom_chars(Path,PathChs),
-    findall('/..', member('/',PathChs), Levels),
-    concat_atom(['..'|Levels], Return).
-
-newpipe(Name) :-
-	concat_atom(['mkfifo ', Name], MakePipe),
-	system(MakePipe).
-
-% Run async command with stream output
-run_external(Cmd, Stream) :-
-	newpipe('/tmp/bpipe'),
-	concat_atom([Cmd,' >/tmp/bpipe &'], Redirected),
-	system(Redirected),
-	open('/tmp/bpipe', read, Stream, []),
-	system('rm /tmp/bpipe').
+    % Delay 30s if the computer is just starting up (low PID)
+    current_prolog_flag(pid, PID),
+    (PID < 900 -> sleep(30) ; true),
+    set_prolog_flag(save_history,false),
+    at_halt(pathe_report(verbose)),  % Special exit predicate to call
+    ( windows
+      -> load_foreign_library(foreign(plblue))
+      ;  load_foreign_library(plblue)
+    ),
+    plog(loaded(bluetooth)),
+trace,
+    update_config(Root),
+    param(screen(WF,HF,Loc)),    % From configuration data
+    get(@display?size,width,Width),
+    get(@display?size,height,Height),
+    assert(screen(Width,Height,WF,HF,Loc)),
+    camera_reset,
+    param(layout(Components)),
+    Layout =.. [Root,Components],
+    assert(Layout),
+    writePythonParams(Root),
+    c(Root).
 
 %http_read_passwd_file(+Path, -Data)
 %http_write_passwd_file(pws,"$1$jVPltO5Q$$1$jVPltO5Q$t9a46Bb18vp/BMoco70u21")
@@ -930,16 +769,9 @@ change_value('tt',Name,Value) :-
    send(Obj, slot, ttemperature, Value).
 change_value(_,_,_).
 
- 
-plog(Term) :- write(user_error,Term),nl(user_error).
-
-logIP(Req) :-    
-    memberchk(peer(IP),Req),
-    open('ip.log', append, S),
-    write(S,IP),nl(S),
-    close(S).
-
-get_background(ImageFile) :-
-    gethostname(Fullname),
-    atomic_list_concat([Name|_],'.',Fullname),
+backgroundImage(ImageFile) :-
+    config_name(Name,_),
     concat_atom(['./images/',Name,'.png'],ImageFile).
+%    exists_file(ImageFile),
+%    !.
+%backgroundImage('./images/platebglong.png').

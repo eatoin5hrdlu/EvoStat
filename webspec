@@ -1,8 +1,17 @@
-:- use_module(library(http/http_dispatch)).
+%%%%%%%%%%% WEB SERVER 
+
+:- set_prolog_flag(double_quotes,codes).
+:- use_module(library(http/thread_httpd)).   % Server loop
+:- use_module(library(http/http_dispatch)).  % dispatch table
+:- use_module(library(http/http_header)).    % Terms -> HTML
+:- use_module(library(http/html_write)).     % Terms -> HTML
+:- use_module(library(http/html_head)).      % html_requires//1
+
 :- use_module(library(http/http_authenticate)).
 :- use_module(library(http/http_client)).
 
-:- dynamic( [ load_time/2 ] ).
+:- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
+html_syntax --> {html_syntax}. % Also callable as a grammar rule
 
 :- multifile user:head//2.
 
@@ -10,6 +19,24 @@ user:head(_, Head) -->       % CSS: Add to every page
     html(head([ link([ type('text/css'),
     		rel('stylesheet'),
 		href('/web/css/content.css') ])|Head])).
+
+running   :- catch(thread_httpd:http_workers(21847,N),_,fail), N>0.
+
+reload    :- stop_http, reconsult(webspec), start_http.
+
+stop_http  :- catch(http_stop_server(21847,[]),_,true).
+
+start_http :-
+    ( running -> true
+     ;
+     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
+%     process_files('web/*',        [] ),
+     process_files('web/*.html', [] ),
+     process_files('web/css/*',    [] ),
+     process_files('web/js/*',     [] ),
+     process_files('web/images/*', [] ),
+     http_server( http_dispatch, [ port(21847) ] )
+    ).
 
 emit_file(Path,Options,Request) :-
         message('REQUEST: ~q~n', [Request]),
@@ -117,9 +144,22 @@ js_return(Request, Function, 'setTimeout("goback()",4000)' ) :-
 
 errorPage(Request, Message) :-
     js_return(Request, Function, Flyback),
-    reply_html_page( biologic,
-		[ title('An Error has occurred'),
-		  script([language(javascript)],[Function])],
-		  body([onLoad(Flyback) ],
-	          center(h1(Message)))
+    reply_html_page([ title('An Error has occurred'),
+		      script([language(javascript)],[Function])],
+		      body([onLoad(Flyback) ],
+	              center(h1(Message)))
 		   ).
+
+%http_read_passwd_file(+Path, -Data)
+%http_write_passwd_file(pws,"$1$jVPltO5Q$$1$jVPltO5Q$t9a46Bb18vp/BMoco70u21")
+
+logIP(Req) :-
+    memberchk(peer(IP),Req),
+    open('ip.log', append, S),
+    write(S,IP),nl(S),
+    close(S).
+
+evostatName(Req,Name) :- memberchk(search(L), Req),
+		         memberchk(evostat(Name),L),
+			 !.
+evostatName(_,Name) :- config_name(Name,_).

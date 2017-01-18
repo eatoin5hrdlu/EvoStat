@@ -1,6 +1,11 @@
 :- dynamic html_syntax/0. % Also DCG version html_syntax/2.
 :- dynamic prepped/4.
 
+% As this code accesses the PCE objects, it can't be called from
+% the web-server process to generate HTML pages.  Instead, we 
+% prepare this data from the PCE object update method and assert
+% it as prep/4 for efficient retrieval by the web server.
+%
 % DCG access to XPCE get/3 and EvoStat component/3
 getx(Obj,ID)               --> {get(Obj,ID,Data)},         [Data].
 component(Name, Type, Obj) --> {component(Name,Type,Obj)}, [Name].
@@ -51,7 +56,7 @@ label(lagoon,Name) --> component(Name,lagoon,Obj), [' '],
                        label(flow, Obj).
 
 label(sampler,Name) -->  component(Name,sampler,Obj), nl,
-    [ 'Next Level Reading in '], getx(Obj,u), ['s'], nl,
+    [ 'Next Level Reading in '], getx(Obj,up), ['s'], nl,
     [ 'Next Sample '], getx(Obj,ns).
 
 

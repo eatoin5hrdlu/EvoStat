@@ -41,21 +41,19 @@ compatible(T1,T2) :-
 	fail.
 
 % The Autosampler controls drain valves for the other components
+% Lagoon name ends with <digit>: v<digit> is that lagoon's drain
+% Otherwise it must be the Cellstat's drain 'v0'
 
-% Return the component's drain valve
 component_drain(Obj, Valve) :-
-    component(Lagoon,lagoon,Obj),
+    lagoon_number(Obj,N),
     !,
-    atom_codes(Lagoon, Codes),
-    append(_,[Digit],Codes),
-    atom_codes(Valve, [0'i,Digit]).
-
-component_drain(_, i0).
+    concat_atom([v,N],Valve).
+component_drain(_, v0).       % or cellstat
 
 adjust(Obj, Amt) :-
       Inflow is   Amt/2,
       Outflow is -Amt/2,
-      adjust_valve(Obj,i1,Inflow),
+      adjust_valve(Obj,v1,Inflow),
       component_drain(Obj,Drain),
       component(_,sampler,S),
       adjust_valve(S,Drain,Outflow).
@@ -66,6 +64,11 @@ adjust_valve(Obj, Valve, Amt) :-
       send(Obj, Valve, New),
       assert(changed(Obj,Valve)).
 
+parse_reply(Reply, Term) :-
+      functor(Term,F,A),
+      functor(Default,F,A),
+      parse_reply(Reply,Term,Default).
+      
 parse_reply(Reply, Term, Default) :-
 	catch( atom_to_term(Reply,TmpTerm,_TMBindings),
 	       Exception,
@@ -101,38 +104,6 @@ wget( OtherFile,
       'http://192.168.2.117:88/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=scrapsec&pwd=lakewould']):-
       toggle(File,OtherFile).
 
-repeat(N) :-
-             integer(N), % type check
-             N>0,        % value check 
-%	     write(user_error,repeat(N)), nl(user_error),
-             repeatN(N).
-
-repeatN(1) :- !,plog(repeatN_exhausted),fail.
-repeatN(_).
-repeatN(N) :- M is N-1, repeatN(M).
-
-waitfor(N,Atom,_) :-
-   repeat(N),
-   ( call(Atom) -> true ; sleep(0.2), fail ),
-   !.
-
-waitfor(N,Atom,Who) :-  
-    plog(failed(waitfor(N,Atom,Who))),
-    fail.
-    
-semaphore(N,Atom,_) :- % wait for and grab it
-   repeat(N),
-   ( retract(Atom) -> true ; sleep(0.2), fail ),
-   !.
-
-semaphore(N,Atom,Who) :- % Report failure and assert a new one (dangerous?)
-    plog(failed(semaphore(Who,N,Atom))),
-    retractall(webok),  % In case we failed for another reason.
-    assert(webok),
-    plog(asserting(webok)),
-    fail.
-
-%:- load_bluetooth, writeln('BLUETOOTH loaded while consulting gbutton').
 
 :- pce_begin_class(snapshot, window).
 
@@ -174,23 +145,30 @@ initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
         send_super(Self, initialise(Label)),
         send(Self, myname, Label),
+	retractall(changed(Self,_,_)),
 	send(Self, slot, l,  30),
 	send(Self, slot, tl, 87),
+	assert(changed(Self,tl)),
 	send(Self, slot, levelUnits,   'mL'),
+	assert(changed(Self,levelUnits)),
 	send(Self, slot, temperatureUnits,   'C'),
+	assert(changed(Self,temperatureUnits)),
 	send(Self, slot, turbidityUnits,   'OD(600)'),
+	assert(changed(Self,turbidityUnits)),
 	send(Self, slot, fluxUnits,        'rlu'),
+	assert(changed(Self,fluxUnits)),
 	send(Self, slot, socket, @nil),
-	send(Self, connect),
 	new(Code,  message(Self, show_conversation)),
 	send(Self, recogniser, click_gesture(right,'',single,Code)).
 
 update(_Self) :-> true. % Anything that all buttons do
 	
-show_conversation(Self) :->
-        Self = @Name,
-        get(Self, socket, Socket),
-	new(_, dialin(Name,Socket)).
+show_conversation(@Name) :->
+        get(@Name, socket, Socket),
+	(Socket == @nil
+	    -> send(@Name, connect)
+	    ; new(_, dialin(Name,Socket))
+	).
 	
 compute(_) :-> true.
 
@@ -249,7 +227,7 @@ connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::
 	get(Self, myname, MyName),
 	plog(connect(MyName)),
-	( bt_device(MyName, Addr) -> true ; Addr = 'DD:DD:DD:DD:DD:DD' ),
+	bt_device(MyName, Addr),
 	get(Self, socket, OldSocket),
 	plog(oldSocket(OldSocket)),
         ( OldSocket == @nil -> true
@@ -259,19 +237,16 @@ connect(Self) :->
 	  send(Self, slot, socket, @nil)
 	),
 	plog(bt_socket(Addr)),
-	( bt_socket(Addr, BTSocket) ->
-	  plog(bt_socket(returned(BTSocket))),
-	  write(socket(BTSocket)),write(' '),
-	  ( BTSocket > -1 ->
-	    send(Self, slot, socket, BTSocket),
-	    send(Self,colour,colour(darkgreen))
-	    ;
-	    writeln(returned(MyName,bt_socket,BTSocket)),
-	    send(Self,colour,colour(red))
-	  )
-	;  plog(failed(bt_socket(MyName))),
-	   send(Self,colour,colour(red))
-	).
+	bt_socket(Addr, BTSocket),
+	plog(bt_socket(returned(BTSocket))),
+	BTSocket > -1,
+	send(Self, slot, socket, BTSocket),
+	send(Self,colour,colour(darkgreen)).
+
+connect(Self) :->
+	get(Self, myname, MyName),
+	plog(failed(bt_socket(MyName))),
+	send(Self,colour,colour(red)).
 
 insertIP(Cmd, IP, Result) :-
         atom_codes(Cmd, Cs),
@@ -326,11 +301,6 @@ reportDeltaT(Who, Old, New) :-
 	DeltaT is integer(abs(Old-New)/10), % DeltaT in degrees
 	retractall(err(Who,deltaT(_))),
 	(DeltaT > 5 -> assert(err(Who,deltaT(DeltaT))) ; true).
-
-reportTemp(Who, What,Target,Temp) :-  % Temp in 1/10 degC
-	condition(Temp, Target, 20, Cond),
-	retractall(temperature(Who,_,_,_)),
-	assert(temperature(Who,What,Cond,Temp)).
 
 reportTurb(Who,What,Target,Turb) :- 
 	condition(Turb, Target, 50, Cond),
