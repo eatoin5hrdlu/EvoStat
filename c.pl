@@ -40,7 +40,6 @@ evostat_directory(Dir) :-
 	      ])
    ),
    exists_directory(Dir).
->>>>>>> a02053f5acbc7f2e2e82e13f423f61d2f4c1c200
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -94,6 +93,11 @@ temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
 temp_file('dbg.txt').
 temp_file(File)       :- logfile(File).
+
+%%%%%%%%%%%%%%%% TIMERS
+timer(autoUpdate,  Seconds) :-	param(updateCycle(Seconds)).
+timer(fastUpdate,  Fast)    :-	param(updateCycle(UC)), Fast is UC/10.
+timer(sendTexts,  Seconds)  :-  param(textMessages(Seconds)).
 
 %%%%%%%%%%%%%%%% CAMERA
 camera_device(Device) :-
@@ -243,34 +247,8 @@ pathe_report(_) :-
 lagoon_number(Object, N) :-
     component(Lagoon, lagoon, Object),
     atom_codes(Lagoon, Codes),
-    Digit is N + 0'0,
-    append(_,[Digit],Codes).
-
-
-
-% Alternative to for_all ?grapicals
-lagoons(Cmd) :-
-    component(_, lagoon, Object),
-    send(Object,Cmd),
-    fail.
-lagoons(_).
-
-% Many responses from the micro-controllers contain
-% data to be stored in corresponding PCE (GUI) objects.
-
-sendLevel(1,Level) :-
-    Level > 0,
-    !,
-    component(_, cellstat, Cellstat),
-    send(Cellstat, l, Level),
-    plog(sentCellstatLevel(Level)).
-sendLevel(Num,Level) :-
-    Num > 1,
-    Level > 0,
-    LNum is Num-1,
-    lagoon_number(Object, LNum),
-    send(Object, l, Level),
-    plog(sentLagoonLevel(LNum, Level)).
+    append(_,[Digit],Codes),
+    N is Digit + 0'0.
 
 send_info(end_of_file,_) :-
    plog('Is debugging on? Possibly called Cellstat'),
@@ -279,13 +257,24 @@ send_info(end_of_file,_) :-
     
 send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 
-send_info(Levels,_) :-  % levels(Cellstat,L1,L2..)
-    functor(Levels,levels,_),
-    arg(Num,Levels,Level),
-    sendLevel(Num,Level),
-    fail.
+send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
+    Levels =.. [levels|Ls],
+    send_levels(Ls).
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
+
+
+send_levels([CLevel|Ls]) :-
+    component(_,cellstat,Obj),
+    send(Obj,l,CLevel),
+    send_levels(Ls,1).
+
+send_levels( [],   _).
+send_levels([L|Ls],N) :-
+    lagoon_number(Obj,N),
+    send(Obj,l,L),
+    NN is N + 1,
+    send_levels(Ls,NN).
 
 % Code to launch python/OpenCV level detection programs
 
@@ -339,28 +328,7 @@ initialise(W, Label:[name]) :->
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
 	  send(MB, label_font(huge)),
-
-	  % Long update cycle for communication with subsystems
-	  new(Msg1, message(W, autoUpdate)),  % Create Timer Object
-	  free(@update),
-	  param(updateCycle(Seconds)),
-          send(W, attribute, attribute(timer, new(@update, timer(Seconds, Msg1)))),
-	  assert(next_update(Seconds)),
-
-	  % Short update cycle for GUI
-	  new(Msg2, message(W, fastUpdate)),  % Message for fast Timer
-	  free(@ft),
-	  param(updateCycle(Seconds)),
-          Frequent is integer(Seconds/10),
-	  plog(frequentTimer(Frequent)),
-	  send(W, attribute, attribute(timer, new(@ft, timer(Frequent, Msg2)))),
-	
-	  % Status updates via Text Messaging
-	  new(Msg3, message(W, sendTexts)),
-	  free(@texting),
-	  param(textMessages(TextSeconds)),
-	  send(W,attribute,attribute(timer,new(@texting,timer(TextSeconds,Msg3)))),
-
+	  findall(Tm,make_timer(W, Tm), _Tms),  % Make the Timers
 	  send(MB, append, new(File, popup(file))),
           free(@action),
           ( current_prolog_flag(argv,[Exe|_]),
@@ -407,18 +375,27 @@ initialise(W, Label:[name]) :->
          send_super(W, open, Location),
 	 plog(finished(evostat)).
 
+
+% make_timer(?,?)
+make_timer(W, Name) :-
+    timer(Name,Seconds),
+    new(MSG, message(W, Name)),  % Create Message for Timer Object
+    concat_atom([Name,timer],TimerName),
+    free(@TimerName),
+    send(W, attribute, attribute(timer, new(@TimerName, timer(Seconds, MSG)))).
+
 drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
-       send(@ft,stop),  % Stop the GUI (fast) update timer as well
+       send( @fastUpdatetimer, stop),  % Stop the GUI (fast) update timer as well
        plog('Stopping Level Detection (image processing)'),
-       control_timer(update, stop),
+       control_timer(autoUpdate, stop),
        plog(stopped).
 
 started(_W) :->
        plog('                      STARTING Level Detection'),
-       control_timer(update, start),
-       send(@ft,start),       % Now restart the fast GUI update timer
+       control_timer(autoUpdate, start),
+       send(@fastUpdatetimer,start),       % Now restart the fast GUI update timer
        plog('Starting Level Detection (Image processing)').
 
 stopPID(_W) :-> 
@@ -473,7 +450,6 @@ quit(W) :->
 
 load(W, File:[file]) :->
         "User pressed the Load button"::
-%	send(@ut, stop),     % Shut down the label update timerg
         send(W, return(File)).
 
 ok(W) :->
@@ -496,11 +472,12 @@ autoUpdate(Self) :->
     update_config(_),          % Re-load if change
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
+% COMPONENT UPDATES IN MIXON
     send(Self,mixon),      plog(sent(mixon)),  % Send update
     prep,              % refreshes assert with Web page data
 
     param(updateCycle(Seconds)),
-    retractall(next_update(_)), % this is the count-down
+    retractall(next_update(_)), % Reset the count-down
     assert(next_update(Seconds)),
     
     report,
@@ -556,6 +533,7 @@ fastUpdate(Self) :->
     Next is Seconds - 10,
     assert(next_update(Next)),
     send_to_type(Self?graphicals, sampler, [up,Next]),
+    send_to_type(Self?graphicals, sampler, [update]), % Refresh Gui
 %    send(Self?graphicals, for_all,
 %	 if(message(@arg1,instance_of,sampler), message(@arg1,up,Next))),
     prep,
@@ -642,8 +620,8 @@ c(Name) :-
     start_http,
     get(@gui, prompt, Reply),
     (Reply = quit ->
-         send(@ft, stop),
-         send(@update, stop),
+         send(@fastUpdatetimer, stop),
+         send(@autoUpdatetimer, stop),
          send(@gui, destroy),
 	 stop_http,
 	 plog(http(stopped)),
@@ -706,7 +684,6 @@ main(_Argv) :-
       ;  load_foreign_library(plblue)
     ),
     plog(loaded(bluetooth)),
-trace,
     update_config(Root),
     param(screen(WF,HF,Loc)),    % From configuration data
     get(@display?size,width,Width),
