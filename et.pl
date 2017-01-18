@@ -68,6 +68,11 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 send(US, web_values),
          send(US,check_level),
 	 get(US, myname, MyName),
+	 component(MyName,Type,US),
+	 label(Type,MyName,NewLabel,[]),
+	 flatten(NewLabel,LabelAtoms),
+	 concat_atom(LabelAtoms,NewAtomicLabel),
+	 send_super(US, label, NewAtomicLabel),
 	 format(user_error,'Updated ~s~n', MyName)
        ),
        Methods,
