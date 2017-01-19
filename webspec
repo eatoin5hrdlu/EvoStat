@@ -30,19 +30,13 @@ start_http :-
     ( running -> true
      ;
      process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
-%     process_files('web/*',        [] ),
-     process_files('web/*.html', [] ),
+%     process_files('web/*',       [] ),  % No authentication
+     process_files('web/*.html',   [] ),
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
      process_files('web/images/*', [] ),
      http_server( http_dispatch, [ port(21847) ] )
     ).
-
-emit_file(Path,Options,Request) :-
-        message('REQUEST: ~q~n', [Request]),
-	http_read_data(Request, Data, []),
-	message('POST DATA: ~q~n', [Data]),
-	http_reply_file(Path,Options,Request).
 
 process_files(WildCard, Security) :-
 	expand_file_name(WildCard, Files),
@@ -78,15 +72,14 @@ add_handler(pl, URL, Root, Path, Options) :-
         assert(load_time(Path,Time)),
 	http_handler(URL, Root, Options).
 
-
 check_web_files :-
 	load_time(Path,Loaded),
 	time_file(Path,FileTime),
 	FileTime > Loaded,
 	reconsult(Path),
+	write(user_error,'RELOADED'(Path)),nl(user_error),
 	retract(load_time(Path,Loaded)),
 	assert(load_time(Path,FileTime)),
-	write(user_error,'RELOADED'(Path)),nl(user_error),
 	fail.
 check_web_files.
 
@@ -114,7 +107,7 @@ get_parameter_codes(Request, Codes) :-  % GET parameters are in Request
     atom_codes(URI, Codes).
 
 parse_parameters([H|T]) -->
-    [P1], parse_attribute(P1, PCodes),
+    [P1], parse_attribute(P1, PCodes), % consumes the '=' char
     [V1], parse_value(V1, VCodes),
     { name(Param, PCodes),
       name(Value, VCodes),
@@ -133,7 +126,6 @@ parse_attribute(C,[C|T]) --> [NC], parse_attribute(NC,T).
 
 message_list([]).
 message_list([H|T]) :- message('~q~n', [H]), message_list(T).
-
 
 % Javascript function and timeout call to return to the referring page
 

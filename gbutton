@@ -40,29 +40,6 @@ compatible(T1,T2) :-
 	writeln(parse_error(expected(Name/Arity),got(T1))),
 	fail.
 
-% The Autosampler controls drain valves for the other components
-% Lagoon name ends with <digit>: v<digit> is that lagoon's drain
-% Otherwise it must be the Cellstat's drain 'v0'
-
-component_drain(Obj, Valve) :-
-    lagoon_number(Obj,N),
-    !,
-    concat_atom([v,N],Valve).
-component_drain(_, v0).       % or cellstat
-
-adjust(Obj, Amt) :-
-      Inflow is   Amt/2,
-      Outflow is -Amt/2,
-      adjust_valve(Obj,v1,Inflow),
-      component_drain(Obj,Drain),
-      component(_,sampler,S),
-      adjust_valve(S,Drain,Outflow).
-
-adjust_valve(Obj, Valve, Amt) :-
-      get(Obj, Valve, Setting),
-      New is Setting + Amt,
-      send(Obj, Valve, New),
-      assert(changed(Obj,Valve)).
 
 parse_reply(Reply, Term) :-
       functor(Term,F,A),

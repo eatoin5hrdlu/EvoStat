@@ -139,30 +139,8 @@ save_evostat :-
     Options = [stand_alone(true), goal(pce_main_loop(main))],
     qsave_program(evostat, [emulator(E)|Options]).
 
-% Given a Cbhdir path of depth N,
-% create a ladder back to original location
-
-return_path(Path,Return) :-
-    atom_chars(Path,PathChs),
-    findall('/..', member('/',PathChs), Levels),
-    concat_atom(['..'|Levels], Return).
-
-newpipe(Name) :-
-	concat_atom(['mkfifo ', Name], MakePipe),
-	system(MakePipe).
-
-% Run async command with stream output
-run_external(Cmd, Stream) :-
-	newpipe('/tmp/bpipe'),
-	concat_atom([Cmd,' >/tmp/bpipe &'], Redirected),
-	system(Redirected),
-	open('/tmp/bpipe', read, Stream, []),
-	system('rm /tmp/bpipe').
-
-repeat(N) :-
-             integer(N), % type check
+repeat(N) :- integer(N), % type check
              N>0,        % value check 
-%	     write(user_error,repeat(N)), nl(user_error),
              repeatN(N).
 
 repeatN(1) :- !,plog(repeatN_exhausted),fail.
@@ -171,11 +149,7 @@ repeatN(N) :- M is N-1, repeatN(M).
 
 waitfor(N,Atom,_) :-
    repeat(N),
-   ( call(Atom)
-     -> !
-   ; sleep(0.2),
-     fail
-   ).
+   ( call(Atom) -> ! ; sleep(0.2), fail ).
 
 waitfor(_,Atom,Who) :-
     plog(failed(Who,waitfor,Atom)),
@@ -190,3 +164,20 @@ semaphore(_,Atom,Who) :- % Report failure and reassert
     plog(failed(Who,semaphore,Atom)),
     assert(Atom),
     fail.
+
+% Force atoms with only digits/decimal point to be numeric
+ensure_value(Atom, Number) :-
+        atom_codes(  Atom,   ACodes),
+        ( ACodes = [0'.|Codes] -> true ; Codes=ACodes),
+        number_codes(Number, Codes),
+        !.
+ensure_value(Atom, Atom).
+
+strip_atom(Raw, Stripped) :-
+	atom_codes(Raw,Codes),
+        strip_codes(Codes,  Cleaned),
+	atom_codes(Stripped, Cleaned).
+
+strip_codes(   [],      []).
+strip_codes([W|T],     Out) :- W < 33, !, strip_codes(T,Out).
+strip_codes([C|In],[C|Out]) :- strip_codes(In,Out).

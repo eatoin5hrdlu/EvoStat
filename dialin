@@ -5,37 +5,23 @@
 
 variable(socket, any, get, "Bluetooth Socket").
 
-strip_atom(Raw, Stripped) :-
-	atom_codes(Raw,Codes),
-        strip_codes(Codes,  Cleaned),
-	atom_codes(Stripped, Cleaned).
-
-strip_codes(   [],      []).
-strip_codes([W|T],     Out) :- W < 33, !, strip_codes(T,Out).
-strip_codes([C|In],[C|Out]) :- strip_codes(In,Out).
-
-
-nlevent(Who,What) :<-
-	"process a newline in the editor"::
-        writeln(what(What)),
-        writeln(got_nlevent(Who)).
 
 initialise(Self, Label:[name], Socket:[any]) :->
 	"Have a short conversation over Bluetooth"::
         send_super(Self, initialise(Label)),
 	send(Self, slot, socket, Socket),
-	send(Self?frame, icon, bitmap('./evo.xpm')), % Our logo
-        new(Diatxt, text_buffer),                    % Text object in
-        new(Editor, editor(Diatxt)),                 % Emacs-like edit window
+	send(Self?frame, icon, bitmap('./evo.xpm')), % LOGO
+        new(Diatxt, text_buffer),
+        new(Editor, editor(Diatxt)),         % Emacs editor
 
 	send(Editor?bindings, function, 'RET', message(Self,enter)),
 	screen(DW,DH,WF,HF,_),
 	MyW is 30+(DW*WF/100)/2,
 	MyH is (DH*HF/100)/2,
-        get(Editor,  area, Area),                     % Resize it
+	get(Editor,  area, Area),                     % Resize
 	send(Area, set(width:=MyW,height:=MyH)),
 	send(Self, append, Editor),
-	send_super(Self, open, point(600,200)).      % Show it to the User
+	send_super(Self, open, point(300,200)).
 
 enter(Self) :->
 	"Stateful command/response window"::
@@ -47,7 +33,7 @@ enter(Self) :->
 	"Stateful command/response window"::
 	chain_list(Self?graphicals, [Editor|_]),      % Contents of 
 	get(Editor?text_buffer?contents, value, Raw), % Edit pane
-	strip_atom(Raw, Cmd),
+	normalize_space(atom(Cmd),Raw),
 	( Cmd = reset
 	 -> send(Self,reset),
 	    send(Self,clear)
@@ -72,26 +58,12 @@ talk(Self, Cmd, Editor) :-
 	send(Self, keyboard_focus, Editor).
 
 clear(Self) :->
-	chain_list(Self?graphicals, [Editor|_]),
-	send(Editor?text_buffer, clear),
-	send(Self, keyboard_focus, Editor).
+     chain_list(Self?graphicals, [Editor|_]),
+     send(Editor?text_buffer, clear),
+     send(Self, keyboard_focus, Editor).
 
 reset(Self) :->
      get(Self, slot, socket, Sock),
-     writeln(resetting(Self,socket(Sock))),
-     bt_areset(Sock),
-     writeln(reset).
-reset(Self) :->
-	get_super(Self, label, Whoami),
-	writeln(resetfailed(Whoami)).
+     bt_areset(Sock).
 
 :- pce_end_class.
-	
-% send(K, function, 'backspace', message(P, execute_backward)),
-%	send(K, function, 'DEL',message(P,execute_del)),
-%	send(K, function, 'cursor_home',message(P,beginning_of_line)),
-%	send(K, function, 'cursor_left',message(P,backward_char)),
-%	send(K, function, 'cursor_right',message(P,forward_char)),
-%	send(K, function, 'end',message(P,end_of_line)),
-%	send(K, function, 'TAB', message(P,next)),
-%	send(K, function, 'RET', enter).

@@ -23,9 +23,9 @@ iface( cellstat, ebutton,
 	ro( b, int:=400, "Turbidity"),
 	rw(tb, int:=400, "Target Turbidity"),
 	ro( w, int:=500, "Leak Detection"),
-        rw(v1, int:=1000, "Host Supply 1 Valve Timing"),
-        rw(v2, int:=1000, "Host Supply 2 Valve Timing"),
-        rw(v3, int:=1000, "Host Supply 3 Valve Timing")
+        rw(v0, int:=1000, "Host Nutrient Supply"),
+        rw(v1, int:=1000, "Host Supply 2 Valve Timing"),
+        rw(v2, int:=1000, "Host Supply 3 Valve Timing")
       ]).
 
 iface( lagoon, ebutton,

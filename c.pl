@@ -27,6 +27,7 @@ evostat_directory(Dir) :-  % If configuration is loaded
 evostat_directory(Dir) :-
    ( linux
      -> member(Dir,[
+		   '~/src/EvoStat/',
 		   '/home/skynet/Desktop/peter/src/EvoStat/',
 		   '/home/peter/src/EvoStat/',
 		   '/home/peterr/src/EvoStat/',
@@ -73,6 +74,7 @@ evostat_directory(Dir) :-
 	     file_modtime/2, % Modification time of loaded file
 	     param/4,        % param(Name, Type, Attr, Value)
 	     simulator/0,
+	     changeRequest/1, % HTML form values
 	     toggle_auto/0 ].
 
 
@@ -244,11 +246,11 @@ pathe_report(_) :-
 % but must end with a single digit (usually 1-4)
 % E.g. lagoonDarwin2, lagoon_huxley_1, cuvierVirustat4
 %
-lagoon_number(Object, N) :-
-    component(Lagoon, lagoon, Object),
-    atom_codes(Lagoon, Codes),
-    append(_,[Digit],Codes),
-    N is Digit + 0'0.
+component_index(Object, 0) :- component(_, cellstat, Object),!.
+component_index(Object, N) :- component(Lagoon, lagoon, Object),
+			      atom_codes(Lagoon, Codes),
+			      append(_,[Digit],Codes),
+			      N is Digit + 0'0.
 
 send_info(end_of_file,_) :-
    plog('Is debugging on? Possibly called Cellstat'),
@@ -259,19 +261,19 @@ send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 
 send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
     Levels =.. [levels|Ls],
-    send_levels(Ls).
+    send_levels(Ls,0).
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
 
 
-send_levels([CLevel|Ls]) :-
-    component(_,cellstat,Obj),
-    send(Obj,l,CLevel),
-    send_levels(Ls,1).
+%send_levels([CLevel|Ls]) :-
+%    component(_,cellstat,Obj),
+%    send(Obj,l,CLevel),
+%    send_levels(Ls,1).
 
 send_levels( [],   _).
 send_levels([L|Ls],N) :-
-    lagoon_number(Obj,N),
+    component_index(Obj,N),
     send(Obj,l,L),
     NN is N + 1,
     send_levels(Ls,NN).
@@ -398,13 +400,8 @@ started(_W) :->
        send(@fastUpdatetimer,start),       % Now restart the fast GUI update timer
        plog('Starting Level Detection (Image processing)').
 
-stopPID(_W) :-> 
-    pidstop,
-    ghost_state(pid,stop).
-
-startPID(_W) :->
-    pidstart,
-    ghost_state(pid, start).
+stopPID(_W)  :-> pidstop,  ghost_state(pid,stop).
+startPID(_W) :-> pidstart, ghost_state(pid, start).
 
 cellstat(Self) :-> "User pressed the CellStat button"::
                    send(Self,stopped),
@@ -534,8 +531,6 @@ fastUpdate(Self) :->
     assert(next_update(Next)),
     send_to_type(Self?graphicals, sampler, [up,Next]),
     send_to_type(Self?graphicals, sampler, [update]), % Refresh Gui
-%    send(Self?graphicals, for_all,
-%	 if(message(@arg1,instance_of,sampler), message(@arg1,up,Next))),
     prep,
     check_web_files.
 
@@ -559,6 +554,7 @@ sending_text(Now) :-
     shell(Cmd).
     
 :- pce_end_class.  % End of evostat
+
 
 % Initializers are extra arguments to the constructor
 % Data is a list of messages to continue initializing the object
@@ -616,7 +612,7 @@ c(Name) :-
     free(@gui),
     new(@gui, evostat(Name)),
     send(@gui?frame, icon, bitmap('./evo.xpm')),
-    prep, % Prepare initial data for web pages
+    prep,     % Initial data for web pages
     start_http,
     get(@gui, prompt, Reply),
     (Reply = quit ->
@@ -631,31 +627,26 @@ c(Name) :-
     plog(c(done)).
 
 report :-
-%    config_name(Root,_),
     open('evostat.report', append, S),
     nl(S), timeline(S),
     ( camera_exists -> true ; write(S,'NO CAMERA!'),nl(S) ),
-    ( leak(Type)    -> write(S,'leak '),write(S,Type),nl(S) ; true ),
+    ( leak(Type)    -> write(S,leak(Type)),nl(S) ; true ),
     reportTemperature(cellstat,S),
     reportTurbidity(cellstat,S),
-    reportTemperature(lagoon,S),
-    (err(Who,Err), write(S,error(Who,Err)),nl(S),fail ; true),
+    findall(_,reportTemperature(lagoon,S),_),
+    findall(_,(err(Who,Err),write(S,error(Who,Err)),nl(S)),_),
     close(S).
 
 reportTemperature(What,S) :-
     component(Who, What, Obj),
     get(Obj,t,Val),
     HiC is integer(Val/10), LoC is integer(Val) mod 10,
-    format(S, '~s Temp    ~d.~dC~n', [Who, HiC, LoC]),
-    fail.
-reportTemperature(_,_).
+    format(S, '~s Temp    ~d.~dC~n', [Who, HiC, LoC]).
 
 reportTurbidity(What,S) :-
     component(Who, What, Obj),
     get(Obj,b,ODVal),
-    format(S, '~s OD600  .~d~n',[Who,ODVal]),
-    fail.
-reportTurbidity(_,_).
+    format(S, '~s OD600  .~d~n',[Who,ODVal]).
 
 evostat_running :-
     shell('./multiples',1),
@@ -663,12 +654,11 @@ evostat_running :-
     halt.
 
 main(_Argv) :-
-    sleep(10),
     \+ evostat_running,
     assert(textCycle(0)),
     open('evostat.report', write, S),
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
-    evostat_directory(HomeDir),  % With this, the savestate can
+    evostat_directory(HomeDir),  % With this, savestate can
     cd(HomeDir),                 % be invoked from anywhere
     assert(file_search_path(HomeDir)),
     cleanup,              % Remove temp_file/1 entries
@@ -678,7 +668,7 @@ main(_Argv) :-
     current_prolog_flag(pid, PID),
     (PID < 900 -> sleep(30) ; true),
     set_prolog_flag(save_history,false),
-    at_halt(pathe_report(verbose)),  % Special exit predicate to call
+    at_halt(pathe_report(verbose)),  % Called on exit
     ( windows
       -> load_foreign_library(foreign(plblue))
       ;  load_foreign_library(plblue)
@@ -696,59 +686,26 @@ main(_Argv) :-
     writePythonParams(Root),
     c(Root).
 
-%http_read_passwd_file(+Path, -Data)
-%http_write_passwd_file(pws,"$1$jVPltO5Q$$1$jVPltO5Q$t9a46Bb18vp/BMoco70u21")
-
+% From Web Form submission:  Attr=Value =>  <name>_<var>=<value>
+% Results in sending <var><value> to object with <name>
 change_request :-
-  ( retract(changeRequest(List))
-    -> maplist(new_value,List)
-    ;  true % plog(no_changes)
+    ( changeRequest(List)
+    -> maplist(new_value,List),
+       retract(changeRequest(List))
+    ; true
+    ).
+
+new_value(Attr=Value) :-
+  atomic_list_concat([Name,Var],'_',Attr),
+  ensure_value(Value, EValue), % atom -> int if possible
+  component(Name, _, Obj),
+  get(Obj, Var, OldValue),
+  ( OldValue == EValue
+   -> plog(unchanged(Name,Var))
+   ;  send(Obj, Var, EValue),
+      assert(changed(Obj,Var))
   ).
-
-% Make sure it is a number, remove leading decimal
-ensure_value(Atom, Number) :-
-        atom_codes(  Atom,   ACodes),
-        ( ACodes = [0'.|Codes] -> true ; Codes=ACodes),
-        number_codes(Number, Codes),
-        !.
-ensure_value(Atom, Atom).
-
-% Send send <cmd><value> to object <compname>
- % when Attr has the form  <compname>_<cmd>
-
-new_value(submit=_).
-
-% Target Level settings for containers
-new_value(Attr=Value) :-
-  atomic_list_concat([Name,'lv'],'_',Attr), % Level setting command
-  !,
-  ensure_value(Value,EValue),
-  send(@Name, targetLevel, EValue),
-  plog(sent(@Name,targetLevel,EValue)).
-
-new_value(Attr=Value) :-
-  atomic_list_concat([Name,Cmd],'_',Attr),
-  component(Name, _Type, Obj),
-  ensure_value(Value,EValue),
-  concat_atom([Cmd,EValue],Command),
-  send(Obj,converse,Command),
-  plog(sent(Obj,converse,Command)),
-  change_value(Cmd, Name, EValue),  % Change the param and object value
-  !.
-new_value(I) :-  plog(failed(I)).
-
-
-change_value('tt',Name,Value) :-
-   !,
-   component(Name, Type, Obj),
-   retract(param(Name, Type, ttemperature, _)),
-   assert(param(Name, Type, ttemperature, Value)),
-   send(Obj, slot, ttemperature, Value).
-change_value(_,_,_).
 
 backgroundImage(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'.png'],ImageFile).
-%    exists_file(ImageFile),
-%    !.
-%backgroundImage('./images/platebglong.png').

@@ -7,46 +7,37 @@ initPID :-
 	pid_controllers(Cs),
 	launch_controllers(Cs).
 
-set_output(Component, Old, New) :-
-        simulator,
-	!,
-	Delta is (New - Old)/2,
-	retract(input(Component,V)),
-	( Delta == 0  -> NV = V
-	; Delta  > 0  -> NV is V + 1
-	;                NV is V - 1
-	),
-	assert(input(Component, NV)),
-	writeln(level(Component,NV)).
+get_input(Component, Level) :-
+        get(Component, l, Level).
+
+%
+% set_output(Component, Old, New)
+%
+% For liquid level control, level readings
+% result in incremental changes in valve open times.
+% Level too high: -inflow  +outflow 
+%       too low:  +inflow  -outflow
+%
+% The Autosampler controls drain valves for the other components
+% Lagoon name ends with <digit>: v<digit> is that lagoon's drain
+% Otherwise it must be the Cellstat's drain 'v0'
+%
+
+set_output(Obj, Old, New) :-
+     Inflow is integer(5*(New-Old)),
+     adjust(Obj, Inflow).
+
+adjust(Obj, Inflow) :-
+     Outflow is -Inflow,
+     component_index(Obj,N),
+     concat_atom([v,N],Valve),
+     adjust_valve(Obj,Valve,Inflow),
+     component(_,sampler,SObj),
+     adjust_valve(SObj,Valve,Outflow).
 
 
-set_output(Component, Old, New) :-
-	writeln(requires(communication,Component)),
-	Half is integer(5*(New-Old)),
-	control(Component, _, PCmd, NComponent, NCmd),
-	component(Component,  _, PObj),
-	component(NComponent, _, NObj),
-% Get the current inflow time value
-	send(PObj,converse, PCmd),
-	get(PObj, slot, reply, PValveInfo),
-	parse_reply(PValveInfo, valve(0,PTime), valve(0,0)),
-% Adjust the PID control value
-	NewPTime is PTime + Half,
-	concat_atom([PCmd,NewPTime],PSetCmd),
-	send(PObj,converse(PSetCmd)),
-% Get the current outflow time value
-	send(NObj, converse, NCmd),
-	get(NObj, slot, reply, NValveInfo),
-	parse_reply(NValveInfo, valve(_,NTime), valve(0,0)),
-% Adjust the PID control value
-	NewNTime is NTime - Half,
-	concat_atom([NCmd,NewNTime],NSetCmd),
-	send(PObj,converse(NSetCmd)).
-
-
-get_input(Comp, Val) :- simulator, !, input(Comp,Val).
-
-get_input(Component, Value) :-
-	control(Component, Parameter, _, _, _),
-	component(Component,  _, PObj),
-	get(PObj, slot, Parameter, Value).
+adjust_valve(Obj, Valve, Amt) :-
+      get(Obj, Valve, Setting),
+      New is Setting + Amt,
+      send(Obj, Valve, New),
+      assert(changed(Obj,Valve)).
