@@ -188,11 +188,18 @@ void printTermFloat(char *f,double a)
 { Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
 	
 #define valveRange(c)  ((c) > '0' && (c) < '5')
+
 boolean lagoon_command(char c1, char c2, int value)
 {
 char reply[80];
 byte d;
 int tmp;
+int vnum;
+char vcmd[3];
+  vcmd[0] = 'v';
+  vcmd[1] = c2;
+  vcmd[2] = 0;
+
      reply[0] = 0;
 	switch(c2)
 	{
@@ -230,7 +237,11 @@ int tmp;
 		     break;
 		     
 		case 'd':
-		        valve.setAngle((int)(c2 - '0'),value);
+			vnum = (int)(c2 - '0');
+			if (value == 0)
+			   printTermInt(vcmd,valve.getAngle(vnum));
+			else
+			   valve.setAngle(vnum,value);
 			break;
 		case 'e':
 			if (d == 1) {

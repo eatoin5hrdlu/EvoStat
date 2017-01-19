@@ -126,6 +126,7 @@ boolean checkValve(void) {
 
   byte *getAngles()          { return &valve_angle[0];   }
   int setAngle(int v, int a) { valve_angle[v] = a;       }
+  int getAngle(int v)        { return(valve_angle[v]);   }
   void setCycleTime(int t)   { cycletime = t * 1000L;    }
 
  private:
