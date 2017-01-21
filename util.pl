@@ -13,21 +13,14 @@ linux   :- unix.
 message(F,L) :- format(user_error, F, L).
 
 :- dynamic config/1,
-           component/3,
            file_modtime/2, % Modification time of loaded file
-           param/4,        % param(Name, Type, Attr, Value)
+           logfile/1,      %
+           component/3,
            leak/1,
 	   cycle/1,
-           evoDir/1,       % In <evostat>.pl configuration file
            bt_device/2,    %
            watcher/2,      %
-           logfile/1,      %
-           webok.
-
-:- multifile evoDir/1,       % In <evostat>.pl configuration file
-             bt_device/2,    %
-             watcher/2,      %
-             logfile/1.      %
+           webok/0.
 
 cleanup :- findall(F,(temp_file(F),exists_file(F),delete_file(F)),_).
 
@@ -173,11 +166,19 @@ ensure_value(Atom, Number) :-
         !.
 ensure_value(Atom, Atom).
 
-strip_atom(Raw, Stripped) :-
-	atom_codes(Raw,Codes),
-        strip_codes(Codes,  Cleaned),
-	atom_codes(Stripped, Cleaned).
+% config_name(-Root,-File) is on command line or <hostname>
 
-strip_codes(   [],      []).
-strip_codes([W|T],     Out) :- W < 33, !, strip_codes(T,Out).
-strip_codes([C|In],[C|Out]) :- strip_codes(In,Out).
+config_name(Root,File) :-
+	current_prolog_flag(argv,[_Exe|Args]),  % Command-line argument
+	member(Root,Args),
+	check_file(Root,File),
+	!.
+
+config_name(Root,File) :-
+	gethostname(Name),    % <HOSTNAME>.pl configuration file
+	atom_chars(Name,Cs),
+	( append( RCs,['.'|_],Cs ) % Eliminate domain name ('x.y.com')
+        -> atom_chars(Root,RCs)
+        ;  Root = Name
+        ),
+	check_file(Root,File).

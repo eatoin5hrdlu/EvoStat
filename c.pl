@@ -20,27 +20,7 @@
 :- use_module(library(time)).
 :- use_module(library(pce)).
 
-evostat_directory(Dir) :-  % If configuration is loaded
-    evoDir(Dir),
-    exists_directory(Dir),
-    !.
-evostat_directory(Dir) :-
-   ( linux
-     -> member(Dir,[
-		   '~/src/EvoStat/',
-		   '/home/skynet/Desktop/peter/src/EvoStat/',
-		   '/home/peter/src/EvoStat/',
-		   '/home/peterr/src/EvoStat/',
-		   '/home/Owner/src/EvoStat/',
-		   '/home/pi/src/EvoStat/'
-	       ])
-     ; member(Dir,[ 
-		  'C:\\cygwin\\home\\peter\\src\\EvoStat\\',
-		  'C:\\cygwin\\home\\peterr\\src\\EvoStat\\',
-		  'C:\\cygwin64\\home\\Owner\\src\\EvoStat\\'
-	      ])
-   ),
-   exists_directory(Dir).
+evostat_directory(Dir) :-  working_directory(Dir,Dir).
 
 %%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
 :- use_module(library(process)).
@@ -60,9 +40,10 @@ evostat_directory(Dir) :-
 :- dynamic [ component/3,
              leak/1,
 	     textCycle/1,
-	     evoDir/1,          % In <evostat>.pl configuration file
 	     bt_device/2,       % 
 	     watcher/2,         %
+	     config/1,          % Loaded configuration
+	     file_modtime/2,    % Modification time of loaded file
 	     logfile/1,         %
 	     err/2,
 	     webok/0,  % Asserted when evostat class is initialized
@@ -70,24 +51,10 @@ evostat_directory(Dir) :-
 	     levelStream/2,
 	     air/0,
 	     mix/0,
-	     config/1,       % Loaded configuration
-	     file_modtime/2, % Modification time of loaded file
-	     param/4,        % param(Name, Type, Attr, Value)
 	     simulator/0,
 	     changeRequest/1, % HTML form values
 	     toggle_auto/0 ].
 
-
-
-:- multifile [ evoDir/1,
-	       bt_device/2,
-	       watcher/2,
-	       logfile/1,
-	       err/2,
-	       webok/0].
-	       
-
-% logfile(logfile).
 
 %%%% LIST ALL TEMPORARY FILES FOR CLEANUP
 
@@ -136,25 +103,9 @@ camera_reset :-
 
 :- [adjust].  % PID controller <-> PCE interface
 
-% config_name(-Root,-File) is on command line or <hostname>
-config_name(Root,File) :-
-	current_prolog_flag(argv,[_Exe|Args]),  % Command-line argument
-	member(Root,Args),
-	check_file(Root,File),
-	!.
-
-config_name(Root,File) :-
-	gethostname(Name),    % <HOSTNAME>.pl configuration file
-	atom_chars(Name,Cs),
-	( append( RCs,['.'|_],Cs ) % Eliminate domain name ('x.y.com')
-        -> atom_chars(Root,RCs)
-        ;  Root = Name
-        ),
-	check_file(Root,File).
 
 % Grammar to convert Prolog term to Python dictionary
 :- dynamic tabs/1.
-tabs(1).
 
 writePythonParams(EvoStat) :-    
     config(List),
@@ -162,18 +113,16 @@ writePythonParams(EvoStat) :-
                  functor(H, F, A),
                  \+ memberchk(F/A,[layout/1,screen/3])), % Remove
             PyTerms),
-    pl2PythonDict(PyTerms, PyString),        % Convert to Python Dictionary
+    assert(tabs(1)),
+    pl2py(PyTerms, PythonDict, []),
+    flatten(['{\n',PythonDict,'}\n'], Flat),
+    concat_atom(Flat, PyAtom).
     concat_atom([EvoStat,'.settings'],File), % Write it out
     tell(File),
-    write(PyString),
+    write(PyAtom),
     told,
     current_prolog_flag(argv,Args),
     ( memberchk(gen,Args) -> halt ; true ).
-
-pl2PythonDict(Data, PyAtom) :-       % Generate a Python dictionary string
-	pl2py(Data, PythonDict, []),
-	flatten(['{\n',PythonDict,'}\n'], Flat),
-	concat_atom(Flat, PyAtom).
 
 % DCG compatible version of univ simplifies syntax
 '=..'(Term,List,T,T) :- Term =.. List.
@@ -192,30 +141,29 @@ tabout --> { retract(tabs(N)), NN is N - 1, assert(tabs(NN)) }.
 
 indent     --> { tabs(N) }, indent(N).
 indent(N)  --> { N<1},  !.
-indent(N)  --> { N>0, NN is N-1}, indentation, indent(NN).
+indent(N)  --> { N>0, NN is N-1}, ['    '], indent(NN).
 
-indentation --> ['       '].
 
 pl2py([])    --> !, [].
 pl2py(A)     --> quote_atom(A), !.
 pl2py([H])   --> !, indent, pl2py(H), [' \n'].
 pl2py([H|T]) --> !, indent, pl2py(H), pl2py(T).
 
-pl2py(Term) --> Term =.. [F|[A]],   % SINGLE f(a)
+pl2py(Term) --> Term =.. [F,A],   % SINGLE f(a)
 	        quote_atom(F),
 		[' :  '],
 	        quote_atom(A),
 		!,
 		[',\n'].
 
-pl2py(Term) --> Term =.. [F|[A|As]],    % TUPLE   f(a,b,...)
+pl2py(Term) --> Term =.. [F,A|As],    % TUPLE   f(a,b,...)
                 !,
 	        quote_atom(F),
 	        [' : ('],
 	        quote_atoms([A|As], ','),
                 [ '),\n' ].
 
-pl2py(Term) --> Term =.. [F|Args],  % NESTED DICTIONARY  f(g(a),...)  
+pl2py(Term) --> Term =.. [F|Args],  % Nested
 	        quote_atom(F),
 		[' :  {'],
 		pl2py(Args),
