@@ -6,11 +6,6 @@ pathe(_Req) :-
 
 pathe(Request) :- errorPage(Request,'EvoStat page error').
 
-defaultHead(Title,
-  [ title(Title),
-    meta(['http-equiv'(refresh),content(10)],[]),% refresh
-    script([ language(javascript) ],[])]).
-
 pathebody(body([background(NamePlate)],
   [ center(a([id=logozone,href('./phagestat.pl')],i(NamePlate))),
     div(class=supply,Supplies),

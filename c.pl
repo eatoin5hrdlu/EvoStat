@@ -17,36 +17,36 @@
 
 :- set_prolog_flag(double_quotes,codes).
 :- use_module(library(lists), [ flatten/2 ] ).
+%:- use_module(library(lists)).
 :- use_module(library(time)).
 :- use_module(library(pce)).
-
-evostat_directory(Dir) :-  working_directory(Dir,Dir).
-
-%%%%%%%%%%% RUNNING EXTERNAL PROGRAMS (python, etc.)
-:- use_module(library(process)).
+:- use_module(library(process)). % For external programs
 :- use_module(library(charsio)).
 :- use_module(library(helpidx)).
-:- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
-:- ensure_loaded(util).    % Utilities
+:- ensure_loaded(util).    % EvoStat Utilities
 :- ensure_loaded(webspec). % HTTP Request handlers
-:- ensure_loaded(et).      % Term Expansion for XPCEgen g
+:- ensure_loaded(et).      % Term Expansion for XPCEgen
+
+evostat_directory(Dir) :-  working_directory(Dir,Dir).
 
 :- free(@'_dialog_bg'),  % This should make the background light-blue steel
    XR is 0xB0*257, XG is 0xC4*257, XB is 0xDE*257,
    new(@'_dialog_bg', colour(@default,XR,XG,XB)).
 
 :- dynamic [ component/3,
-             leak/1,
+	     config/1,       % FILES  config info
+	     file_modtime/2, % Loaded file modification time
+	     logfile/1,      %
+
+             leak/1,       % Reporting
 	     textCycle/1,
-	     bt_device/2,       % 
-	     watcher/2,         %
-	     config/1,          % Loaded configuration
-	     file_modtime/2,    % Modification time of loaded file
-	     logfile/1,         %
+	     bt_device/2,
+	     watcher/2,
 	     err/2,
-	     webok/0,  % Asserted when evostat class is initialized
+
+	     webok/0,  % Assert when Web info is available
 	     screen/5,
 	     levelStream/2,
 	     air/0,
@@ -55,9 +55,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     changeRequest/1, % HTML form values
 	     toggle_auto/0 ].
 
-
-%%%% LIST ALL TEMPORARY FILES FOR CLEANUP
-
+% List of temporary files for cleanup
 temp_file('mypic1.jpg').
 temp_file('mypic2.jpg').
 temp_file('dbg.txt').
@@ -84,11 +82,11 @@ camera_reset :- \+ camera_exists,  % No camera to reset
 		plog(no_camera),
 		!.
 camera_reset :-
+    camera_device(Device),
     evostat_directory(Dir),
     Cmd = '/usr/bin/uvcdynctrl',
     config_name(Config,_),    % Hostname or evostat argument
     concat_atom([Config,'.gpfl'], Settings),
-    camera_device(Device),
     concat_atom(['--device=',Device],Option),
     Args = ['-L', Settings, Option],
     plog(resettingCamera(Dir, Cmd, Args)),
@@ -96,13 +94,9 @@ camera_reset :-
     process_create(Cmd,Args,[cwd(Dir)]),
     plog(resetCamera).
 %%%%%%%%%%%%%CAMERA
-
 %% SUBSYSTEMS
-
 :- [gbutton]. % XPCE parent class [ebutton] etc.
-
 :- [adjust].  % PID controller <-> PCE interface
-
 
 % Grammar to convert Prolog term to Python dictionary
 :- dynamic tabs/1.
@@ -116,7 +110,7 @@ writePythonParams(EvoStat) :-
     assert(tabs(1)),
     pl2py(PyTerms, PythonDict, []),
     flatten(['{\n',PythonDict,'}\n'], Flat),
-    concat_atom(Flat, PyAtom).
+    concat_atom(Flat, PyAtom),
     concat_atom([EvoStat,'.settings'],File), % Write it out
     tell(File),
     write(PyAtom),
@@ -213,11 +207,9 @@ send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
 
-
-%send_levels([CLevel|Ls]) :-
-%    component(_,cellstat,Obj),
-%    send(Obj,l,CLevel),
-%    send_levels(Ls,1).
+% Levels from OpenCV/python camera program
+% are stored in object l[evel] variable here.
+% levels(0:cellstat, 1:lagoon1, 2:lagoon2, etc.)
 
 send_levels( [],   _).
 send_levels([L|Ls],N) :-
@@ -264,7 +256,6 @@ newFlux(FluxTerm, Stream) :-
 	newFlux(NextTerm, Stream).
 
 :- pce_begin_class(evostat, dialog, "PATHE Control Panel").
-% Among other things, initializing this class asserts 'webok' semaphore    
 
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
@@ -274,7 +265,6 @@ initialise(W, Label:[name]) :->
 	  EHeight is WH*DH/100,
           send(W, size, size(EWidth, EHeight)),
 	  plog(evostat(width(EWidth),height(EHeight))),
-
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
 	  send(MB, label_font(huge)),
@@ -313,9 +303,8 @@ initialise(W, Label:[name]) :->
 					message(@prolog, manpce))]),
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
-         assert(webok),
 	 maplist(create(@gui), Components),
-	 initPID,                     % Start PID controllers
+	 initPID,                        % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
          send(@action?members, for_all,
@@ -329,15 +318,15 @@ initialise(W, Label:[name]) :->
 % make_timer(?,?)
 make_timer(W, Name) :-
     timer(Name,Seconds),
-    new(MSG, message(W, Name)),  % Create Message for Timer Object
-    concat_atom([Name,timer],TimerName),
-    free(@TimerName),
-    send(W, attribute, attribute(timer, new(@TimerName, timer(Seconds, MSG)))).
+    new(M, message(W, Name)),  % Create Message for Timer Object
+    concat_atom([Name,timer],TName),
+    free(@TName),
+    send(W, attribute, attribute(timer, new(@TName, timer(Seconds, M)))).
 
 drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
-       send( @fastUpdatetimer, stop),  % Stop the GUI (fast) update timer as well
+       send( @fastUpdatetimer, stop),  % Stop fast (GUI) updates
        plog('Stopping Level Detection (image processing)'),
        control_timer(autoUpdate, stop),
        plog(stopped).
@@ -345,7 +334,7 @@ stopped(_W) :->
 started(_W) :->
        plog('                      STARTING Level Detection'),
        control_timer(autoUpdate, start),
-       send(@fastUpdatetimer,start),       % Now restart the fast GUI update timer
+       send(@fastUpdatetimer,start),   % Restart GUI updates
        plog('Starting Level Detection (Image processing)').
 
 stopPID(_W)  :-> pidstop,  ghost_state(pid,stop).
@@ -478,7 +467,7 @@ fastUpdate(Self) :->
     Next is Seconds - 10,
     assert(next_update(Next)),
     send_to_type(Self?graphicals, sampler, [up,Next]),
-    send_to_type(Self?graphicals, sampler, [update]), % Refresh Gui
+    send_to_type(Self?graphicals, sampler, [update]),
     prep,
     check_web_files.
 
@@ -541,14 +530,14 @@ bluetalk(   _,  '', 'nothing_to_send.').
 bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
 bluetalk(   _,   _, 'send_failed.'    ).
 
-% Create executable (saved-state) with goals:  [c],save_evostat.
-% <name> of configuration is a command-line argument or <hostname>
+% Create executable (saved-state) with:  [c],save_evostat.
 %
-% The corresponding Prolog file: <name>.pl,  must exist.
+% The NAME of EvoStat is command-line argument or <hostname>
+%
+% The configuration NAME.pl, must exist in working directory
 % (Copy template.pl and then edit for your configuration)
 % 
-% Load config and generate Python .settings (dictionary) file.
-% Dynamic predicates (config, debug options ) in <hostname>.pl
+% Load config and generate Python (dict) NAME.settings
 
 update_config(Config) :-      % Load/reload when file changes
     config_name(Config,File), % Config is hostname or Argv[1]
@@ -561,6 +550,7 @@ c(Name) :-
     new(@gui, evostat(Name)),
     send(@gui?frame, icon, bitmap('./evo.xpm')),
     prep,     % Initial data for web pages
+    assert(webok),
     start_http,
     get(@gui, prompt, Reply),
     (Reply = quit ->
@@ -606,13 +596,12 @@ main(_Argv) :-
     assert(textCycle(0)),
     open('evostat.report', write, S),
     nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
-    evostat_directory(HomeDir),  % With this, savestate can
-    cd(HomeDir),                 % be invoked from anywhere
+    evostat_directory(HomeDir),
     assert(file_search_path(HomeDir)),
-    cleanup,              % Remove temp_file/1 entries
-    logging,              % stderr to F if logfile(F)
+    cleanup,     % Remove temp_file/1 entries
+    logging,     % stderr to FILE if logfile(FILE)
 
-    % Delay 30s if the computer is just starting up (low PID)
+    % Delay if the computer is just starting up (low PID #)
     current_prolog_flag(pid, PID),
     (PID < 900 -> sleep(30) ; true),
     set_prolog_flag(save_history,false),

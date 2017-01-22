@@ -45,17 +45,12 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( push(S1,N1:name) :-> "Push value to Arduino"::
 	                      get(S1,N1,V1),
 			      update_web(S1,N1,V1),
-                              (simulator -> true
-                              ; send(S1,converse,[N1,V1])
-			      )
+	                      send(S1,converse,[N1,V1])
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
-	                      (simulator -> get(S2,N2,V2)
-		              ; send(S2,converse,[N2]),
-                                parse_reply(N2, V2),
-				send(S2, N2, V2)
-			      ),
-			      update_web(S2,N2,V2)
+	                      send(S2,converse,[N2]),
+                              parse_reply_data(N2, V2),
+			      send(S2, N2, V2)
        ),
        ( web_values(S3) :-> "Send r/w for web page":: WebGoals ),
        ( update(US) :->
@@ -87,8 +82,8 @@ expand_vars([rw(Name,Type,Doc)|Vs], RO,[Name|Ns]) -->
     [ variable(Name,Type,both,Doc) ],
     expand_vars(Vs,RO,Ns).
 
-% check_level doesn't need to be here except 
-% as an example of a generated method
+% This check_level is a non-PID implementation.
+% Mainly as an example of a generated method
 
 expand_type(Type)   -->
     { memberchk(Type,[lagoon, cellstat]), ! },

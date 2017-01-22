@@ -7,23 +7,6 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
-:- use_module(library(time)).
-:- use_module(library(process)).
-
-:- dynamic tog/1.
-:- dynamic ard/5.
-:- dynamic errs/2.
-:- multifile errs/2.
-
-timeatom(Hours,M,S,TimeAtom) :-
-	format(atom(Minutes), '~|~`0t~w~2|', M),
-	format(atom(Seconds), '~|~`0t~w~2|', S),
-	concat_atom([Hours,':',Minutes,':',Seconds],TimeAtom).
-	
-window_percent(WFraction,HFraction,W,H) :-
-	screen(DW,DH, WW, WH, _Loc),
-	W is integer(DW*WW*WFraction/10000),
-	H is integer(DH*WH*HFraction/11000).
 
 mix_colors(   _, red,    red) :- !.
 mix_colors( red,   _,    red) :- !.
@@ -68,10 +51,7 @@ snapshot(Path, FileName) :-
 snapshot(Path, Filename) :-
 	concat_atom([Path,'opencvlevel.jpg'], Filename).
 
-
-% WGET will use alternate filenames so we update Image proerly
-% and are never caught reading a file that hasn't been fully written
-
+:- dynamic tog/1.
 toggle('mypic1.jpg','mypic2.jpg') :- tog(2), retract(tog(2)),assert(tog(1)).
 toggle('mypic2.jpg', 'mypic1.jpg') :- tog(1), retract(tog(1)),assert(tog(2)).
 
@@ -166,7 +146,7 @@ temp(Self, Temp:[int]) :->
 % Cellstat, Lagoon, and Autosampler Bluetooth Communications
 %
 % Wedged Arduinos give null responses, but just what constitutes
-% a null response when there are SIX kinds of nutthin!
+% a null response when there are SIX kinds of nuthin!
 %
 nullreply("") :- !,writeln(reply(doublequotes)).
 nullreply([]) :- !,writeln(reply(emptylist)).
@@ -176,8 +156,7 @@ nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 %nullreply(NR) :- writeq(reply(good,NR)),fail.
 
-converse(Self, Cmd) :->
-	"Send command to Bluetooth Socket and save Reply ( Cellstat/Lagoon )"::
+converse(Self, Cmd) :->  "Command to Bluetooth Socket/store Reply"::
         get(Self, socket, Socket),
 	bluetalk(Socket, Cmd, Reply),
 	( nullreply(Reply)
@@ -224,26 +203,6 @@ connect(Self) :->
 	get(Self, myname, MyName),
 	plog(failed(bt_socket(MyName))),
 	send(Self,colour,colour(red)).
-
-insertIP(Cmd, IP, Result) :-
-        atom_codes(Cmd, Cs),
-        atom_codes(IP, ICs),
-	[AT] = "@",
-        append(Front,[AT|Rest],Cs),
-	flatten([Front,ICs,Rest],CommandCs),
-	atom_codes(Result,CommandCs).
-
-ip(Self, IP:[name]) :->
-	 socket(IP, Socket),
-	 send(Self, slot, ipsocket, Socket).
-
-mac_wget(Self, MAC:[name], Cmd:[name]) :->
-        getIPfromMAC(MAC,IP),
-	send(Self, wget, wget(IP, Cmd)).
-
-wget(Self, IP:[name], Cmd:[name]) :->
-        insertIP(Cmd,IP,Command),
-	send(Self, slot, wget, Command).
 
 :- pce_end_class. % ebutton
 
@@ -325,12 +284,9 @@ initialise(Self, Color:[name]) :->
         send(Self, fill_pattern, colour(Color)).
 :- pce_end_class.
 
-% Arduino interface objects [ supplies, cellstat, lagoons, sampler ]
-
-:- tell(iface), [ard], told.   % GENERATE
+% Arduino interface objects [cellstat,lagoon, etc.]
+:- tell(iface), [ard], told.   % Create Interface classes
 :- [iface].                    % CONSULT
-
-:- [dialin].  % Pop up Aduino dialog interface
-
-:- [prephtml]. % prep/0 will prepare/assert PCE data for web server
+:- [dialin].   % Pop up Arduino dialog
+:- [prephtml]. % prepare PCE data for web
 
