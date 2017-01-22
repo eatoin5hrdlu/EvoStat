@@ -162,6 +162,11 @@ nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 %nullreply(NR) :- writeq(reply(good,NR)),fail.
 
+converse(Self, _) :->
+        get(Self, socket, @nil),!,
+	plog(commitfail),
+	fail.
+
 converse(Self, Cmd) :->  "Command to Bluetooth Socket/store Reply"::
         get(Self, socket, Socket),
 	bluetalk(Socket, Cmd, Reply),
@@ -183,7 +188,9 @@ converse(Self, Cmd) :->  "Command to Bluetooth Socket/store Reply"::
 	      ; send(Self, slot, reply, Reply2)
 	     )
 	 ; send(Self, slot, reply, Reply)
-	).
+	),
+	!,
+	plog(conversed(Cmd)).
 
 connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::

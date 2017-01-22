@@ -441,6 +441,7 @@ new_snapshot(Self) :->
 
 mixon(Self) :->
     plog('Updating all ebuttons'),
+    trace,
     send_to_type(Self?graphicals, ebutton, [update]),
     plog('Updating snapshot'),
     send_to_type(Self?graphicals, snapshot, [update]),

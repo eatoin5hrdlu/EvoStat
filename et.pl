@@ -35,13 +35,15 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( push(S1,N1:name) :-> "Push value to Arduino"::
                               get(S1,N1,V1),
 	                      concat_atom([N1,V1],Cmd),
-	                      send(S1,converse,Cmd)
+	                      (send(S1,converse,Cmd)->true;true)
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
-	                      send(S2,converse,N2),
-	                      get(S2,reply, Reply),
-                              parse_reply_data(Reply, N2, V2),
-			      send(S2, N2, V2)
+	                      ( send(S2,converse,N2)
+				-> get(S2,reply, Reply),
+				   parse_reply_data(Reply, N2, V2),
+				   send(S2, N2, V2)
+				; true
+			      )
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::
@@ -57,7 +59,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 flatten(NewLabel,LabelAtoms),
 	 concat_atom(LabelAtoms,NewAtomicLabel),
 	 send_super(US, label, NewAtomicLabel),
-	 format(user_error,'Updated ~s~n', MyName)
+	 plog(updated(MyName))
        ),
        Methods,
        (:- pce_end_class)], List),
