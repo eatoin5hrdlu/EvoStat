@@ -39,6 +39,12 @@ parse_reply(Reply, Term, Default) :-
 	;                                Term = Default
 	).
 
+parse_reply_data(Reply, Functor, Data) :-
+	catch( ( read_term_from_atom(Reply,Term,[]),
+	         Term =.. [Functor,Data] ),
+	       Exception,
+	       plog(caught(Exception,parse(Reply)))).
+
 getIPfromMAC(_,_) :- fail.
 
 snapshot(Path, FileName) :-

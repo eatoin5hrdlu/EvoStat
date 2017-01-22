@@ -29,9 +29,9 @@ set_output(Obj, Old, New) :-
 
 adjust(Obj, Inflow) :-
      Outflow is -Inflow,
-     component_index(Obj,N),
+     adjust_valve(Obj,v1,Inflow), % Primary in always v1
+     component_index(Obj,N),      % Component determines out
      concat_atom([v,N],Valve),
-     adjust_valve(Obj,Valve,Inflow),
      component(_,sampler,SObj),
      adjust_valve(SObj,Valve,Outflow).
 
