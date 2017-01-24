@@ -1,29 +1,9 @@
 /*
- * Supply controller
- * Create supply volume controller
+ * Supply controller 
  * Accept commands from main computer to:
  *   a) set/get full/empty volume values
  *   b) get current volume
  */
-
-const char iface[] PROGMEM = {
-   "i( supply, ebutton,\n\
-       [ rw(f0, int:=0, \"Full Measurement\"),\n\
-         rw(f1, int:=0, \"Full Measurement\"),\n\
-         rw(f2, int:=0, \"Full Measurement\"),\n\
-         rw(f3, int:=0, \"Full Measurement\"),\n\
-         rw(f4, int:=0, \"Full Measurement\"),\n\
-         rw(e0, int:=0, \"Empty Measurement\")\n\
-         rw(e1, int:=0, \"Empty Measurement\")\n\
-         rw(e2, int:=0, \"Empty Measurement\")\n\
-         rw(e3, int:=0, \"Empty Measurement\")\n\
-         rw(e4, int:=0, \"Empty Measurement\")\n\
-	 ro(v0, int:=128, \"Current Volume\"),\n\
-	 ro(v1, int:=128, \"Current Volume\"),\n\
-	 ro(v2, int:=128, \"Current Volume\"),\n\
-	 ro(v3, int:=128, \"Current Volume\"),\n\
-	 ro(v4, int:=128, \"Current Volume\")\n\
-       ])."};
 
 #include "supply.h"
 #define P(x)  Serial.print(x)
@@ -32,6 +12,27 @@ const char iface[] PROGMEM = {
 byte id = 'n'; // n is default for nutrient supply
 SUPPLY supply = SUPPLY(NUM_SUPPLIES);
 #define EOT "end_of_data."
+
+void printInterface()
+{
+  PL(F("i( supply, ebutton,\n\
+       [ rw(f0, int:=1023, \"Full Measurement\"),\n\
+	 rw(f1, int:=1023, \"Full Measurement\"),\n\
+	 rw(f2, int:=1023, \"Full Measurement\"),\n\
+	 rw(f3, int:=1023, \"Full Measurement\"),\n\
+	 rw(f4, int:=1023, \"Full Measurement\"),\n\
+	 rw(e0, int:=0, \"Empty Measurement\")\n\
+	 rw(e1, int:=0, \"Empty Measurement\")\n\
+	 rw(e2, int:=0, \"Empty Measurement\")\n\
+	 rw(e3, int:=0, \"Empty Measurement\")\n\
+	 rw(e4, int:=0, \"Empty Measurement\")\n\
+	 ro(v0, int:=128, \"Current Volume\"),\n\
+	 ro(v1, int:=128, \"Current Volume\"),\n\
+	 ro(v2, int:=128, \"Current Volume\"),\n\
+	 ro(v3, int:=128, \"Current Volume\"),\n\
+	 ro(v4, int:=128, \"Current Volume\")\n\
+       ])."));
+}
 
 /* EEPROM SAVE AND RESTORE OF ID AND CALIBRATION CONSTANTS */
 
@@ -46,23 +47,27 @@ void moveData(int op, int size, byte *loc)
 		else
 			*loc++ = EEPROM.read(RomAddress++);
 }
+
 void saveRestore(int op)
 {
+int size = supply.getSize()*sizeof(int);
+
 	RomAddress = 0;
 	moveData(op, 1, &id);
-	moveData(op, supply.getSize()*sizeof(int), supply.getEmptyArray());
-	moveData(op, supply.getSize()*sizeof(int), supply.getFullArray());
+	moveData(op, size, supply.getEmptyArray());
+	moveData(op, size, supply.getFullArray());
 }
 
 void printHelp(void)
 {
-	PL("cmd(v,'{0-4} return volume of vessel N').");
-	PL("cmd(f,'{0-4}[<value>] get/set FULL value').");
-	PL("cmd(e,'{0-4}[<value>] get/set EMPTY value').");
-	PL("cmd(h,'Print this help message').");
-	PL("cmd(s,'Save current values in EEPROM').");
-	PL("cmd(r,'Restore values from EEPROM').");
-	PL("cmd(z,'Zero EEPROM').");
+    PL("cmd(h,'Print this help message').");
+    PL("cmd(v,'{0-4} return volume of vessel N').");
+    PL("cmd(e,'{0-4}[<value>] get/set EMPTY value').");
+    PL("cmd(f,'{0-4}[<value>] get/set FULL value').");
+    PL("cmd(c,'{ef}{0-4} empty/full <= current value').");
+    PL("cmd(s,'Save current values in EEPROM').");
+    PL("cmd(r,'Restore values from EEPROM').");
+    PL("cmd(z,'Zero EEPROM').");
 }
 
 void printTermInt(char *f,int a){P(f);P("(");P(a);PL(").");}
@@ -81,15 +86,18 @@ char cterm[3];
 	switch(c1)
 	{
 		case 'c':
-		     if (c2 == 'e') supply.setEmpty(value);
-		else if (c2 == 'f') supply.setFull(value);
-                else return(false);
+		    if (in_range(value))
+		    {
+			if (c2 == 'e') supply.setEmpty(value);
+			else if (c2 == 'f') supply.setFull(value);
+	                else return(false);
+		    } else return(false);
 		     break;
 		case 'h':
 		     printHelp();
 		     break;
 		case 'i':
-		     PL(iface);
+		     printInterface();
 		     break;
 		case 'f':
 		     num = (int)(c2 - '0');
