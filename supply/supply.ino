@@ -1,27 +1,37 @@
 /*
  * Supply controller
+ * Create supply volume controller
+ * Accept commands from main computer to:
+ *   a) set/get full/empty volume values
+ *   b) get current volume
  */
 
 const char iface[] PROGMEM = {
    "i( supply, ebutton,\n\
-       [ ro( v, int:=100, \"Current Volume\"),\n\
-         rw(vt, int:=100, \"Total (Full) Volume\")\n\
+       [ rw(f0, int:=0, \"Full Measurement\"),\n\
+         rw(f1, int:=0, \"Full Measurement\"),\n\
+         rw(f2, int:=0, \"Full Measurement\"),\n\
+         rw(f3, int:=0, \"Full Measurement\"),\n\
+         rw(f4, int:=0, \"Full Measurement\"),\n\
+         rw(e0, int:=0, \"Empty Measurement\")\n\
+         rw(e1, int:=0, \"Empty Measurement\")\n\
+         rw(e2, int:=0, \"Empty Measurement\")\n\
+         rw(e3, int:=0, \"Empty Measurement\")\n\
+         rw(e4, int:=0, \"Empty Measurement\")\n\
+	 ro(v0, int:=128, \"Current Volume\"),\n\
+	 ro(v1, int:=128, \"Current Volume\"),\n\
+	 ro(v2, int:=128, \"Current Volume\"),\n\
+	 ro(v3, int:=128, \"Current Volume\"),\n\
+	 ro(v4, int:=128, \"Current Volume\")\n\
        ])."};
-      
-/* 1) Create supply volume controller
- * 2) Accept commands from main computer to:
- *     a) set/get full volume	Serial.println("hello...");
- *     b) get current volume
- */
 
 #include "supply.h"
+#define P(x)  Serial.print(x)
+#define PL(x) Serial.println(x)
+
 byte id = 'n'; // n is default for nutrient supply
-int interval;   // Variable to keep track of the time
-
 SUPPLY supply = SUPPLY(NUM_SUPPLIES);
-
 #define EOT "end_of_data."
-
 
 /* EEPROM SAVE AND RESTORE OF ID AND CALIBRATION CONSTANTS */
 
@@ -42,44 +52,26 @@ void saveRestore(int op)
 	moveData(op, 1, &id);
 	moveData(op, supply.getSize()*sizeof(int), supply.getEmptyArray());
 	moveData(op, supply.getSize()*sizeof(int), supply.getFullArray());
-	moveData(op, supply.getSize()*sizeof(int), supply.getScaleArray());
 }
-
-/* Commands:
- *  v  :    Return current volume
- *  vf :    Set current volume as 'FULL'
- *  h  :    Print help
- */
 
 void printHelp(void)
 {
-	Serial.println("cmd(v,'{0-4} return volume of vessel N').");
-	Serial.println("cmd(f,'{0-4}[<value>] get/set FULL value').");
-	Serial.println("cmd(e,'{0-4}[<value>] get/set EMPTY value').");
-	Serial.println("cmd(h,'Print this help message').");
-	Serial.println("cmd(s,'Save current values in EEPROM').");
-	Serial.println("cmd(r,'Restore values from EEPROM').");
-	Serial.println("cmd(z,'Zero EEPROM').");
+	PL("cmd(v,'{0-4} return volume of vessel N').");
+	PL("cmd(f,'{0-4}[<value>] get/set FULL value').");
+	PL("cmd(e,'{0-4}[<value>] get/set EMPTY value').");
+	PL("cmd(h,'Print this help message').");
+	PL("cmd(s,'Save current values in EEPROM').");
+	PL("cmd(r,'Restore values from EEPROM').");
+	PL("cmd(z,'Zero EEPROM').");
 }
 
-void printTermInt(char *f,int a)
-{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
-void printTermFloat(char *f,double a)
-{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
+void printTermInt(char *f,int a){P(f);P("(");P(a);PL(").");}
 
-boolean in_range(int num) 
-{
-  if (num > -1 && num <NUM_SUPPLIES)
-	return true;
-  printTermInt("e",num);
-  return false;
-}
+#define in_range(n) ((num>-1&&num<NUM_SUPPLIES)?true:false)
 
-	
 boolean supply_command(char c1, char c2, int value)
 {
-char reply[80];
-byte d;
+int *vp;
 int num;
 char cterm[3];
      cterm[0] = c1;
@@ -88,8 +80,16 @@ char cterm[3];
 
 	switch(c1)
 	{
+		case 'c':
+		     if (c2 == 'e') supply.setEmpty(value);
+		else if (c2 == 'f') supply.setFull(value);
+                else return(false);
+		     break;
 		case 'h':
 		     printHelp();
+		     break;
+		case 'i':
+		     PL(iface);
 		     break;
 		case 'f':
 		     num = (int)(c2 - '0');
@@ -100,6 +100,7 @@ char cterm[3];
 			     else
 			       supply.setFull(num,value);
 			}
+		     else return(false);
 		     break;
 		case 'e':
 		     num = (int)(c2 - '0');
@@ -110,6 +111,7 @@ char cterm[3];
 			     else
 			       supply.setEmpty(num,value);
 			}
+ 		     else return(false);
 		     break;
 		case 'r':
 		     saveRestore(RESTORE);
@@ -120,16 +122,19 @@ char cterm[3];
 		case 'v':
 		     num = (int)(c2 - '0');
 		     if (in_range(num))
-			 printTermInt("v",supply.readVolume(num));
+			 printTermInt("v",supply.getVolume(num));
+		     else
+                         return(false);
 		     break;
 		case 'z':
 		     EEPROM.write(0,0);
 		     printTermInt("z",0);
 		     break;
 		default:
+		     return(false);
 		     break;
 	}
-	Serial.println("end_of_data.");	
+	PL(EOT);
 	return true;
 }
 
@@ -142,7 +147,7 @@ int c;
 		c  = Serial.read();
 		if ( c < 32 ) break;
 		is += (char)c;
-		if (Serial.available() == 0) // It is possible we're too fast
+		if (Serial.available() == 0) // wait for input
 			delay(100);
 	}
 
@@ -151,31 +156,24 @@ int c;
 		if (is.length() > 2)
 			value = atoi(&is[2]);
 		if (!supply_command(is[0], is[1], value))
-			Serial.println("e('" + is + "').\nend_of_data.");
+			PL("e('" + is + "').\nend_of_data.");
 	}
 }
 
 void setup()
 {
 	Serial.begin(9600);
-	interval = millis();
 	analogReference(INTERNAL);
-	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
-	{
-		id = 'n';	// Default Supply ID 
+	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)
 		saveRestore(SAVE);
-	}
 	else
-	{
-		saveRestore(RESTORE); // Valve timing copied to valve object
-	}
+		saveRestore(RESTORE);
 }
 
 void loop()
 {
 	respondToRequest();  // Respond to commands
 	delay(100);
-        supply.update();
 }
 
 
