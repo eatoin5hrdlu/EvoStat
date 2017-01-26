@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os, sys, time, traceback
+from time import sleep
 from util import *
 import numpy as np
 import cv2
@@ -202,14 +203,16 @@ class EvoCv(object):
     def grab(self):
         if (not self.usbcam is None) :
             try :
-                (rval, img) = self.usbcam.read()
+                for i in range(10):
+                    (rval, img) = self.usbcam.read()
+                    sleep(0.05)
                 if (rval) :
                     pass
                 else :
                     plog("Return value from usbcam.read() was "+str(rval))
                     exit(0)
-            except e:
-                plog("Failed to grab image from USB camera" + str(e))
+            except Exception:
+                plog("Failed to grab image from USB camera" + str(Exception))
         if (self.params['rotate']) :
             img = self.rotateImage(img, self.params['rotate'])
         return img
