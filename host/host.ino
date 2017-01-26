@@ -1,3 +1,4 @@
+
 #include "param.h"        // Includes param.h (change constants there)
 #if (ARDUINO >= 100)
  #include "Arduino.h"
@@ -10,6 +11,20 @@
 #ifndef INTERNAL // Mega has two references, but no default
 #define INTERNAL INTERNAL2V56
 #endif
+
+void printInterface()
+{
+Serial.println(F("iface( cellstat, ebutton,\n\
+      [ ro(t,  int:=372, \"Temperature\"),\n\
+	rw(tt, int:=364, \"Target Temperature\"),\n\
+	ro( b, int:=400, \"Turbidity\"),\n\
+	rw(tb, int:=400, \"Target Turbidity\"),\n\
+	ro( w, int:=500, \"Leak Detection\"),\n\
+        rw(v0, int:=1000, \"Host Nutrient Supply\"),\n\
+        rw(v1, int:=1000, \"Host Supply 2 Valve Timing\"),\n\
+        rw(v2, int:=1000, \"Host Supply 3 Valve Timing\")\n\
+      ])."));
+}
 
 #include "valves.h"        // not!Includes param.h (change constants there)
 VALVES valves = VALVES(NUM_VALVES);
@@ -421,10 +436,8 @@ byte d;
 			      printTermInt("id",id);
 			   else
 			      id = (byte)value;
-			} else {
-			  
-
-			}
+			} else
+			  printInterface();
 			break;
 		case 'l':
 			digitalWrite(JARLIGHT, d);
@@ -695,3 +708,4 @@ int tb_thresh;
 	delayMicroseconds(5000);
 	tb_thresh = checkTurbidity();
 }
+
