@@ -23,6 +23,11 @@ compatible(T1,T2) :-
 	writeln(parse_error(expected(Name/Arity),got(T1))),
 	fail.
 
+report_error(Reply) :-
+	( catch(atom_to_term(Reply,converse_Error(X),_),_,fail)
+	-> plog(error(X))
+	;  true
+	).
 
 parse_reply(Reply, Term) :-
       functor(Term,F,A),
@@ -108,18 +113,13 @@ initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
         send_super(Self, initialise(Label)),
         send(Self, myname, Label),
-	retractall(changed(Self,_,_)),
+	retractall(changed(Self,_)),
 	send(Self, slot, l,  30),
 	send(Self, slot, tl, 87),
-	assert(changed(Self,tl)),
 	send(Self, slot, levelUnits,   'mL'),
-	assert(changed(Self,levelUnits)),
-	send(Self, slot, temperatureUnits,   'C'),
-	assert(changed(Self,temperatureUnits)),
+	send(Self, slot, temperatureUnits, 'C'),
 	send(Self, slot, turbidityUnits,   'OD(600)'),
-	assert(changed(Self,turbidityUnits)),
 	send(Self, slot, fluxUnits,        'rlu'),
-	assert(changed(Self,fluxUnits)),
 	send(Self, slot, socket, @nil),
 	new(Code,  message(Self, show_conversation)),
 	send(Self, recogniser, click_gesture(right,'',single,Code)).
@@ -164,7 +164,7 @@ nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 
 converse(Self, _) :->
         get(Self, socket, @nil),!,
-	plog(commitfail),
+	plog(nilsocket),
 	fail.
 
 converse(Self, Cmd) :->  "Command to Bluetooth Socket/store Reply"::
@@ -190,7 +190,7 @@ converse(Self, Cmd) :->  "Command to Bluetooth Socket/store Reply"::
 	 ; send(Self, slot, reply, Reply)
 	),
 	!,
-	plog(conversed(Cmd)).
+	report_error(Reply).
 
 connect(Self) :->
 	"Connect (or re-connect) the Bluetooth channel"::

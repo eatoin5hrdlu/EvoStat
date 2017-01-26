@@ -53,6 +53,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     mix/0,
 	     simulator/0,
 	     changeRequest/1, % HTML form values
+	     changed/2,       % push (Obj,Var) to Arduino
 	     toggle_auto/0 ].
 
 % List of temporary files for cleanup
@@ -441,7 +442,6 @@ new_snapshot(Self) :->
 
 mixon(Self) :->
     plog('Updating all ebuttons'),
-    trace,
     send_to_type(Self?graphicals, ebutton, [update]),
     plog('Updating snapshot'),
     send_to_type(Self?graphicals, snapshot, [update]),
