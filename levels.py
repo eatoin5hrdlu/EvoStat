@@ -488,7 +488,7 @@ if __name__ == "__main__" :
         brect = ipcam.params['cellstatRegion']
         num = 1
         contrast = ipcam.params['cellstatContrast']
-        lev = ipcam.evocv2.getLevel(img, brect, red, contrast)
+        lev = ipcam.evocv2.getLevel(img, brect, blue, contrast)
         plog("CBB " + str(brect) + " level " + str(lev))
         (wi,he,de) = img.shape
         cv2.putText(img,time.asctime(time.localtime()),(wi/16,3*he/4),

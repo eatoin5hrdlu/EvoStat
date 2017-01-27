@@ -23,14 +23,12 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	send(Self, append, Editor),
 	send_super(Self, open, point(300,200)).
 
-enter(Self) :->
-	"Stateful command/response window"::
+enter(Self) :-> "Stateful question/answer window"::
 	retract(show_conversation(Self)),
 	!,
 	send(Self, clear).
 
-enter(Self) :->
-	"Stateful command/response window"::
+enter(Self) :-> "Send or clear window (alternately)"::
 	chain_list(Self?graphicals, [Editor|_]),      % Contents of 
 	get(Editor?text_buffer?contents, value, Raw), % Edit pane
 	normalize_space(atom(Cmd),Raw),

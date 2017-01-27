@@ -30,15 +30,15 @@ controlpathe(_Req) :-
     assert(html_syntax),
     evoStatFields(Fields,[]),
     flatten([Fields, input([type=submit,name=submit]),
-                     input([ type=button,name='Cancel',value='Cancel',
-                     onClick='window.location="/web/pathe.pl"'])],Inputs),
-   reply_html_page([title('Pathe Control Panel'),
-		    script([ language(javascript) ],[])],
-		   body(background(BackPlate),
-			form(action='./change.pl', Inputs ))),
+	input([ type=button,name='Cancel',value='Cancel',
+        onClick='window.location="/web/pathe.pl"'])],Inputs),
+    reply_html_page([title('Pathe Control Panel'),
+	             script([ language(javascript) ],[])],
+	body(background(BackPlate),
+	     form(action='./change.pl', Inputs ))),
     retract(html_syntax).
 
 controlpathe(Request) :-
-  errorPage(Request, 'EvoStat not yet ready for Web Control').
+    errorPage(Request, 'EvoStat not yet ready for Web Control').
 
 

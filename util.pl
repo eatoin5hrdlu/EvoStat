@@ -182,3 +182,12 @@ config_name(Root,File) :-
         ;  Root = Name
         ),
 	check_file(Root,File).
+timeatom(Hours,M,S,TimeAtom) :-
+	format(atom(Minutes), '~|~`0t~w~2|', M),
+	format(atom(Seconds), '~|~`0t~w~2|', S),
+	concat_atom([Hours,':',Minutes,':',Seconds],TimeAtom).
+	
+window_percent(WFraction,HFraction,W,H) :-
+	screen(DW,DH, WW, WH, _Loc),
+	W is integer(DW*WW*WFraction/10000),
+	H is integer(DH*WH*HFraction/11000).

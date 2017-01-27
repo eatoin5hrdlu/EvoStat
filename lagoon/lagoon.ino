@@ -324,9 +324,9 @@ char vcmd[3];
 			strcpy(reply,saveRestore(SAVE));
 			break;
 		case 't': 
-		        if (c2 == 't') {
+		        if (c2== 't') {
 			   if (value == 0)
-			      printTermInt("tt",target_temperature);
+			     printTermInt("tt",target_temperature);
 			   else
 			     target_temperature = value;
 			}

@@ -56,10 +56,10 @@ control :-
 	iterm(_, _, _, _), % requires an active controller
 	retractall(stop_controllers),
 	repeat,
-		setof(T,next_interval(T), [Interval|_]), % Shortest time
-		sleep(Interval),
-		compute,        % Run one cycle
-	stop_controllers,       % Signal to stop
+	    setof(T,next_interval(T), [Interval|_]), % Soonest
+	    sleep(Interval),
+	    compute,           % Run one cycle
+	stop_controllers,      % Signal to stop
 	writeln('      Stopping PID Controllers').
 
 compute :-

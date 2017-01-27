@@ -1,17 +1,17 @@
 config( [
 	 textMessages(3600),  % Twice Daily (6min=360 hour=3600 4-hour=14400)
-	 updateCycle(90),    % In seconds
+	 updateCycle(30),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(180,180,330,230),
+         cellstatRegion(180,220,360,270),
 %         cellstatRegion(205,250,400,310),
-         cellstatContrast(1, 1.4, -70), % Iterations, Multiply, Subtract
+         cellstatContrast(2, 1.3, -70), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
-         lagoonContrast(  2, 2.2, -50),
+         lagoonContrast(  3, 2.8, -30),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
@@ -47,17 +47,15 @@ config( [
 % bt_address(Name, Addr) :- !, fail.
 
 bt_device(nutrient,    '98:D3:31:30:2A:D1').
+bt_device(lagoon1,    '98:D3:31:80:34:39').
+bt_device(autosampler, '98:D3:31:40:1D:D4').
     
-%bt_device(cellstat,    '98:D3:31:30:2A:D1'). % HC-06
 %current bt_device(cellstat,    '98:D3:31:50:12:F4'). % HC-06
 
-bt_device(newcellstat,  '98:D3:31:70:2B:75'). % New Cellstat
 %bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
 %bt_device(cellstat,    '98:D3:31:90:29:0E').
-bt_device( lagoon1,    '98:D3:31:80:34:39'). % was d3
-bt_device( lagoond2,   '98:D3:31:30:95:60').
-bt_device( lagoon3,    '98:D3:31:70:3B:2B').
-bt_device(autosampler, '98:D3:31:40:1D:D4').
+%bt_device( lagoond2,   '98:D3:31:30:95:60').
+%bt_device( lagoon3,    '98:D3:31:70:3B:2B').
 
 %bt_device(labcellstat,  '98:D3:31:90:29:0E').
 %bt_device(cellstat,     '98:D3:31:90:29:0E').
