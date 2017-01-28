@@ -1,4 +1,5 @@
 :- dynamic html_syntax/0. % Also DCG version html_syntax/2.
+:- dynamic webValue/3.    
 :- dynamic prepped/4.
 
 % As this code accesses the PCE objects, it can't be called from
@@ -7,8 +8,18 @@
 % it as prep/4 for efficient retrieval by the web server.
 %
 % DCG access to XPCE get/3 and EvoStat component/3
-getx(Obj,ID)               --> {get(Obj,ID,Data)},         [Data].
+getx(Obj,ID)               --> {get(Obj,ID,Data),
+                                refresh(Obj,ID,Data)},
+                               [Data].
 component(Name, Type, Obj) --> {component(Name,Type,Obj)}, [Name].
+
+refresh(Obj,Var,Value) :-
+       webValue(Obj,Var,_),
+       retractall(webValue(Obj,Var,_)),
+       plog(refreshing(webValue(Obj,Var,Value))),
+       assert(webValue(Obj,Var,Value)),
+       !.
+refresh(_,_,_).
 
 nl --> html_syntax, !, [br([])].
 nl --> ['\n'].
@@ -21,6 +32,8 @@ od600 --> ['OD600'].
 
 float_tenths(Obj,Thing) --> [Display],
     { get(Obj,Thing,InTenths),
+
+      refresh(Obj,Thing,InTenths),
       DispTemp is float(InTenths)/10.0,
       format(atom(Display), '~4g', [DispTemp]) }.
 
@@ -45,7 +58,7 @@ label(flow, Obj) --> ['Rate '],
                      getx(Obj,f), [' '], getx(Obj,flowUnits).
 
 label(supply,Name) --> component(Name,supply,Obj), nl,
-                       getx(Obj, l),
+                       getx(Obj, v),
                        getx(Obj, levelUnits).
 
 label(cellstat,Name) --> 
@@ -75,4 +88,5 @@ prep :-                   % Prepare Data for the web page
     label(sampler,autosampler,Sampler,[]),
     retractall(prepped(_,_,_,_)),
     assert(prepped(Supplies, Cellstat, Lagoons, Sampler)),
-    retract(html_syntax).
+    retract(html_syntax),
+    plog(prep(finished)).

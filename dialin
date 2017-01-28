@@ -1,5 +1,7 @@
 #!/usr/bin/xpce
 :- dynamic show_conversation/1.
+:- dynamic arduino_windows/1.
+arduino_windows(0).
 
 :- pce_begin_class(dialin, dialog, "Conversation").
 
@@ -21,7 +23,19 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	get(Editor,  area, Area),                     % Resize
 	send(Area, set(width:=MyW,height:=MyH)),
 	send(Self, append, Editor),
+	updates_off,
 	send_super(Self, open, point(300,200)).
+
+updates_off :-	send(@gui,stopped),
+		retract(arduino_windows(N)),
+		NN is N + 1,
+		assert(arduino_windows(NN)).
+
+updates_on :- arduino_windows(NN),
+	      N is NN - 1,
+	      (N =:= 0 -> send(@gui, started) ; true ),
+	      retract(arduino_windows(NN)),
+	      assert(arduino_windows(N)).
 
 enter(Self) :-> "Stateful question/answer window"::
 	retract(show_conversation(Self)),
@@ -64,4 +78,23 @@ reset(Self) :->
      get(Self, slot, socket, Sock),
      bt_areset(Sock).
 
+unlink(Self) :->
+	     arduino_windows(NN),
+	     NN > 0,
+	     retract(arduino_windows(NN)),
+	     N is NN -1,
+	     (N =:= 0 -> send(@gui, started) ; true),
+	     assert(arduino_windows(N)),
+	     send_super(Self,unlink).
+
+% Program crashes if you don't pass unlink on to super
+unlink(Self) :->
+	     updates(on),
+	     send_super(Self,unlink).
+
 :- pce_end_class.
+
+
+
+
+

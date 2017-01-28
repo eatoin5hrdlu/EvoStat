@@ -54,6 +54,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 plog(changedLIST(MyName, Ps)),
 	 maplist( send(US,pull), ReadOnly),
          maplist( send(US,push), Ps),
+	 ( Ps = [] -> true; send(US,converse, s) ),
          send(US,check_level),  % PID will obviate this ?
 	 retractall(html_syntax), % labels with nl, not HTML
 	 label(Type,MyName,NewLabel,[]),
