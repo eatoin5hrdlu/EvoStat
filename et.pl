@@ -49,12 +49,13 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 "Get r/o and push r/w values to Device"::
 	 (get(US,socket,@nil) -> Col=red ; Col=darkgreen),
 	 send(US,colour,colour(Col)),
-	 maplist( send(US,pull), ReadOnly),
+	 component(MyName,Type,US),
 	 findall(P,retract(changed(US,P)),Ps),
+	 plog(changedLIST(MyName, Ps)),
+	 maplist( send(US,pull), ReadOnly),
          maplist( send(US,push), Ps),
          send(US,check_level),  % PID will obviate this ?
-	 get(US, myname, MyName),
-	 component(MyName,Type,US),
+	 retractall(html_syntax), % labels with nl, not HTML
 	 label(Type,MyName,NewLabel,[]),
 	 flatten(NewLabel,LabelAtoms),
 	 concat_atom(LabelAtoms,NewAtomicLabel),

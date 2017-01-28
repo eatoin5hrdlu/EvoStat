@@ -47,6 +47,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     err/2,
 
 	     webok/0,  % Assert when Web info is available
+	     webValue/3,
 	     screen/5,
 	     levelStream/2,
 	     air/0,
@@ -193,7 +194,7 @@ component_index(Object, 0) :- component(_, cellstat, Object),!.
 component_index(Object, N) :- component(Lagoon, lagoon, Object),
 			      atom_codes(Lagoon, Codes),
 			      append(_,[Digit],Codes),
-			      N is Digit + 0'0.
+			      N is Digit - 0'0.
 
 send_info(end_of_file,_) :-
    plog('Is debugging on? Possibly called Cellstat'),
@@ -215,8 +216,11 @@ send_info(Msg,_) :- writeln(send_info(Msg)).
 send_levels( [],   _).
 send_levels([L|Ls],N) :-
     component_index(Obj,N),
+    component(Who,_,Obj),
+    plog(sending(l(L),Who)),
     send(Obj,l,L),
     NN is N + 1,
+    plog(nextWillBe(Ls,NN)),
     send_levels(Ls,NN).
 
 % Code to launch python/OpenCV level detection programs
@@ -305,6 +309,7 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
+	 setup_web_values,
 	 initPID,                        % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),
@@ -446,12 +451,12 @@ mixon(Self) :->
     plog('Updating snapshot'),
     send_to_type(Self?graphicals, snapshot, [update]),
     plog('Turning noisy stuff back on'),
-    send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
+%   send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
     plog('Lagoon mixers on'),
-    component(_,cellstat,CellStat),
-    send(CellStat,converse,'m1'),
+%    component(_,cellstat,CellStat),
+%    send(CellStat,converse,'m1'),
     plog('CellStat mixer on'),
-    send(CellStat,converse,'o2'),
+%    send(CellStat,converse,'o2'),
     plog('Air on').
     
 readLevels(_) :->
@@ -544,6 +549,13 @@ update_config(Config) :-      % Load/reload when file changes
     config_name(Config,File), % Config is hostname or Argv[1]
     load_newest(File).
 
+printpair(X,Y) :- plog(bluetooth(X,Y)).
+    
+scan :-
+    load_foreign_library(plblue),
+    bt_scan(A,B),
+    maplist(printpair,A,B).
+
 c :- main([]),!. % This calls c(EvoStatName) (choicepoint somewhere?)
 
 c(Name) :-
@@ -586,6 +598,20 @@ reportTurbidity(What,S) :-
     component(Who, What, Obj),
     get(Obj,b,ODVal),
     format(S, '~s OD600  .~d~n',[Who,ODVal]).
+
+setup_web_values :-
+    findall(T,web_values(T),Ts),
+    plog(setup_web_values(Ts)).
+    
+web_values(lagoon) :-
+    component(_C, lagoon, Obj),
+    assert(webValue(Obj,tt,0)),
+    assert(webValue(Obj,tl,0)).
+web_values(cellstat) :-
+    component(_, cellstat, Obj),
+    assert(webValue(Obj,tt,0)),
+    assert(webValue(Obj,tb,0)),
+    assert(webValue(Obj,tl,0)).
 
 evostat_running :-
     shell('./multiples',1),
