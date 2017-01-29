@@ -28,27 +28,17 @@ report_error(Reply) :-
 	-> plog(error(X))
 	;  true
 	).
-
+%
+% Dec10 option is cool, it will plow through nonsense until it 
+% reads a valid term, or hits end_of_file which is a Term!
+% ( end_of_file means end_of_atom in this case )
+%
 parse_reply(Reply, Term) :-
-      functor(Term,F,A),
-      functor(Default,F,A),
-      parse_reply(Reply,Term,Default).
-      
-parse_reply(Reply, Term, Default) :-
-	catch( atom_to_term(Reply,TmpTerm,_TMBindings),
-	       Exception,
-	       ( writeln(caught(Exception,atom_to_term(Reply))),
-                 TmpTerm = exception(Exception))
-             ),
-	( compatible(TmpTerm,Default) -> Term = TmpTerm
-	;                                Term = Default
-	).
+	read_term_from_atom(Reply,Term,[syntax_error(dec10)]).
 
-parse_reply_data(Reply, Functor, Data) :-
-	catch( ( read_term_from_atom(Reply,Term,[]),
-	         Term =.. [Functor,Data] ),
-	       Exception,
-	       plog(caught(Exception,parse(Reply)))).
+parse_reply_arg1(Reply, Functor, Arg1) :-
+	read_term_from_atom(Reply,Term,[syntax_error(dec10)]),
+	Term =.. [Functor,Arg1|_].
 
 getIPfromMAC(_,_) :- fail.
 
@@ -101,7 +91,7 @@ variable(socket,            any,       both, "Bluetooth/IP Socket"      ).
 variable(reply,            name,       both, "Last Message from Device" ).
 variable(l,                 int := 29, both, "Percent Full"             ).
 variable(tl,                int := 31, both, "Target Level"             ).
-variable(f,                real := 1.5, both,"Flow  Rate"               ).
+variable(fr,               real := 1.5, both,"Flow  Rate"               ).
 variable(tf,               real := 3.5, both, "Target Flow Rate"        ).
 variable(levelUnits,       name := '%', both, "% or mL (usually)"       ).
 variable(turbidityUnits,   name := 'OD600', both,"Optical Density"      ).
@@ -162,55 +152,39 @@ nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 %nullreply(NR) :- writeq(reply(good,NR)),fail.
 
-converse(Self, _) :->
-        get(Self, socket, @nil),!,
-	plog(nilsocket),
-	fail.
 
-converse(Self, Cmd) :->  "Command to Bluetooth Socket/store Reply"::
-        get(Self, socket, Socket),
+% Util maybe
+good_socket(Self, Socket) :-
+	get(Self, socket, S),
+        check_socket(Self, S, Socket).
+
+check_socket(_,S,S) :- integer(S), S>=0.
+check_socket(_,S,S) :- integer(S), S>=0,
+		        bt_areset(S),  % reset
+			sleep(4). % needs time
+check_socket(Self, S, NewSocket) :-  % Get new/first socket
+	( integer(S), S>=0 -> close(S) ; true ),
+	component(Name, _, Self),
+	bt_device(Name, Addr),
+	bt_socket(Addr, NewSocket),
+ 	NewSocket >= 0,
+	send(Self, slot, socket, NewSocket),
+	send(Self,colour,colour(darkgreen)).
+
+check_socket(Self, _, _) :-> 
+	send(Self,colour,colour(red)),
+	fail.
+	
+converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
+	good_socket(Self, Socket),     % nondet
 	bluetalk(Socket, Cmd, Reply),
-	( nullreply(Reply)
-	 ->  get(Self, label, MyName),
-	     bt_areset(Socket),
-	     count(reset, MyName),
-	     sleep(4),
-	     bluetalk(Socket, Cmd, Reply2),
-	     ( nullreply(Reply2)
-	      -> assert(err(MyName, new_socket)),
-		 send(Self, connect),
-		 bluetalk(Socket, Cmd, Reply3),
-		 ( nullreply(Reply3)
-		  -> assert(err(MyName,and(reset,new_socket))),
-		     send(Self, slot, reply, 'failure.')
-		  ; send(Self, slot, reply, Reply3)
-		 )
-	      ; send(Self, slot, reply, Reply2)
-	     )
-	 ; send(Self, slot, reply, Reply)
-	),
-	!,
-	report_error(Reply).
+	\+ nullreply(Reply).
 
 connect(Self) :->
-	"Connect (or re-connect) the Bluetooth channel"::
-	get(Self, myname, MyName),
-	plog(connect(MyName)),
-	bt_device(MyName, Addr),
-	get(Self, socket, OldSocket),
-	plog(oldSocket(OldSocket)),
-        ( OldSocket == @nil -> true
-	; plog(bt_close(MyName,OldSocket)),
-	  bt_close(OldSocket),
-	  plog(setting(MyName,socket,@nil)),
-	  send(Self, slot, socket, @nil)
-	),
-	plog(bt_socket(Addr)),
-	bt_socket(Addr, BTSocket),
-	plog(bt_socket(returned(BTSocket))),
-	BTSocket > -1,
-	send(Self, slot, socket, BTSocket),
-	send(Self,colour,colour(darkgreen)).
+	send(Self, converse, id),
+	get(Self, reply, Reply),
+	parse_reply(Reply,Term),
+	plog(connected(Term)).
 
 connect(Self) :->
 	get(Self, myname, MyName),

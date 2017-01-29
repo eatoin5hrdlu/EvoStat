@@ -20,7 +20,7 @@
 %:- use_module(library(lists)).
 :- use_module(library(time)).
 :- use_module(library(pce)).
-:- use_module(library(process)). % For external programs
+:- use_module(library(process),[process_create/3]).
 :- use_module(library(charsio)).
 :- use_module(library(helpidx)).
 :- use_module(library(ctypes)).

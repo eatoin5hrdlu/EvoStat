@@ -55,7 +55,7 @@ label(od, Obj) --> od600,
 label(flow, Obj) --> ['Rate '],
                      getx(Obj,tf),
                      [' / '],
-                     getx(Obj,f), [' '], getx(Obj,flowUnits).
+                     getx(Obj,fr), [' '], getx(Obj,flowUnits).
 
 label(supply,Name) --> component(Name,supply,Obj), nl,
                        getx(Obj, v),

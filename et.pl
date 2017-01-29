@@ -13,7 +13,7 @@
 %
 % Parent class (ebutton) contains:
 % rw variables: [socket, {temperature, turbidity, volume}Units ]
-% and methods : [ connect, converse, parse_reply ]
+% and methods : [ connect/1, converse/2, parse_reply_arg1/3 ]
 % Variable myname is created in the new class
 
 :- dynamic changed/2.   % Assertion to tell system to push new
@@ -40,7 +40,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
 	                      ( send(S2,converse,N2)
 				-> get(S2,reply, Reply),
-				   parse_reply_data(Reply, N2, V2),
+				   parse_reply_arg1(Reply, N2, V2),
 				   send(S2, N2, V2)
 				; true
 			      )

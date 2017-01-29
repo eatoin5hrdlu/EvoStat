@@ -1,7 +1,8 @@
 
 iface( supply, ebutton,
-       [ ro( v, int:=50, "Current Volume"),
-         rw(vf, int:=100, "Total (Full) Volume")
+       [ ro( v, int:=500,  "Current Volume"),
+         rw( e, int:=40,   "Empty Reading"),
+         rw( f, int:=1023, "Full Reading")
        ]).
 
 iface( sampler, ebutton,
