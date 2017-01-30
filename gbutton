@@ -7,6 +7,11 @@
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
 
+% Arduino controllers return type as a single character id(char),
+id_type(0's, supply).
+id_type(0'l, lagoon).
+id_type(0'c, cellstat).
+id_type(0'a, sampler).
 
 mix_colors(   _, red,    red) :- !.
 mix_colors( red,   _,    red) :- !.
@@ -152,6 +157,7 @@ nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 %nullreply(NR) :- writeq(reply(good,NR)),fail.
 
+replyok(R) :- \+ nullreply(R).
 
 % Util maybe
 good_socket(Self, Socket) :-
@@ -178,13 +184,16 @@ check_socket(Self, _, _) :->
 converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
 	good_socket(Self, Socket),     % nondet
 	bluetalk(Socket, Cmd, Reply),
-	\+ nullreply(Reply).
+	replyok(Reply),
+	send(Self,reply,Reply).
 
 connect(Self) :->
 	send(Self, converse, id),
 	get(Self, reply, Reply),
 	parse_reply(Reply,Term),
-	plog(connected(Term)).
+	Term =.. [_,ID],
+	id_type(ID,Type),
+	plog(connected(Type)).
 
 connect(Self) :->
 	get(Self, myname, MyName),
