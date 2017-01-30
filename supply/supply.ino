@@ -9,7 +9,7 @@
 #define P(x)  Serial.print(x)
 #define PL(x) Serial.println(x)
 
-byte id = 'n'; // n is default for nutrient supply
+char id = 's'; // s is default for supply
 SUPPLY supply = SUPPLY(NUM_SUPPLIES);
 #define EOT "end_of_data."
 
@@ -39,7 +39,7 @@ void printInterface()
 #include "EEPROM.h"
 int RomAddress  = 0;
 
-void moveData(int op, int size, byte *loc)
+void moveData(int op, int size, char *loc)
 {
 	for(int i=size;i>0;i--)
 		if (op == SAVE)
@@ -97,7 +97,10 @@ char cterm[3];
 		     printHelp();
 		     break;
 		case 'i':
-		     printInterface();
+		     if (c2 == 'd')
+		     	printTermInt("id",id);
+		     else 
+		        printInterface();
 		     break;
 		case 'f':
 		     num = (int)(c2 - '0');

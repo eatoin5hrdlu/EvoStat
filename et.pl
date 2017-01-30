@@ -30,8 +30,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 "Initialise button and connect to device"::
 	 send_super(Self, initialise(Label)),
 	 send(Self, slot, myname, Label),
-	 send_super(Self, slot, socket, @nil),
-	 send_super(Self, connect)),
+	 send_super(Self, slot, socket, @nil)),
        ( push(S1,N1:name) :-> "Push value to Arduino"::
                               get(S1,N1,V1),
 	                      concat_atom([N1,V1],Cmd),
