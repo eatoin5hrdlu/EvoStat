@@ -1,7 +1,15 @@
 // Sample Collector and Drain Valves
 
-const char iface[] PROGMEM = {
-   "i( sampler, ebutton,\n\
+#define P(x)  Serial.print(x)
+#define PL(x) Serial.println(x)
+
+char id = 'a'; // s is default for supply
+
+#define EOT "end_of_data."
+
+void printInterface()
+{
+  PL(F("i( sampler, ebutton,\n\
       [ rw(up, int:=90,   \"Update every 90 seconds\"),\n\
 	rw(al, int:=10,   \"Aliquot time in seconds\"),\n\
 	rw(ns, int:=24,   \"Number of samples\"),\n\
@@ -14,7 +22,11 @@ const char iface[] PROGMEM = {
         rw(v2, int:=1000, \"Lagoon2 Drain Valve Timing\"),\n\
         rw(v3, int:=1000, \"Lagoon3 Drain Valve Timing\"),\n\
         rw(v4, int:=1000, \"Lagoon4 Drain Valve Timing\")\n\
-      ])."};
+       ])."));
+}
+
+
+
       
 // Requires Arduino with:
 // Two interrupt pins: Home photo-interruptor(pin 2) and Encoder A input (pin 3)
@@ -429,8 +441,11 @@ char vn[3];
 			printHelp();
 			break;
 		case 'i':
-			Serial.println(iface);
-			break;
+		     if (c2 == 'd')
+		     	printTermInt("id",id);
+		     else
+		        printInterface();
+		     break;
 		case 'v':
 		     if (vnum<0 || vnum > NUM_VALVES-1)
 		     	printTermInt("e",(int)c2);
