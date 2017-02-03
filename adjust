@@ -3,6 +3,10 @@
 % The PID algorithm will call get_input/2 and set_output/3,
 % but their implementation is PID independent, so they live here.
 
+inTimeRange(X) :- minTime(Min), X >= Min, maxTime(Max), X =< Max.
+minTime(300).
+maxTime(20000).
+
 initPID :-
 	pid_controllers(Cs),
 	launch_controllers(Cs).
@@ -28,16 +32,19 @@ set_output(Obj, Old, New) :-
      adjust(Obj, Inflow).
 
 adjust(Obj, Inflow) :-
-     Outflow is -Inflow,
-     adjust_valve(Obj,v1,Inflow), % Primary in always v1
-     component_index(Obj,N),      % Component determines out
-     concat_atom([v,N],Valve),
+     component_index(Obj,N),  % Index determines valve
+     index_valve(N,InValve,OutValve),
+     adjust_valve(Obj,InValve,Inflow), 
      component(_,sampler,SObj),
-     adjust_valve(SObj,Valve,Outflow).
+     Outflow is -Inflow,
+     adjust_valve(SObj,OutValve,Outflow).
 
 
 adjust_valve(Obj, Valve, Amt) :-
       get(Obj, Valve, Setting),
       New is Setting + Amt,
-      send(Obj, Valve, New),
-      assert(changed(Obj,Valve)).
+      ( inTimeRange(New)
+       -> send(Obj, Valve, New),
+      	  assert(changed(Obj,Valve,Amt))
+       ;  plog('VALVE LIMIT'(Valve,Setting))
+      ).

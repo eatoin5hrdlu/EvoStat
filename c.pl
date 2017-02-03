@@ -54,7 +54,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     mix/0,
 	     simulator/0,
 	     changeRequest/1, % HTML form values
-	     changed/2,       % push (Obj,Var) to Arduino
+	     changed/3,       % push (Obj,Var) to Arduino
 	     toggle_auto/0 ].
 
 % List of temporary files for cleanup
@@ -190,6 +190,13 @@ pathe_report(_) :-
 % but must end with a single digit (usually 1-4)
 % E.g. lagoonDarwin2, lagoon_huxley_1, cuvierVirustat4
 %
+% index_valve(Index,In,Out).
+index_valve(0,v0,v0).
+index_valve(1,v1,v1).
+index_valve(2,v1,v2).
+index_valve(3,v1,v3).
+index_valve(4,v1,v4).
+
 component_index(Object, 0) :- component(_, cellstat, Object),!.
 component_index(Object, N) :- component(Lagoon, lagoon, Object),
 			      atom_codes(Lagoon, Codes),
@@ -243,11 +250,11 @@ get_level(Type) :-
 	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
      ; true
     ),
-    plog(launching(Python,CmdLine)),
+%    plog(launching(Python,CmdLine)),
     process_create(Python,CmdLine,
 		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
     assert(levelStream(Type,Out)),
-    plog(launched),
+%    plog(launched),
     !.
 
 get_level(Type) :- 
@@ -333,24 +340,20 @@ drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
        send( @fastUpdatetimer, stop),  % Stop fast (GUI) updates
-       plog('Stopping Level Detection (image processing)'),
+       plog('        Turning off AUTO update mode'),
        control_timer(autoUpdate, stop),
        plog(stopped).
 
 started(_W) :->
-       plog('                      STARTING Level Detection'),
        control_timer(autoUpdate, start),
        send(@fastUpdatetimer,start),   % Restart GUI updates
-       plog('Starting Level Detection (Image processing)').
+       plog('        Turning on AUTO Update/Level Detection').
 
 stopPID(_W)  :-> pidstop,  ghost_state(pid,stop).
 startPID(_W) :-> pidstart, ghost_state(pid, start).
 
-cellstat(Self) :-> "User pressed the CellStat button"::
-                   send(Self,stopped),
-		   ( simulator -> plog(simulator)
-                   ;              send(Self,manualUpdate)
-                   ).
+cellstat(_W) :-> "User pressed the CellStat button"::
+                  plog('User pressed CellStat').
 
 lagoon1(_W) :->  "User selected Lagoon 1"::
                  component(lagoon1,lagoon,L),
@@ -409,13 +412,12 @@ prompt(W, Value:name) :<-
 
 autoUpdate(Self) :->
     send(@gui, stopped),
-    update_config(_),          % Re-load if change
-    send(Self,quiet),      plog(sent(quiet)),
+    update_config(_),      % Re-load if change
+    send(Self,quiet),      % plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
 % COMPONENT UPDATES IN MIXON
     send(Self,mixon),      plog(sent(mixon)),  % Send update
     prep,              % refreshes assert with Web page data
-
     param(updateCycle(Seconds)),
     retractall(next_update(_)), % Reset the count-down
     assert(next_update(Seconds)),
@@ -446,23 +448,18 @@ new_snapshot(Self) :->
     plog(update(snapShot)).
 
 mixon(Self) :->
-    plog('Updating all ebuttons'),
+     plog('Updating ebuttons'),
     send_to_type(Self?graphicals, ebutton, [update]),
     plog('Updating snapshot'),
     send_to_type(Self?graphicals, snapshot, [update]),
     plog('Turning noisy stuff back on'),
-%   send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
-    plog('Lagoon mixers on'),
-%    component(_,cellstat,CellStat),
-%    send(CellStat,converse,'m1'),
-    plog('CellStat mixer on'),
-%    send(CellStat,converse,'o2'),
-    plog('Air on').
+    send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
+    component(_,cellstat,CellStat),
+    send(CellStat,converse,'m1'),
+    send(CellStat,converse,'o2'),
+    plog('Cellstat mixer, Lagoon mixers, Air on').
     
-readLevels(_) :->
-    plog(read_lagoon_levels),
-    get_level(alllevels),
-    plog(read_levels(finished)).
+readLevels(_) :-> get_level(alllevels).
 
 % Things to be refreshed often (e.g. GUI) such as
 % the Next Update countdown in Sampler label.
@@ -667,7 +664,7 @@ new_value(Attr=Value) :-
   ( OldValue == EValue
    -> plog(unchanged(Name,Var))
    ;  send(Obj, Var, EValue),
-      assert(changed(Obj,Var))
+      assert(changed(Obj,Var,EValue))
   ).
 
 backgroundImage(ImageFile) :-

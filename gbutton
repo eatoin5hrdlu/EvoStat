@@ -38,9 +38,11 @@ report_error(Reply) :-
 % reads a valid term, or hits end_of_file which is a Term!
 % ( end_of_file means end_of_atom in this case )
 %
+parse_reply(@nil, _) :- !.
 parse_reply(Reply, Term) :-
 	read_term_from_atom(Reply,Term,[syntax_error(dec10)]).
 
+parse_reply_arg1(@nil, _, _) :- !.
 parse_reply_arg1(Reply, Functor, Arg1) :-
 	read_term_from_atom(Reply,Term,[syntax_error(dec10)]),
 	Term =.. [Functor,Arg1|_].
@@ -108,7 +110,7 @@ initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
         send_super(Self, initialise(Label)),
         send(Self, myname, Label),
-	retractall(changed(Self,_)),
+	retractall(changed(Self,_,_)),
 	send(Self, slot, l,  30),
 	send(Self, slot, tl, 87),
 	send(Self, slot, levelUnits,   'mL'),
@@ -181,6 +183,11 @@ check_socket(Self, _, _) :->
 	send(Self,colour,colour(red)),
 	fail.
 	
+converse(Self,_) :->
+        component(Name, _, Self),
+        not(bt_device(Name, _Addr)),
+        !. % Do nothing because no connection
+	
 converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
 	good_socket(Self, Socket),     % nondet
 	bluetalk(Socket, Cmd, Reply),
@@ -191,6 +198,7 @@ connect(Self) :->
 	send(Self, converse, id),
 	get(Self, reply, Reply),
 	parse_reply(Reply,Term),
+	nonvar(Term),
 	Term =.. [_,ID],
 	id_type(ID,Type),
 	plog(connected(Type)).
@@ -199,6 +207,47 @@ connect(Self) :->
 	get(Self, myname, MyName),
 	plog(failed(bt_socket(MyName))),
 	send(Self,colour,colour(red)).
+
+%
+% These utilities inside class simplify the code
+% generated from the interface
+%
+% updateArduino(Obj)     synchronize GUI <-> Arduino
+% sendArduino(Obj,Cmd)   move values GUI -> Arduino
+% getArduino(Obj,Cmd)    move values Arduino -> GUI
+% updateLabel(T,N,-Label) Label showing curent values
+
+sendArduino(Obj,Cmd) :-
+	get(Obj,Cmd,Value),
+	concat_atom([Cmd,Value],CmdVal),
+	send(Obj, converse, CmdVal).
+sendArduino(_Obj,Cmd) :-
+        plog(sendArduino(Cmd,failed)).
+
+getArduino(Obj,Cmd) :-
+        send(Obj,converse,Cmd),
+	get(Obj,reply, Reply),
+	parse_reply_arg1(Reply, N2, V2),
+	nonvar(N2),
+	nonvar(V2),
+	send(Obj, N2, V2).
+getArduino(_Obj,Cmd) :-
+    plog(getArduino(Cmd,failed)).
+
+% Get r/o and push r/w values to Device
+updateArduino(Obj, ReadOnly) :-
+    findall(P,retract(changed(Obj,P,_)),Ps),
+    maplist( send(Obj,pull), ReadOnly),
+    maplist( send(Obj,push), Ps),
+    ( Ps = [] -> true; send(Obj,converse, s) ),
+    send(Obj, check_level).
+
+updateLabel(Obj, NewLabel) :-
+    component(Name,Type,Obj),
+    retractall(html_syntax), % labels with nl, not HTML
+    label(Type, Name, Label,[]),
+    flatten(Label, List),
+    concat_atom(List, NewLabel).
 
 :- pce_end_class. % ebutton
 
@@ -285,4 +334,3 @@ initialise(Self, Color:[name]) :->
 :- [iface].                    % CONSULT
 :- [dialin].   % Pop up Arduino dialog
 :- [prephtml]. % prepare PCE data for web
-

@@ -16,8 +16,8 @@
 % and methods : [ connect/1, converse/2, parse_reply_arg1/3 ]
 % Variable myname is created in the new class
 
-:- dynamic changed/2.   % Assertion to tell system to push new
-:- multifile changed/2. % values to the Arduino during update
+:- dynamic changed/3.   % Assertion to tell system to push new
+:- multifile changed/3. % values to the Arduino during update
 
 term_expansion(iface(Type,PType,Vars), []) :-
     expand_vars(Vars, ReadOnly, _ReadWrite, Declarations, []),
@@ -37,20 +37,20 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	                      (send(S1,converse,Cmd)->true;true)
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
-	                      ( send(S2,converse,N2)
-				-> get(S2,reply, Reply),
-				   parse_reply_arg1(Reply, N2, V2),
-				   send(S2, N2, V2)
-				; true
-			      )
+	                      send(S2,converse,N2),
+			      get(S2,reply, Reply),
+	                      parse_reply_arg1(Reply, N2, V2),
+			      nonvar(N2),
+			      nonvar(V2),
+			      send(S2, N2, V2)
+			      ; plog(failed(N2))
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::
 	 (get(US,socket,@nil) -> Col=red ; Col=darkgreen),
 	 send(US,colour,colour(Col)),
 	 component(MyName,Type,US),
-	 findall(P,retract(changed(US,P)),Ps),
-	 plog(changedLIST(MyName, Ps)),
+	 findall(P,retract(changed(US,P,_)),Ps),
 	 maplist( send(US,pull), ReadOnly),
          maplist( send(US,push), Ps),
 	 ( Ps = [] -> true; send(US,converse, s) ),
