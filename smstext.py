@@ -1,5 +1,4 @@
-#!/usr/bin/python -u
-#!C:/cygwin/Python27/python -u
+#!/usr/bin/python
 import smtplib, os, sys, time
 from email.mime.image      import MIMEImage
 from email.mime.multipart  import MIMEMultipart

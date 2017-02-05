@@ -66,7 +66,7 @@ temp_file(File)       :- logfile(File).
 %%%%%%%%%%%%%%%% TIMERS
 timer(autoUpdate,  Seconds) :-	param(updateCycle(Seconds)).
 timer(fastUpdate,  Fast)    :-	param(updateCycle(UC)), Fast is UC/10.
-timer(sendTexts,  Seconds)  :-  param(textMessages(Seconds)).
+timer(texting,     Seconds)  :-  param(textMessages(Seconds)).
 
 %%%%%%%%%%%%%%%% CAMERA
 camera_device(Device) :-
