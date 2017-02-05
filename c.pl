@@ -64,7 +64,7 @@ temp_file('dbg.txt').
 temp_file(File)       :- logfile(File).
 
 %%%%%%%%%%%%%%%% TIMERS
-timer(autoUpdate,  Seconds) :-	param(updateCycle(Seconds)).
+timer(update,  Seconds) :-	param(updateCycle(Seconds)).
 timer(fastUpdate,  Fast)    :-	param(updateCycle(UC)), Fast is UC/10.
 timer(texting,     Seconds)  :-  param(textMessages(Seconds)).
 
@@ -294,17 +294,17 @@ initialise(W, Label:[name]) :->
 					message(W, drain, lagoons)),
 				    menu_item('Drain Cellstat',
 				        message(W, drain, cellstat)),
-				    menu_item('no update',
-					      message(W, stopped)),
 				    menu_item(update,
 					      message(W, started)),
-				    menu_item('no pid',
-					      message(W, stopPID)),
+				    menu_item('no update',
+					      message(W, stopped)),
 				    menu_item(pid,
 					      message(W, startPID)),
+				    menu_item('no pid',
+					      message(W, stopPID)),
 				    menu_item(texting,
 					      message(W, sendText)),
-				    menu_item('No Texting',
+				    menu_item('no texting',
 					      message(W, stopText))
 				  ]),
 	  send(MB, append, new(Help, popup(help))),
@@ -341,11 +341,11 @@ drain(_W, What) :->  plog(draining(What)).
 stopped(_W) :->
        send( @fastUpdatetimer, stop),  % Stop fast (GUI) updates
        plog('        Stopping AUTO update timer to perform UPDATE'),
-       control_timer(autoUpdate, stop),
+       control_timer(update, stop),
        plog(stopped).
 
 started(_W) :->
-       control_timer(autoUpdate, start),
+       control_timer(update, start),
        send(@fastUpdatetimer,start),   % Restart GUI updates
        plog('        Re-starting AUTO Update/Level Detection timer').
 
@@ -410,7 +410,7 @@ prompt(W, Value:name) :<-
 % 4) Restart the auto update timer (new timer value from settings NYI)
 % 5) Make a fast_update version for the GUI
 
-autoUpdate(Self) :->
+update(Self) :->
     send(@gui, stopped),
     update_config(_),      % Re-load if change
     send(Self,quiet),      % plog(sent(quiet)),
@@ -491,7 +491,7 @@ sending_text(Now) :-
     watcher(_Who, Where, When),
     0 is Now mod When,
     evostat_directory(Dir),
-    concat_atom([Dir,'smstext.py ',Where], Cmd),
+    concat_atom(['/usr/bin/python ',Dir,'smstext.py ',Where], Cmd),
     shell(Cmd).
     
 :- pce_end_class.  % End of evostat
@@ -566,7 +566,7 @@ c(Name) :-
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@fastUpdatetimer, stop),
-         send(@autoUpdatetimer, stop),
+         send(@updatetimer, stop),
          send(@gui, destroy),
 	 stop_http,
 	 plog(http(stopped)),

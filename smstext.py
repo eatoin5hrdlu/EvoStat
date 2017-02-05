@@ -11,7 +11,7 @@ getip = ['hostname','-I']
 
 
 proc = subprocess.Popen(getip, stdout=subprocess.PIPE)
-myip = proc.stdout.read().strip().split()
+myip = proc.stdout.read().strip().split()[0]
 print "[", myip, "]"
 url="http://"+myip+":21847/web/pathe.pl"
 print "URL["+url+"]"

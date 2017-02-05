@@ -91,8 +91,8 @@ control_timer(Thing,StartStop) :-
     concat_atom([Thing,timer], TimerName),
     send(@TimerName,StartStop).
 
-condition(start, on, off).
-condition(stop,  off, on).
+condition(start, off, on).
+condition(stop,  on, off).
 
 ghost_state(Thing, Condition) :-
     concat_atom(['no ', Thing], NoThing),
