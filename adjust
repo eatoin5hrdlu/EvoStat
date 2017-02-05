@@ -39,12 +39,13 @@ adjust(Obj, Inflow) :-
      Outflow is -Inflow,
      adjust_valve(SObj,OutValve,Outflow).
 
-
 adjust_valve(Obj, Valve, Amt) :-
       get(Obj, Valve, Setting),
       New is Setting + Amt,
       ( inTimeRange(New)
        -> send(Obj, Valve, New),
-      	  assert(changed(Obj,Valve,Amt))
+      	  assert(changed(Obj,Valve,Amt)),
+	  @Name = Obj,
+	  plog(adjusted(Name,Valve,New))
        ;  plog('VALVE LIMIT'(Valve,Setting))
       ).

@@ -413,6 +413,25 @@ def showLevel(img, bb, lvl, color) :
     cv2.line(img,(px,py),(px+(width/2),py), color, 2)
     cv2.putText(img,"  "+str(pc)+"%",(px-10,py-8),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.75, color,2)
+    return(pc)
+
+def addImages(img, num) :
+    (rval, new) = ipcam.usbcam.read()
+    if (rval) :
+        if (ipcam.params['rotate']) :
+            new = rotateImage(new, ipcam.params['rotate'])
+        new = cv2.add(new, img)
+    else :
+        plog("image read failed in addImages")
+    for i in range(num-1):
+        (rval, n2) = ipcam.usbcam.read()
+        if (rval) :
+            if (ipcam.params['rotate']) :
+                n2 = rotateImage(n2, ipcam.params['rotate'])
+            new = cv2.add(new, n2)
+        else :
+            plog("image read failed in addImages")
+    return new
 
 if __name__ == "__main__" :
     plog("openCV('" + str(cv2.__version__) + "').")
@@ -465,7 +484,8 @@ if __name__ == "__main__" :
     green = 1
     red = 2
     if ( 'alllevels' in sys.argv ) : # Read lagoon levels
-        plog("alllevels: " + str(img.shape))
+        img2 = addImages(img,4)
+        plog("alllevels: " + str(img2.shape))
         brect = ipcam.params['lagoonRegion']
         quarterWidth = (brect[3]-brect[1])/4
         eighthWidth = quarterWidth/2
@@ -477,13 +497,12 @@ if __name__ == "__main__" :
             lbb = (brect[0], x1, brect[2], x2)
             ( (lx1,ly1), (lx2,ly2) ) = ipcam.lagoon_level_bbox_xy(i)
             lbb = (ly1,lx1,ly2,lx2)
-            llev = ipcam.evocv2.getLevel( img,
+            llev = ipcam.evocv2.getLevel( img2,
                                           lbb,
                                           green,
                                           ipcam.params['lagoonContrast'])
             plog("LBB " + str(lbb) + " level " + str(llev))
-            showLevel(img, lbb, llev, (128,128,255))
-            llist.append(llev)
+            llist.append(showLevel(img, lbb, llev, (128,128,255)))
         levelPhase = 1
         brect = ipcam.params['cellstatRegion']
         num = 1
@@ -493,9 +512,8 @@ if __name__ == "__main__" :
         (wi,he,de) = img.shape
         cv2.putText(img,time.asctime(time.localtime()),(wi/16,3*he/4),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255),2)
-        showLevel(img, brect, lev, (255,255,0))
+        llist.insert(0, showLevel(img, brect, lev, (255,255,0)))
         ipcam.exportImage(img)
-        llist.insert(0,lev)
         print(termIntList('levels',llist))
     ipcam.release()
 

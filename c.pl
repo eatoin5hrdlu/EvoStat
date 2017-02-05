@@ -340,14 +340,14 @@ drain(_W, What) :->  plog(draining(What)).
 
 stopped(_W) :->
        send( @fastUpdatetimer, stop),  % Stop fast (GUI) updates
-       plog('        Turning off AUTO update mode'),
+       plog('        Stopping AUTO update timer to perform UPDATE'),
        control_timer(autoUpdate, stop),
        plog(stopped).
 
 started(_W) :->
        control_timer(autoUpdate, start),
        send(@fastUpdatetimer,start),   % Restart GUI updates
-       plog('        Turning on AUTO Update/Level Detection').
+       plog('        Re-starting AUTO Update/Level Detection timer').
 
 stopPID(_W)  :-> pidstop,  ghost_state(pid,stop).
 startPID(_W) :-> pidstart, ghost_state(pid, start).

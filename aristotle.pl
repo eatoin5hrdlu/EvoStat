@@ -5,13 +5,13 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(20,220,220,270),
+         cellstatRegion(110,220,310,270),
 %         cellstatRegion(205,250,400,310),
          cellstatContrast(2, 1.6, -70), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
-         lagoonContrast(  3, 2.8, -30),
+         lagoonContrast(  2, 2.2, -60),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
