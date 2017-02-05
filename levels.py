@@ -484,7 +484,7 @@ if __name__ == "__main__" :
     green = 1
     red = 2
     if ( 'alllevels' in sys.argv ) : # Read lagoon levels
-        img2 = addImages(img,4)
+        img2 = addImages(img,5)
         plog("alllevels: " + str(img2.shape))
         brect = ipcam.params['lagoonRegion']
         quarterWidth = (brect[3]-brect[1])/4

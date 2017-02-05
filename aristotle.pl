@@ -11,7 +11,7 @@ config( [
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
-         lagoonContrast(  2, 2.2, -60),
+         lagoonContrast(  2, 2.4, -50),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
