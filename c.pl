@@ -490,7 +490,8 @@ sendTexts(_Self) :->
 sending_text(Now) :-
     watcher(_Who, Where, When),
     0 is Now mod When,
-    concat_atom(['./smstext.py ',Where], Cmd),
+    evostat_directory(Dir),
+    concat_atom([Dir,'smstext.py ',Where], Cmd),
     shell(Cmd).
     
 :- pce_end_class.  % End of evostat
