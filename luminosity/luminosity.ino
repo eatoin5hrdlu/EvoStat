@@ -6,21 +6,8 @@
 #include <Adafruit_Sensor.h>
 #include "Adafruit_TSL2591.h"
 
-// Example for demonstrating the TSL2591 library - public domain!
+Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in id (for you later)
 
-// connect SCL to analog 5
-// connect SDA to analog 4
-// connect Vin to 3.3-5V DC
-// connect GROUND to common ground
-
-Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
-
-/**************************************************************************/
-/*
-    Displays some basic information on this sensor from the unified
-    sensor API sensor_t type (see Adafruit_Sensor for more information)
-*/
-/**************************************************************************/
 void displaySensorDetails(void)
 {
   sensor_t sensor;
@@ -87,51 +74,36 @@ void configureSensor(void)
   Serial.println("");
 }
 
-
-/**************************************************************************/
-/*
-    Program entry point for the Arduino sketch
-*/
-/**************************************************************************/
 void setup(void) 
 {
   Serial.begin(9600);
-  
   Serial.println("Starting Adafruit TSL2591 Test!");
-  
   if (tsl.begin()) 
-  {
-    Serial.println("Found a TSL2591 sensor");
-  } 
-  else 
-  {
+     Serial.println("Found a TSL2591 sensor");
+  else
     Serial.println("No sensor found ... check your wiring?");
-    while (1);
-  }
-    
-  /* Display some basic information on this sensor */
   displaySensorDetails();
-  
-  /* Configure the sensor */
   configureSensor();
-  void simpleRead(void)
-  
- /**************************************************************************/
-/*
-    Shows how to perform a basic read on visible, full spectrum or
-    infrared light (returns raw 16-bit ADC values)*/
-
-
-  // Simple data read example. Just read the infrared, fullspecrtrum diode 
-  // or 'visible' (difference between the two) channels.
-  // This can take 100-600 milliseconds! Uncomment whichever of the following you want to read
-  uint16_t x = tsl.getLuminosity(TSL2591_VISIBLE);
-  //uint16_t x = tsl.getLuminosity(TSL2591_FULLSPECTRUM);
-  //uint16_t x = tsl.getLuminosity(TSL2591_INFRARED);
-
-  Serial.print("[ "); Serial.print(millis()); Serial.print(" ms ] ");
-  Serial.print("Luminosity: ");
-  Serial.println(x, DEC);
 }
+
+void simpleRead(void)
+{
+// Simple data of infrared, full, or 'visible' (difference between the two)
+// channels. Can take 100-600 milliseconds. Uncomment desired spectra.
+
+//uint16_t x = tsl.getLuminosity(TSL2591_VISIBLE);
+uint16_t x = tsl.getLuminosity(TSL2591_FULLSPECTRUM);
+// uint16_t x = tsl.getLuminosity(TSL2591_INFRARED);
+
+   Serial.print("[ "); Serial.print(millis()); Serial.print(" ms ] ");
+   Serial.print("Luminosity: ");
+   Serial.println(x, DEC);
 }
+
+void loop()
+{
+	delay(1000);
+	simpleRead();
+}
+
 
