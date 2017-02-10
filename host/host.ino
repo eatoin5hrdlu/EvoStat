@@ -7,6 +7,8 @@
 #endif
 //
 #include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include "Adafruit_TSL2591.h"
 
 #ifndef INTERNAL // Mega has two references, but no default
 #define INTERNAL INTERNAL2V56
@@ -28,6 +30,9 @@ Serial.println(F("iface( cellstat, ebutton,\n\
 
 #include "valves.h"        // not!Includes param.h (change constants there)
 VALVES valves = VALVES(NUM_VALVES);
+
+#include "lux.h"
+// LUX lux = LUX(2591);
 
 //#include "Adafruit_MLX90614.h"
 //Adafruit_MLX90614 mlx;
@@ -185,22 +190,23 @@ void printHelp(void)
 int i;
 int *times = valves.getTimes();
 
-	Serial.println("cmd(a,[0,1],'set auto modes off/on').");
-	Serial.println("cmd(cl,'clear backlog (no output)').");
-
-	Serial.print("cmd(v,[0,1,2,3,4],[");
+	Serial.print(
+F("cmd(a,[0,1],'set auto modes off/on').\n\
+cmd(cl,'clear backlog (no output)').\n\
+cmd(v,[0,1,2,3,4],["));
 	 for(i=0;i<NUM_VALVES;i++) {
 	   Serial.print(*times++); if (i<(NUM_VALVES-1)) Serial.print(","); }
-        Serial.println("],'valve open times in msec').");
-
-	Serial.println("cmd(e,[0,1],'enable inputs vs. flow calibration').");
-	Serial.println("cmd(h,[0,1],'heater off/on auto_temp off').");
-	Serial.println("cmd(l,[0,1],'light off/on').");
-	Serial.println("cmd(m,'get mixer speed').");
-	Serial.print("cmd(ms,[");Serial.print(mixerspeed);Serial.println("],'set mixer speed').");
-	Serial.println("cmd(m,[0,1],'turn mixer off/on').");
-	Serial.println("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)').");
-	Serial.println("cmd(p,[h],'printHelp -this list of commands').");
+        Serial.println(F("],'valve open times in msec')."));
+	Serial.println(F("cmd(e,[0,1],'enable inputs vs. flow calibration')."));
+	Serial.println(F("cmd(h,[0,1],'heater off/on auto_temp off')."));
+	Serial.println(F("cmd(l,[0,1],'light off/on')."));
+	Serial.println(F("cmd(m,'get mixer speed')."));
+	Serial.print(F("cmd(ms,["));
+	Serial.print(mixerspeed);
+	Serial.println(F("],'set mixer speed')."));
+	Serial.println(F("cmd(m,[0,1],'turn mixer off/on')."));
+	Serial.println(F("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)')."));
+	Serial.println(F("cmd(p,[h],'printHelp -this list of commands')."));
 	Serial.println("cmd(p,[0,1,2,3,4],'foce valve open').");
 	Serial.println("cmd(r,'Restore settings from EEPROM').");
 	Serial.println("cmd(s,'Save settings in EEPROM').");
@@ -414,6 +420,9 @@ byte d;
 			valves.closeValve(c2);
 			auto_valve = true;
 			break;
+		case 'f':
+//		        printTermInt("lux",lux.getLux());
+			break;
 		case 'h':
 			switch(c2)
 			{
@@ -619,6 +628,7 @@ boolean once;
 void setup()
 {
 int i;
+	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
 	bluetooth = true;
 	auto_temp = true;  // Maintain Temperature Control
 	auto_valve = true; // Maintain Flow (check turbidity)
@@ -646,10 +656,10 @@ int i;
 	analogWrite(MIXER, 0);
 
 	interval = millis();
-	Serial.begin(9600); // 9600, 8-bits, no parity, one stop bit
 //	mlx = Adafruit_MLX90614();
 //	mlx = MLX90614();
 //	mlx.begin();   // Initialize Mexexis Thermometer
+	Serial.println("hello");
 	
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
