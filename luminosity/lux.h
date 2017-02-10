@@ -7,33 +7,6 @@
 #include <Adafruit_Sensor.h>
 #include "Adafruit_TSL2591.h"
 
-void unifiedSensorAPIRead(void)
-{
-}
-/*
- * Configure gain and integration time for the TSL2591
- */
-
-
-void setup(void) 
-{
-  Serial.begin(9600);
-  Serial.println("Starting Adafruit TSL2591 Test!");
-}
-
-void simpleRead(void)
-{
-// Simple data of infrared, full, or 'visible' (difference between the two)
-// channels. Can take 100-600 milliseconds. Uncomment desired spectra.
-
-   Serial.print("[ "); Serial.print(millis()); Serial.print(" ms ] ");
-   Serial.print("Luminosity: ");
-   Serial.println(x, DEC);
-}
-
-#include "Arduino.h"
-#include "param.h"
-
 class LUX
 {
  public:
