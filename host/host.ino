@@ -1,4 +1,3 @@
-
 #include "param.h"        // Includes param.h (change constants there)
 #if (ARDUINO >= 100)
  #include "Arduino.h"
@@ -8,7 +7,110 @@
 //
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include "Adafruit_TSL2591.h"
+#include <Adafruit_TSL2591.h>
+
+// void      lux_init(int id)
+// uint16_t  getLux()
+// Gain_t    luxGain()
+// Timing_t  luxTiming()
+// void      lux_configure(int gain[0-3], int timing[0-5])
+// void      lux_details()
+
+Adafruit_TSL2591 tsl;  
+int gain_setting;   // Luminometer
+int timing_setting;
+
+int tsl_gain[4] = { TSL2591_GAIN_LOW,   //    1X
+		   TSL2591_GAIN_MED,   //   25X
+		   TSL2591_GAIN_HIGH,  //  428X
+		   TSL2591_GAIN_MAX }; // 9876X
+
+// tsl2591Timing_t
+int tsl_timing[6] = { TSL2591_INTEGRATIONTIME_100MS,
+		      TSL2591_INTEGRATIONTIME_200MS,
+		      TSL2591_INTEGRATIONTIME_300MS,
+		      TSL2591_INTEGRATIONTIME_400MS,
+		      TSL2591_INTEGRATIONTIME_500MS,
+		      TSL2591_INTEGRATIONTIME_600MS };
+
+void lux_configure(int g, int t)
+{
+  if (g < 0 || g > 3 || t < 0 || t > 5)
+    {
+      Serial.println(F("gain/integration time out of range"));
+      return;
+    }
+  tsl.setGain(tsl_gain[g]);
+  tsl.setTiming(tsl_timing[t]);
+}
+
+void lux_set_timing(int t)
+{
+  if (t < 0 || t > 5) printTermInt("e",101);
+  else 
+    {
+	tsl.setTiming(tsl_timing[t]);
+	timing_setting = t;
+    }
+}
+
+void lux_set_gain(int g)
+ {
+	if (g < 0 || g > 3 )
+	   printTermInt("e",100);
+	else {
+	     tsl.setGain(tsl_gain[g]);
+	     gain_setting = g;
+        }
+}
+
+void lux_init(int id)
+{
+  tsl  = Adafruit_TSL2591(id); // pass in id (for you later)
+  if (tsl.begin())
+    Serial.println(F("Found TSL2591"));
+  else
+    Serial.println(F("No sensor"));
+  lux_configure(2, 3);
+}
+
+
+int luxGain(void) // 0-3
+{
+  int i;
+  tsl2591Gain_t gainval = tsl.getGain();
+  for(i=0;i<4;i++)
+    if (gainval == tsl_gain[i]) return i;
+  return -1;
+}
+
+int luxTiming(void) // mSeconds
+{
+  return((tsl.getTiming() + 1)*100);
+}
+
+void lux_details()
+{
+    sensor_t sensor;
+    tsl.getSensor(&sensor);
+    Serial.print  ("Sensor:    "); Serial.println(sensor.name);
+    Serial.print  ("Driver Ver:"); Serial.println(sensor.version);
+    Serial.print  ("Unique ID: "); Serial.println(sensor.sensor_id);
+    Serial.print  ("Max Value: "); Serial.print(sensor.max_value);
+    Serial.println(" lux");
+    Serial.print  ("Min Value: "); Serial.print(sensor.min_value);
+    Serial.println(" lux");
+    Serial.print  ("Resolution:"); Serial.print(sensor.resolution);
+    Serial.println(" lux");  
+    Serial.println("------------------------------------");
+}
+
+uint16_t luxRaw(void)
+{
+  return(tsl.getLuminosity(TSL2591_FULLSPECTRUM));
+  //    return(tsl.getLuminosity(TSL2591_VISIBLE));
+  //    return(tsl.getLuminosity(TSL2591_INFRARED));
+}
 
 #ifndef INTERNAL // Mega has two references, but no default
 #define INTERNAL INTERNAL2V56
@@ -30,9 +132,6 @@ Serial.println(F("iface( cellstat, ebutton,\n\
 
 #include "valves.h"        // not!Includes param.h (change constants there)
 VALVES valves = VALVES(NUM_VALVES);
-
-#include "lux.h"
-// LUX lux = LUX(2591);
 
 //#include "Adafruit_MLX90614.h"
 //Adafruit_MLX90614 mlx;
@@ -117,6 +216,12 @@ WIFI w = WIFI();
 void printTermInt(char *f,int a)
 {
   sprintf(reply, "%s(%d).",f,a);
+  soutln(reply);
+}
+
+void printTermUInt(char *f,uint16_t a)
+{
+  sprintf(reply, "%s(%u).",f,a);
   soutln(reply);
 }
 
@@ -300,6 +405,8 @@ void saveRestore(int op)
 	moveData(op, sizeof(int), (byte *) &gtoffset);
 	moveData(op, sizeof(int), (byte *) &gcycletime);
 	moveData(op, sizeof(int), (byte *) &mixerspeed);
+	moveData(op, sizeof(int), (byte *) &gain_setting);
+	moveData(op, sizeof(int), (byte *) &timing_setting);
 }
 
 int turbread[10];
@@ -421,7 +528,17 @@ byte d;
 			auto_valve = true;
 			break;
 		case 'f':
-//		        printTermInt("lux",lux.getLux());
+			switch(c2) 
+			{
+			case 'g':
+			     lux_set_gain(value);
+			     break;
+			case 't':
+			     lux_set_timing(value);
+			     break;
+			default:
+			     printTermUInt("lux",luxRaw());
+			}
 			break;
 		case 'h':
 			switch(c2)
@@ -659,8 +776,6 @@ int i;
 //	mlx = Adafruit_MLX90614();
 //	mlx = MLX90614();
 //	mlx.begin();   // Initialize Mexexis Thermometer
-	Serial.println("hello");
-	
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = 'h';	// Default Lagoon ID (haldane)
@@ -670,6 +785,8 @@ int i;
 		gtscale = 9100;
 		gtoffset = 0.0;
 		mixerspeed = MIXERSPEED;
+		gain_setting = 2;
+		timing_setting = 3;
 		saveRestore(SAVE);
 	}
 	else
@@ -682,6 +799,12 @@ int i;
 //		soutln(reply);
 #endif
 	}
+	
+        lux_init(2591);
+	Serial.print("LUX: gain: ");Serial.print(gain_setting);
+	Serial.print("  timing:"); Serial.println(timing_setting);
+	lux_configure(gain_setting,timing_setting);
+
         valves.setCycletime(gcycletime);
 	once = true;
 	for (i=0;i<10;i++) // Fill averaging vector
