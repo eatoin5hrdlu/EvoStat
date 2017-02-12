@@ -104,7 +104,7 @@ variable(levelUnits,       name := '%', both, "% or mL (usually)"       ).
 variable(turbidityUnits,   name := 'OD600', both,"Optical Density"      ).
 variable(temperatureUnits, name := 'C', both, "Degrees Centigrade"      ).
 variable(flowUnits,        name := 'Vol/hr', both, "Vol/hr"             ).
-variable(fluxUnits,        name := 'rlu',    both, "rlu"                ).
+variable(fluxUnits,        name := 'lux',    both, "lu"                 ).
 
 initialise(Self, Label:[name]) :->
 	"Initialise the button and connect to device"::
@@ -119,6 +119,7 @@ initialise(Self, Label:[name]) :->
 	send(Self, slot, fluxUnits,        'rlu'),
 	send(Self, slot, socket, @nil),
 	new(Code,  message(Self, show_conversation)),
+
 	send(Self, recogniser, click_gesture(right,'',single,Code)).
 
 update(_Self) :-> true. % Anything that all buttons do

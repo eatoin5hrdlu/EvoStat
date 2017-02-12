@@ -48,6 +48,9 @@ label(level, Obj) -->
                       getx(Obj,l),
 		      getx(Obj,levelUnits).
 
+label(lux, Obj) --> getx(Obj,f),
+		    getx(Obj,fluxUnits).
+
 label(od, Obj) --> od600,
                    ['  .'], getx(Obj,tb),
                    ['/.'],  getx(Obj,b).
@@ -65,12 +68,14 @@ label(cellstat,Name) -->
                          component(Name,cellstat,Obj), [' '],
                          label(level,Obj),       nl,
                          label(temperature,Obj), nl,
-                         label(od, Obj).
+                         label(od, Obj), nl,
+                         label(lux, Obj).
 
 label(lagoon,Name) --> component(Name,lagoon,Obj), [' '],
                        label(level,Obj),       nl,
                        label(temperature,Obj), nl,
-                       label(flow, Obj).
+                       label(flow, Obj), nl,
+                       label(lux, Obj).
 
 label(sampler,Name) -->  component(Name,sampler,Obj), nl,
     [ 'Next Level Reading in '], getx(Obj,up), ['s'], nl,
