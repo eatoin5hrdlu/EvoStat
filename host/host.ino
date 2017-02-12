@@ -20,18 +20,19 @@ int gain_setting;   // Luminometer
 int timing_setting;
 boolean luxOn;
 
-int tsl_gain[4] = { TSL2591_GAIN_LOW,   //    1X
-		   TSL2591_GAIN_MED,   //   25X
-		   TSL2591_GAIN_HIGH,  //  428X
-		   TSL2591_GAIN_MAX }; // 9876X
+tsl2591Gain_t
+tsl_gain[4] = { TSL2591_GAIN_LOW,   //    1X
+	        TSL2591_GAIN_MED,   //   25X
+		TSL2591_GAIN_HIGH,  //  428X
+		TSL2591_GAIN_MAX }; // 9876X
 
-// tsl2591Timing_t
-int tsl_timing[6] = { TSL2591_INTEGRATIONTIME_100MS,
-		      TSL2591_INTEGRATIONTIME_200MS,
-		      TSL2591_INTEGRATIONTIME_300MS,
-		      TSL2591_INTEGRATIONTIME_400MS,
-		      TSL2591_INTEGRATIONTIME_500MS,
-		      TSL2591_INTEGRATIONTIME_600MS };
+tsl2591IntegrationTime_t
+tsl_timing[6] = { TSL2591_INTEGRATIONTIME_100MS,
+	          TSL2591_INTEGRATIONTIME_200MS,
+		  TSL2591_INTEGRATIONTIME_300MS,
+		  TSL2591_INTEGRATIONTIME_400MS,
+		  TSL2591_INTEGRATIONTIME_500MS,
+		  TSL2591_INTEGRATIONTIME_600MS };
 
 void lux_set_timing(int t)
 {
@@ -210,19 +211,19 @@ char reply[40];
 WIFI w = WIFI();
 #endif
 
-void printTermInt(char *f,int a)
+void printTermInt(const char *f,int a)
 {
   sprintf(reply, "%s(%d).",f,a);
   soutln(reply);
 }
 
-void printTermUInt(char *f,uint16_t a)
+void printTermUInt(const char *f,uint16_t a)
 {
   sprintf(reply, "%s(%u).",f,a);
   soutln(reply);
 }
 
-void printTerm2Int(char *f,int a,int b)
+void printTerm2Int(const char *f,int a,int b)
 {
   sprintf(reply, "%s(%d,%d).",f,a,b);
   soutln(reply);
