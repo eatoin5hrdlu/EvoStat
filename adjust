@@ -3,9 +3,49 @@
 % The PID algorithm will call get_input/2 and set_output/3,
 % but their implementation is PID independent, so they live here.
 
-inTimeRange(X) :- minTime(Min), X >= Min, maxTime(Max), X =< Max.
-minTime(300).
-maxTime(20000).
+% 
+% Maintaining a given flow rate must be possible with
+% input and output valve timings between these limits.
+%
+% This could end up being an empirically derived table,
+% but we will try a simple mathematical model because
+% we only need min/max limits on valve timings, not
+% a precise relationship with flow rates.
+% 
+% 1) Lagoons be very different from the Cellstat.
+% 2) Input/Output valve cycle schedules can be different.
+%
+% Eg. Lagoon input time is in ms every 30 seconds
+%     Lagoon output time is in ms every 90 seconds
+%     Cellstat input time is in ms every 20 seconds
+%     Cellstat output time is in ms every 90 seconds
+%
+flowRateTable(lagoon,Rate,MinVin,MaxVin,MinVout,MaxVout) :-
+          MinVin is integer(Rate * 100),
+          MaxVin is integer(Rate * 600),
+          MinVout is integer(Rate * 100),
+          MaxVout is integer(Rate * 600).
+flowRateTable(cellstat,Rate,MinVin,MaxVin,MinVout,MaxVout) :-
+          MinVin is integer(Rate * 100),
+          MaxVin is integer(Rate * 600),
+          MinVout is 0,  % Lagoons could consume all host cells
+          MaxVout is integer(Rate * 600).
+
+inTimeRange(Obj,Val,Dir) :-
+     component(_,Type,Obj),
+     get(Obj,tf,Rate),
+     valveTimeRange(Dir,Type,Rate,Val).
+
+valveTimeRange(in, Type, Rate, Val) :-
+     flowRateTable(Type,Rate,Min,Max,_,_),
+     Val >= Min, Val =< Max.
+
+valveTimeRange(out, Type, Rate, Val) :-
+     flowRateTable(Type,Rate,_,_,Min,Max),
+     Val >= Min, Val =< Max.
+	  
+	  
+
 
 initPID :-
 	pid_controllers(Cs),
@@ -34,15 +74,15 @@ set_output(Obj, Old, New) :-
 adjust(Obj, Inflow) :-
      component_index(Obj,N),  % Index determines valve
      index_valve(N,InValve,OutValve),
-     adjust_valve(Obj,InValve,Inflow), 
+     adjust_valve(Obj,InValve,Inflow, in), 
      component(_,sampler,SObj),
      Outflow is -Inflow,
-     adjust_valve(SObj,OutValve,Outflow).
+     adjust_valve(SObj,OutValve,Outflow, out).
 
-adjust_valve(Obj, Valve, Amt) :-
+adjust_valve(Obj, Valve, Amt, Dir) :-
       get(Obj, Valve, Setting),
       New is Setting + Amt,
-      ( inTimeRange(New)
+      ( inTimeRange(Obj, New, Dir)
        -> send(Obj, Valve, New),
       	  assert(changed(Obj,Valve,Amt)),
 	  @Name = Obj,

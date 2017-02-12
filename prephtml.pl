@@ -19,7 +19,7 @@ refresh(Obj,Var,Value) :-
        plog(refreshing(webValue(Obj,Var,Value))),
        assert(webValue(Obj,Var,Value)),
        !.
-refresh(_,_,_).
+refresh(_,_,_). % Succeeds if no webValue/3
 
 nl --> html_syntax, !, [br([])].
 nl --> ['\n'].
@@ -48,8 +48,12 @@ label(level, Obj) -->
                       getx(Obj,l),
 		      getx(Obj,levelUnits).
 
-label(lux, Obj) --> getx(Obj,f),
-		    getx(Obj,fluxUnits).
+label(lux, Obj) --> { get(Obj,f,Lux),
+                      component(_,cellstat,CObj),
+                      get(CObj,b,OD),
+                      RLU is Lux/OD },
+                    [Lux,' '], getx(Obj, fluxUnits),
+                    ['  ', RLU, '  '], getx(Obj,rlUnits), nl.
 
 label(od, Obj) --> od600,
                    ['  .'], getx(Obj,tb),

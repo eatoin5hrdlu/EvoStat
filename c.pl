@@ -604,12 +604,14 @@ setup_web_values :-
 web_values(lagoon) :-
     component(_C, lagoon, Obj),
     assert(webValue(Obj,tt,0)),
-    assert(webValue(Obj,tl,0)).
+    assert(webValue(Obj,tl,0)),
+    assert(webValue(Obj,tf,0)).
 web_values(cellstat) :-
     component(_, cellstat, Obj),
     assert(webValue(Obj,tt,0)),
     assert(webValue(Obj,tb,0)),
-    assert(webValue(Obj,tl,0)).
+    assert(webValue(Obj,tl,0)),
+    assert(webValue(Obj,tf,0)).
 
 evostat_running :-
     shell('./multiples',1),
@@ -671,3 +673,6 @@ new_value(Attr=Value) :-
 backgroundImage(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'.png'],ImageFile).
+backgroundSettings(ImageFile) :-
+    config_name(Name,_),
+    concat_atom(['./images/',Name,'_Settings.png'],ImageFile).

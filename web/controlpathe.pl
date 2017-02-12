@@ -23,7 +23,7 @@ inputItem(Type) --> [ Name ], var_label(P),
 
 inputItems(Type) --> {findall(I,inputItem(Type,I,[]),Is)}, Is.
 
-evoStatFields --> inputItem(cellstat), inputItems(lagoon).
+evoStatFields --> inputItems(cellstat), inputItems(lagoon).
 
 controlpathe(_Req) :-
     backgroundSettings(BackPlate),
