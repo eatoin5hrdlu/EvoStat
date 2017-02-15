@@ -70,3 +70,37 @@ Change it in c.pl to 80 or 8080 for normal web service.
 Changing the Icon on a Prolog saved-state:
 
              chicon.exe saved.exe myapp.ico myapp.exe
+
+
+###########################
+Procedure for operating the EvoStat:
+
+Sterilize Supply and Drain Valves with 1M NaOH
+
+Install Valves
+
+Autoclave Cellstat and Lagoon vessels
+
+Autoclave Nutrient/Inducers in conainers
+
+Install supply vessels on top of EvoStat and connect to supply valves
+
+Connect supply valves to Cellstat
+
+Open bypass valve to fill Cellstat with Nutrient
+
+Close bypass valve when Cellstat Level is at desired set point (85%)
+
+Inject host cells into Cellstat when target temperature is reached.
+
+Normal flow control begins when OD target has been reached.
+
+Infect laggons with phage.
+
+Regular texts will be sent to report EvoStat status.
+	Each text includes the URL to EvoStat status/control page.
+Exceptional texts will be sent if:
+	1) temperature / turbidity / level / flow out of range
+	2) leak has been detected
+
+
