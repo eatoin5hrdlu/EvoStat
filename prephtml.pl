@@ -16,16 +16,19 @@ component(Name, Type, Obj) --> {component(Name,Type,Obj)}, [Name].
 refresh(Obj,Var,Value) :-
        webValue(Obj,Var,_),
        retractall(webValue(Obj,Var,_)),
-       plog(refreshing(webValue(Obj,Var,Value))),
+%       plog(refreshing(webValue(Obj,Var,Value))),
        assert(webValue(Obj,Var,Value)),
        !.
-refresh(_,_,_). % Succeeds if no webValue/3
+refresh(_,_,_). % Always succeeds, even if if no webValue/3
 
 nl --> html_syntax, !, [br([])].
 nl --> ['\n'].
 
 od600 --> html_syntax, !, ['OD', sub(600)].
 od600 --> ['OD600'].
+
+floatfmt(N,[A|T],T) :-
+     format(atom(A),'~4E',[N]).
 
 % Divide by 10 and present as 4-digit float because
 % Internal temperatures integral tenths of degrees C.
@@ -35,7 +38,7 @@ float_tenths(Obj,Thing) --> [Display],
 
       refresh(Obj,Thing,InTenths),
       DispTemp is float(InTenths)/10.0,
-      format(atom(Display), '~4g', [DispTemp]) }.
+      format(atom(Display), '~4G', [DispTemp]) }.
 
 
 label(temperature, Obj) --> ['Temperature '],
@@ -51,9 +54,9 @@ label(level, Obj) -->
 label(lux, Obj) --> { get(Obj,f,Lux),
                       component(_,cellstat,CObj),
                       get(CObj,b,OD),
-                      RLU is Lux/OD },
+                      RLU is Lux/OD  },
                     [Lux,' '], getx(Obj, fluxUnits),
-                    ['  ', RLU, '  '], getx(Obj,rlUnits), nl.
+                    [' '], floatfmt(RLU), [' '], getx(Obj,rlUnits), nl.
 
 label(od, Obj) --> od600,
                    ['  .'], getx(Obj,tb),
