@@ -86,6 +86,6 @@ adjust_valve(Obj, Valve, Amt, Dir) :-
        -> send(Obj, Valve, New),
       	  assert(changed(Obj,Valve,Amt)),
 	  @Name = Obj,
-	  plog(adjusted(Name,Valve,New))
-       ;  plog('VALVE LIMIT'(Valve,Setting))
+	  flog(adjusted(Name,Valve,New))
+       ;  flog('VALVE LIMIT'(Valve,Setting))
       ).
