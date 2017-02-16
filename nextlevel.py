@@ -1,5 +1,5 @@
-#!C:/cygwin/Python27/python -u
 #!/usr/bin/python -u
+#!C:/cygwin/Python27/python -u
 from __future__ import print_function
 import sys, os, time, socket
 from suppress_stdout_stderr import suppress_stdout_stderr
@@ -151,11 +151,14 @@ def showCoord(img,pt,color,size) :
     cv2.putText(img,str(pt), pt,
                 cv2.FONT_HERSHEY_PLAIN,size,color,size)
 
-def showLevel(img, bb, lvl, color) :  # Return distance from top
+def showLevel(img, bb, lvl, color) :  # Return % from bootom
     height = bb[2]-bb[0]
-    w2 = bb[3]-bb[1]/2
-    (px,py) = ( bb[3]-w2, bb[0]+lvl )
-    pc = 100-100*lvl/height
+    w2 = (bb[3]-bb[1])/2
+    (px,py) = ( bb[3], bb[0]+lvl )
+    if (lvl == 0) :
+        pc = 0
+    else :
+        pc = 100-100*lvl/height
     cv2.line(img,(px,py),(px+w2,py), color, 2)
     cv2.putText(img,"  "+str(pc)+"%",(px-10,py-8),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.75, color,2)
@@ -209,11 +212,7 @@ def getLevel(image, bb, color, con) :
     plog("contrast tuple = " + str(con))
     (it, sc, off) = con
     lvl = level(contrast(mono,it,sc,off))
-    if (lvl == -1):
-        return -1
     plog("getLevel() "+str(lvl))
-    if (lvl == None or lvl > bb[2] ) :
-        plog("getLevel failed")
     if (lvl > 0 and lvl < bb[2]) : # Level in range
         return lvl
     plog(str(lvl) + " out of range :" + str(bb))
@@ -250,6 +249,8 @@ def lagoon_level_bbox_xy(lnum) :
 if __name__ == "__main__" :
     plog("openCV('" + str(cv2.__version__) + "').")
     params = settings()
+    if ('show' in sys.argv) :
+        params['debugpause'] = 1000
     cam = cv2.VideoCapture(params['camera'])
     for i in range(30) : # Discard first (split) frame and
         cam.read()       # let exposure settings settle
@@ -270,11 +271,16 @@ if __name__ == "__main__" :
     for i in range(params['numLagoons']) :
         ( (lx1,ly1), (lx2,ly2) ) = lagoon_level_bbox_xy(i)
         lbb = (ly1,lx1,ly2,lx2)
-        llev = getLevel( img2,
-                         lbb,
-                         green,
-                         params['lagoonContrast'])
-        plog("LBB " + str(lbb) + " level " + str(llev))
+        llev = 0
+        tries = 5
+        while (llev == 0 and tries > 0) :
+            llev = getLevel( img2,
+                             lbb,
+                             green,
+                             params['lagoonContrast'])
+            plog("LBB " + str(lbb) + " level " + str(llev))
+            tries = tries - 1
+            img2 = grab() # keep trying
         llist.append(showLevel(img, lbb, llev, (128,128,255)))
     (wi,he,de) = img.shape
     cv2.putText(img,time.asctime(time.localtime()),(wi/16,3*he/4),

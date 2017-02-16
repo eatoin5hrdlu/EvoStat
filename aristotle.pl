@@ -5,13 +5,13 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(110,220,310,270),
+         cellstatRegion(70,220,280,270),
 %         cellstatRegion(205,250,400,310),
-         cellstatContrast(2, 1.6, -70), % Iterations, Multiply, Subtract
+         cellstatContrast(2, 1.4, -70), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
-         lagoonContrast(  2, 2.4, -50),
+         lagoonContrast(  2, 3.3, -50),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
@@ -25,7 +25,7 @@ config( [
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
-		 cellstat(newcellstat,below, [tb(400),shape(36,12),CF]),
+		 cellstat(newcellstat,below, [tb(400),shape(36,13),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
@@ -33,15 +33,15 @@ config( [
 		 lagoon( lagoond2, right,    [TL, LS, LF]),
 		 lagoon( lagoon3, right,   [TL, LS, LF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
-		 sampler(autosampler, next_row, [shape(40,12),up(45),SF])
+		 sampler(autosampler, next_row, [shape(40,10),up(45),SF])
                 ])
 	 ]) :-
- Supply = shape(10,5),
- LS = shape(31,12),
+ Supply = shape(10,4),
+ LS = shape(31,13),
  TL = tl(31),
- LF = font(font(times,roman,20)),
- CF = font(font(times,roman,18)),
- SF = font(font(times,roman,20)).
+ LF = font(font(times,roman,18)),
+ CF = font(font(times,roman,16)),
+ SF = font(font(times,roman,18)).
 
 % When testing with no devices, uncomment next line for fast startup.
 % bt_address(Name, Addr) :- !, fail.
@@ -80,7 +80,7 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
-watcher(reintjes,'vp 9194525098', 12).  % Peter Reintjes
+watcher(reintjes,'vp 9194525098',  6).  % Peter Reintjes
 %watcher(laurie,  'vp 9196987470', 24).   % Laurie Betts
 %watcher(pc,      'a 9193083839',  8).  % The Other Peter
 %watcher(marshall,'a 5056037415', 8).   % Marshall

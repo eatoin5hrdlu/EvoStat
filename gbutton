@@ -50,14 +50,7 @@ parse_reply_arg1(Reply, Functor, Arg1) :-
 getIPfromMAC(_,_) :- fail.
 
 snapshot(Path, FileName) :-
-	directory_files(Path,FileList),
-	member(IFile,FileList),
-	atom_codes(IFile,ICs),
-	append("mypic",_,ICs),
-	concat_atom([Path,IFile],FileName),
-	!.
-snapshot(Path, Filename) :-
-	concat_atom([Path,'opencvlevel.jpg'], Filename).
+	concat_atom([Path,'web/phagestat.jpg'],FileName).
 
 :- dynamic tog/1.
 toggle('mypic1.jpg','mypic2.jpg') :- tog(2), retract(tog(2)),assert(tog(1)).
@@ -105,7 +98,7 @@ variable(maxfi,            int := 1400, both, "Max Input valve ms"      ).
 variable(minfo,            int := 400,  both, "Min Output valve ms"     ).
 variable(maxfo,            int := 1400, both, "Max Output valve ms"     ).
 variable(levelUnits,       name := '%', both, "% or mL (usually)"       ).
-variable(turbidityUnits,   name := 'OD600', both,"Optical Density"      ).
+variable(turbidityUnits,   name := 'OD(600)', both,"Optical Density"      ).
 variable(temperatureUnits, name := 'C', both, "Degrees Centigrade"      ).
 variable(flowUnits,        name := 'Vol/hr', both, "Vol/hr"             ).
 variable(fluxUnits,        name := 'lux',    both, "lux"                ).
@@ -117,11 +110,7 @@ initialise(Self, Label:[name]) :->
         send(Self, myname, Label),
 	retractall(changed(Self,_,_)),
 	send(Self, slot, l,  30),
-	send(Self, slot, tl, 87),
-	send(Self, slot, levelUnits,   'mL'),
-	send(Self, slot, temperatureUnits, 'C'),
-	send(Self, slot, turbidityUnits,   'OD(600)'),
-	send(Self, slot, fluxUnits,        'lux'),
+	send(Self, slot, tl, 71),
 	send(Self, slot, socket, @nil),
 	new(Code,  message(Self, show_conversation)),
 

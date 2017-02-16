@@ -158,6 +158,6 @@ evostatName(_,Name) :- config_name(Name,_).
 
 defaultHead(Title,
   [ title(Title),
-    meta(['http-equiv'(refresh),content(10)],[]),% refresh
+    meta(['http-equiv'(refresh),content(20)],[]),% refresh
     script([ language(javascript) ],[])]).
 

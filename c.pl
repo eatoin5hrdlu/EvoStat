@@ -239,8 +239,8 @@ check_error(_).               % Everything else is not an error
 get_level(Type) :-
     python(Python),
     evostat_directory(Dir),
-    concat_atom([Dir,'levels.py'],LEVELS),
-    CmdLine = [LEVELS,Type],
+    concat_atom([Dir,'nextlevel.py'],LEVELS),
+    CmdLine = [LEVELS],
     ( retract(levelStream(Type,Previous)) ->
 	catch( read(Previous, Info),
 	       Ex,
@@ -673,6 +673,7 @@ new_value(Attr=Value) :-
 backgroundImage(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'.png'],ImageFile).
+
 backgroundSettings(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'_Settings.png'],ImageFile).
