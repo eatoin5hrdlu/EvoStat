@@ -5,9 +5,9 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(70,220,280,270),
+         cellstatRegion(70,200,280,250),
 %         cellstatRegion(205,250,400,310),
-         cellstatContrast(2, 1.4, -70), % Iterations, Multiply, Subtract
+         cellstatContrast(1, 1.2, -90), % Iterations, Multiply, Subtract
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
@@ -25,7 +25,7 @@ config( [
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
-		 cellstat(newcellstat,below, [tb(400),shape(36,13),CF]),
+		 cellstat(newcellstat,below, [tb(400),shape(36,14),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
@@ -36,8 +36,8 @@ config( [
 		 sampler(autosampler, next_row, [shape(40,10),up(45),SF])
                 ])
 	 ]) :-
- Supply = shape(10,4),
- LS = shape(31,13),
+ Supply = shape(11,4),
+ LS = shape(31,14),
  TL = tl(31),
  LF = font(font(times,roman,18)),
  CF = font(font(times,roman,16)),

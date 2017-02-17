@@ -20,32 +20,35 @@
 %     Cellstat input time is in ms every 20 seconds
 %     Cellstat output time is in ms every 90 seconds
 %
-flowRateTable(lagoon,Rate,MinVin,MaxVin,MinVout,MaxVout) :-
-          MinVin is integer(Rate * 100),
-          MaxVin is integer(Rate * 600),
-          MinVout is integer(Rate * 100),
-          MaxVout is integer(Rate * 600).
-flowRateTable(cellstat,Rate,MinVin,MaxVin,MinVout,MaxVout) :-
-          MinVin is integer(Rate * 100),
-          MaxVin is integer(Rate * 600),
-          MinVout is 0,  % Lagoons could consume all host cells
-          MaxVout is integer(Rate * 600).
 
-inTimeRange(Obj,Val,Dir) :-
+:- dynamic dynamicFlowRateTable/5.
+:- multifile dynamicFlowRateTable/5.
+% Assert can override Min/Max flow rate table for any component.
+
+flowRateTable(Type,Dir,Rate,Min,Max) :-
+          dynamicFlowRateTable(Type,Dir,Rate,Min,Max),!.
+
+flowRateTable(lagoon,in, Rate,MinVin,MaxVin) :-
+          MinVin is integer(Rate * 100),
+          MaxVin is integer(Rate * 2000),
+	  !.
+flowRateTable(lagoon,out, Rate,MinVout,MaxVout) :-
+          MinVout is integer(Rate * 100),
+          MaxVout is integer(Rate * 2000).
+flowRateTable(cellstat,in,Rate,MinVin,MaxVin) :-
+          MinVin is integer(Rate * 100),
+          MaxVin is integer(Rate * 2000),
+	  !.
+flowRateTable(cellstat,out, Rate,MinVout,MaxVout) :-
+          MinVout is 0,  % Lagoons might consume all host cells
+          MaxVout is integer(Rate * 2000).
+
+inTimeRange(Obj, Val, Dir, NewVal) :-
      component(_,Type,Obj),
      get(Obj,tf,Rate),
-     valveTimeRange(Dir,Type,Rate,Val).
-
-valveTimeRange(in, Type, Rate, Val) :-
-     flowRateTable(Type,Rate,Min,Max,_,_),
-     Val >= Min, Val =< Max.
-
-valveTimeRange(out, Type, Rate, Val) :-
-     flowRateTable(Type,Rate,_,_,Min,Max),
-     Val >= Min, Val =< Max.
-	  
-	  
-
+     flowRateTable(Type,Dir,Rate,Min,Max),
+     compare_minmax(Op, Val, Min, Max),
+     constrain(Op,Min,Max,Val,NewVal).
 
 initPID :-
 	pid_controllers(Cs),
@@ -74,18 +77,18 @@ set_output(Obj, Old, New) :-
 adjust(Obj, Inflow) :-
      component_index(Obj,N),  % Index determines valve
      index_valve(N,InValve,OutValve),
-     adjust_valve(Obj,InValve,Inflow, in), 
-     component(_,sampler,SObj),
+     adjust_valve(Obj,Obj,InValve,Inflow, in), 
+     component(_,sampler,VObj),
      Outflow is -Inflow,
-     adjust_valve(SObj,OutValve,Outflow, out).
+     adjust_valve(Obj,VObj,OutValve,Outflow, out).
 
-adjust_valve(Obj, Valve, Amt, Dir) :-
-      get(Obj, Valve, Setting),
+adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-
+      @Name = Obj,
+      @VName = ValveObj,
+      flog(adjusting(Name,VName,Valve,Amt,Dir)),
+      get(ValveObj, Valve, Setting),
       New is Setting + Amt,
-      ( inTimeRange(Obj, New, Dir)
-       -> send(Obj, Valve, New),
-      	  assert(changed(Obj,Valve,Amt)),
-	  @Name = Obj,
-	  flog(adjusted(Name,Valve,New))
-       ;  flog('VALVE LIMIT'(Valve,Setting))
-      ).
+      inTimeRange(Obj, New, Dir, Actual),
+      send(ValveObj, Valve, Actual),
+      assert(changed(Obj,Valve,Amt)),
+      flog(adjusted(Name,VName,Valve,old(Setting),delta(Amt),new(New),actual(Actual))).

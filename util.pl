@@ -47,6 +47,15 @@ timer_reset :-
 
 plog(Term) :- write(user_error,Term),nl(user_error).
 
+:- dynamic flowStream/1.
+flog(Term) :- flowStream(S),
+	      !,
+	      write(S,Term),nl(S),flush_output(S).
+
+flog(Term) :- open('flog.txt',write,S,[]),
+	      assert(flowStream(S)),
+	      flog(Term).
+
 logging :- windows, !, retractall(logfile(_)).
 logging :- ( logfile(File)
             -> tell(File),
@@ -191,3 +200,18 @@ window_percent(WFraction,HFraction,W,H) :-
 	screen(DW,DH, WW, WH, _Loc),
 	W is integer(DW*WW*WFraction/10000),
 	H is integer(DH*WH*HFraction/11000).
+
+compare_delta(Op, A, Base, Delta) :-
+    Min is Base - Delta,
+    Max is Base + Delta,
+    compare_minmax(Op,Min,Max,A).
+
+compare_minmax(>,  _,Max,Val) :- Val > Max, !.
+compare_minmax(<,Min,  _,Val) :- Val < Min, !.
+compare_minmax(=,  _,  _,  _).
+
+constrain(>,  _,Max, _,Out) :- Out = Max.
+constrain(<,Min,  _, _,Out) :- Out = Min.
+constrain(=,  _,  _,In, In).
+			 
+		    

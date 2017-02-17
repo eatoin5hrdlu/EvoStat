@@ -77,7 +77,8 @@ compute :-
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)),
 	( in_deadzone(SetPoint, Output) -> write('.'),flush_output
-        ; set_output(Id, Input, Output),plog(pidOUT(Id,Input,Output))
+        ; flog(pid(Id,Input,Output)),
+	  set_output(Id, Input, Output)
 	).
 
 in_deadzone(V1,V2) :- deadzone(D), N is abs(V1-V2), N<D.

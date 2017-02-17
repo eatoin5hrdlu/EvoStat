@@ -259,10 +259,6 @@ leak_color(definite, red).
 leak_color(      no, blue).
 leak_color(possible, orange).
 
-compare_delta(>,A,B,Delta) :- Upper is B+Delta, A > Upper, !.
-compare_delta(<,A,B,Delta) :- Lower is B-Delta, A < Lower, !.
-compare_delta(=,_,_,_).
-
 check_leak :-
 	component(_,cellstat,Obj),
 	get(Obj, a0, N),

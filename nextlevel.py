@@ -156,7 +156,7 @@ def showLevel(img, bb, lvl, color) :  # Return % from bootom
     w2 = (bb[3]-bb[1])/2
     (px,py) = ( bb[3], bb[0]+lvl )
     if (lvl == 0) :
-        pc = 0
+        pc = 100
     else :
         pc = 100-100*lvl/height
     cv2.line(img,(px,py),(px+w2,py), color, 2)
@@ -262,12 +262,11 @@ if __name__ == "__main__" :
             else :
                 plog("Update OpenCV (can't find moveWindow)")
     img = grab()
-    img2 = img           # img2 = addImages(img,4) # add frames
-    plog("alllevels: " + str(img2.shape))
     brect = params['cellstatRegion']
     lev = getLevel(img, brect, blue, params['cellstatContrast'])
     plog("CBB " + str(brect) + " level " + str(lev))
-    llist = [ showLevel(img, brect, lev, (255,255,0)) ]
+    llist = [ showLevel(img, brect, lev, (0,255,255)) ]
+    img2 = img
     for i in range(params['numLagoons']) :
         ( (lx1,ly1), (lx2,ly2) ) = lagoon_level_bbox_xy(i)
         lbb = (ly1,lx1,ly2,lx2)
