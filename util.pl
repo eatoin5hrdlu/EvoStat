@@ -52,7 +52,7 @@ flog(Term) :- flowStream(S),
 	      !,
 	      write(S,Term),nl(S),flush_output(S).
 
-flog(Term) :- open('flog.txt',write,S,[]),
+flog(Term) :- open('web/flog.txt',write,S,[]),
 	      assert(flowStream(S)),
 	      flog(Term).
 
