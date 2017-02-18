@@ -213,5 +213,4 @@ compare_minmax(=,   _,   _,  _).
 constrain(>,  _,Max, _,Out) :- Out = Max.
 constrain(<,Min,  _, _,Out) :- Out = Min.
 constrain(=,  _,  _,In, In).
-			 
-		    
+

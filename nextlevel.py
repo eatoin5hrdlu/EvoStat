@@ -94,7 +94,7 @@ def dilateErode(img,iter=1, dilate=1, erode=1) :
         img = cv2.erode(img,kernal,iterations=erode)
     return img
 
-def contrast(image, iter=1, scale=2.0, offset=-80) :
+def contrast(image, thresh, iter=1, scale=2.0, offset=-80) :
     if (image == None) :
         plog("contrast called with null Image")
     for i in range(iter) :
@@ -106,7 +106,7 @@ def contrast(image, iter=1, scale=2.0, offset=-80) :
         image = cv2.add(cv2.multiply(image,scale),offset)
         if (image == None) :
             plog( "image(None) after add/mulitply in contrast!")
-    (ret,img) = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+    (ret,img) = cv2.threshold(image, thresh, 255, cv2.THRESH_BINARY)
     showUser(img,label= ("cdone",img.shape[0]/2,img.shape[1]/2) )
     img = dilateErode(img, 3, 2, 1)
     if (not ret) :
@@ -204,14 +204,14 @@ def level(img) :
                     plog( " NOT RIGHT " + str(l) + " H = " + str(h))
     return topline
 
-def getLevel(image, bb, color, con) :
+def getLevel(image, bb, color, thresh, con) :
     """Level value is a y position in the region"""
     frame = cropImage(image, bb)
     mono = frame[:,:,color]
     showUser(mono)
     plog("contrast tuple = " + str(con))
     (it, sc, off) = con
-    lvl = level(contrast(mono,it,sc,off))
+    lvl = level(contrast(mono, thresh, it,sc,off))
     plog("getLevel() "+str(lvl))
     if (lvl > 0 and lvl < bb[2]) : # Level in range
         return lvl
@@ -263,7 +263,9 @@ if __name__ == "__main__" :
                 plog("Update OpenCV (can't find moveWindow)")
     img = grab()
     brect = params['cellstatRegion']
-    lev = getLevel(img, brect, blue, params['cellstatContrast'])
+    lev = getLevel(img, brect, blue,
+                   params['cellstatThreshold'],
+                   params['cellstatContrast'])
     plog("CBB " + str(brect) + " level " + str(lev))
     llist = [ showLevel(img, brect, lev, (0,255,255)) ]
     img2 = img
@@ -276,6 +278,7 @@ if __name__ == "__main__" :
             llev = getLevel( img2,
                              lbb,
                              green,
+                             params['lagoonThreshold'],
                              params['lagoonContrast'])
             plog("LBB " + str(lbb) + " level " + str(llev))
             tries = tries - 1

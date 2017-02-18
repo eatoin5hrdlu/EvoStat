@@ -4,7 +4,8 @@
 		  limit/4,
 		  compute/0    ]).
 :- use_module(library(apply)).
-:- dynamic stop_controllers/0, iterm/4, state/8.
+
+:- dynamic deadzone/1, stop_controllers/0, iterm/4, state/8.
 %
 % Proportional/Integral/Differential (PID) control
 % state machine via assert/retract of iterm/4, state/8.
@@ -76,9 +77,10 @@ compute :-
 	limit(PID, Min, Max, Output),    % Keep within bounds
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)),
-	( in_deadzone(SetPoint, Output) -> write('.'),flush_output
-        ; flog(pid(Id,Input,Output)),
-	  set_output(Id, Input, Output)
+	( in_deadzone(SetPoint, Input)
+	-> flog(deadzone(SetPoint,Input,Output))
+         ; flog(pid(Id,Input,Output)),
+ 	  set_output(Id, Input, Output)
 	).
 
 in_deadzone(V1,V2) :- deadzone(D), N is abs(V1-V2), N<D.

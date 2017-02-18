@@ -212,6 +212,7 @@ send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 
 send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
     Levels =.. [levels|Ls],
+    flog(Levels),
     send_levels(Ls,0).
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
@@ -562,6 +563,7 @@ c(Name) :-
     send(@gui?frame, icon, bitmap('./evo.xpm')),
     prep,     % Initial data for web pages
     assert(webok),
+    showFlowRateTable,
     start_http,
     get(@gui, prompt, Reply),
     (Reply = quit ->

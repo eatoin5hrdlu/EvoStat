@@ -34,7 +34,12 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( push(S1,N1:name) :-> "Push value to Arduino"::
                               get(S1,N1,V1),
 	                      concat_atom([N1,V1],Cmd),
-	                      (send(S1,converse,Cmd)->true;true)
+	                      (send(S1,converse,Cmd)
+                               -> PushStatus = succeeded
+			       ;  PushStatus = failed
+			      ),
+	                      S1 = @Npush,
+	                      flog(push(Npush,N1,V1,PushStatus))
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
 	                      send(S2,converse,N2),
@@ -42,8 +47,10 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	                      parse_reply_arg1(Reply, N2, V2),
 			      nonvar(N2),
 			      nonvar(V2),
-			      send(S2, N2, V2)
-			      ; plog(failed(N2))
+	                      send(S2, N2, V2),
+                              !,
+	                      S2 = @Npull, flog(pull(Npull,N2,V2,succeeded))
+			      ; S2 = @Npull,flog(pull(Npull,N2,failed))
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::

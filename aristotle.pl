@@ -5,13 +5,14 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(70,200,280,250),
-%         cellstatRegion(205,250,400,310),
-         cellstatContrast(1, 1.2, -90), % Iterations, Multiply, Subtract
+         cellstatRegion(100,200,280,250),
+	 cellstatContrast(1, 1.05, -110), % Iterations, Multiply, Subtract
+	 cellstatThreshold(144),
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
          lagoonContrast(  2, 3.3, -50),
+	 lagoonThreshold(127),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
@@ -99,6 +100,8 @@ watcher(reintjes,'vp 9194525098',  6).  % Peter Reintjes
 % Undershoot/Overshoot: Modify Kd and maybe Kp
 % Response too slow:    Increase Ki
 
+deadzone(2). % No change needed if param is this close
+    
 pid_controllers([
    pid(cellstat,0.4, 0.3, 0.3, 85, 10, 100, 30),
    pid(lagoon1, 0.4, 0.3, 0.3, 30, 10, 100, 30)]).
