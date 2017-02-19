@@ -23,32 +23,48 @@
 
 :- dynamic dynamicFlowRateTable/5.
 :- multifile dynamicFlowRateTable/5.
+
+showFlowRateTable :-			 
+        flog('FLOW RATE TABLE'),
+        flowRateTable(What,Dir,Rate,Min,Max),
+        Term =.. [What,Dir,Rate,Min,Max],
+        flog(Term),
+        fail.
+showFlowRateTable :- flog(tableDone).
+
 % Assert can override Min/Max flow rate table for any component.
 
-flowRateTable(Type,Dir,Rate,Min,Max) :-
-          dynamicFlowRateTable(Type,Dir,Rate,Min,Max),!.
+chkFlowRateTable(Type,Dir,Rate,Min,Max) :-
+      flowRateTable(Type,Dir,Rate,Min,Max),!.
 
-flowRateTable(lagoon,in, Rate,MinVin,MaxVin) :-
+flowRateTable(Type,Dir,Rate,Min,Max) :-
+          dynamicFlowRateTable(Type,Dir,Rate,Min,Max).
+
+flowRateTable(Type,Dir,Rate,Min,Max) :-
+          member(Type,[lagoon,cellstat]),				    
+          component(_,Type,Obj),
+	  get(Obj,tf,Rate),
+          sFlowRateTable(Type,Dir,Rate,Min,Max).
+
+sFlowRateTable(lagoon,in, Rate,MinVin,MaxVin) :-
           MinVin is integer(Rate * 100),
-          MaxVin is integer(Rate * 2000),
-	  !.
-flowRateTable(lagoon,out, Rate,MinVout,MaxVout) :-
+          MaxVin is integer(Rate * 2000).
+sFlowRateTable(lagoon,out, Rate,MinVout,MaxVout) :-
           MinVout is integer(Rate * 100),
           MaxVout is integer(Rate * 2000).
-flowRateTable(cellstat,in,Rate,MinVin,MaxVin) :-
+sFlowRateTable(cellstat,in,Rate,MinVin,MaxVin) :-
           MinVin is integer(Rate * 100),
-          MaxVin is integer(Rate * 2000),
-	  !.
-flowRateTable(cellstat,out, Rate,MinVout,MaxVout) :-
+          MaxVin is integer(Rate * 2000).
+sFlowRateTable(cellstat,out, Rate,MinVout,MaxVout) :-
           MinVout is 0,  % Lagoons might consume all host cells
           MaxVout is integer(Rate * 2000).
 
 inTimeRange(Obj, Val, Dir, NewVal) :-
      component(_,Type,Obj),
      get(Obj,tf,Rate),
-     flowRateTable(Type,Dir,Rate,Min,Max),
+     chkFlowRateTable(Type,Dir,Rate,Min,Max),
      compare_minmax(Op, Val, Min, Max),
-     constrain(Op,Min,Max,Val,NewVal).
+     constrain(Op, Val, Min, Max, NewVal).
 
 initPID :-
 	pid_controllers(Cs),
@@ -71,16 +87,18 @@ get_input(Component, Level) :-
 %
 
 set_output(Obj, Old, New) :-
-     Inflow is integer(5*(New-Old)),
+     Inflow is integer(10*(New-Old)),
      adjust(Obj, Inflow).
 
 adjust(Obj, Inflow) :-
      component_index(Obj,N),  % Index determines valve
      index_valve(N,InValve,OutValve),
-     adjust_valve(Obj,Obj,InValve,Inflow, in), 
+     adjust_valve(Obj,Obj,InValve,Inflow, in),
+     assert(changed(Obj,InValve,Inflow)),
      component(_,sampler,VObj),
      Outflow is -Inflow,
-     adjust_valve(Obj,VObj,OutValve,Outflow, out).
+     adjust_valve(Obj,VObj,OutValve,Outflow, out),
+     assert(changed(VObj,OutValve,Outflow)).
 
 adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-
       @Name = Obj,
@@ -88,7 +106,9 @@ adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-
       flog(adjusting(Name,VName,Valve,Amt,Dir)),
       get(ValveObj, Valve, Setting),
       New is Setting + Amt,
+      flog(check_range(Name,VName,Valve,Dir,New)),
       inTimeRange(Obj, New, Dir, Actual),
+      flog(sending(VName, Valve,Actual)),
       send(ValveObj, Valve, Actual),
-      assert(changed(Obj,Valve,Amt)),
+      flog(sent),
       flog(adjusted(Name,VName,Valve,old(Setting),delta(Amt),new(New),actual(Actual))).

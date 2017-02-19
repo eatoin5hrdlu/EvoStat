@@ -5,7 +5,7 @@ config( [
 	 numLagoons(1),
          imageSize(580,440),
 
-         cellstatRegion(100,200,280,250),
+         cellstatRegion(120,200,280,250),
 	 cellstatContrast(1, 1.05, -110), % Iterations, Multiply, Subtract
 	 cellstatThreshold(144),
 	 cellstatHeight(230),  % same as 100% of cellstat volume
@@ -103,8 +103,8 @@ watcher(reintjes,'vp 9194525098',  6).  % Peter Reintjes
 deadzone(2). % No change needed if param is this close
     
 pid_controllers([
-   pid(cellstat,0.4, 0.3, 0.3, 85, 10, 100, 30),
-   pid(lagoon1, 0.4, 0.3, 0.3, 30, 10, 100, 30)]).
+   pid(cellstat,0.3, 0.1, 0.0, 85, 10, 100, 30),
+   pid(lagoon1, 0.3, 0.1, 0.0, 30, 10, 100, 30)]).
 
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    

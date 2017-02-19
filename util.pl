@@ -208,9 +208,9 @@ compare_delta(Op, A, Base, Delta) :-
 
 compare_minmax(>, Val,  _, Max) :- Val > Max, !.
 compare_minmax(<, Val, Min,  _) :- Val < Min, !.
-compare_minmax(=,   _,   _,  _).
+compare_minmax(=,   _,   _,  _). % In range
 
-constrain(>,  _,Max, _,Out) :- Out = Max.
-constrain(<,Min,  _, _,Out) :- Out = Min.
-constrain(=,  _,  _,In, In).
+constrain(>, _,    _, Max, Max).
+constrain(<, _,  Min,   _, Min).
+constrain(=,Val,  _,    _, Val).
 
