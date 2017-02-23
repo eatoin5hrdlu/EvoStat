@@ -1,12 +1,13 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python
 from __future__ import print_function
 import os, sys
 import matplotlib.pyplot as plt
 import numpy as np
 import re
 import datetime as dt
-
 import time
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+
 new = open(sys.argv[1],'r')
 current = dt.datetime.now()
 outname = "level."+str(current.day)+"_"+str(current.hour)
