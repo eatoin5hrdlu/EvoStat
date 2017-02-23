@@ -213,10 +213,18 @@ send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
     Levels =.. [levels|Ls],
     flog(Levels),
+    report_temperatures,
     send_levels(Ls,0).
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
 
+report_temperatures :-
+    component(_,cellstat,Co),
+    get(Co,t,CellstatTemp),
+    component(lagoon1,lagoon,Lo),
+    get(Lo,t,LagoonTemp),
+    flog(temps(CellstatTemp,LagoonTemp)).
+    
 % Levels from OpenCV/python camera program
 % are stored in object l[evel] variable here.
 % levels(0:cellstat, 1:lagoon1, 2:lagoon2, etc.)
@@ -605,11 +613,13 @@ setup_web_values :-
     
 web_values(lagoon) :-
     component(_C, lagoon, Obj),
+    assert(webValue(Obj, l,0)),
     assert(webValue(Obj,tt,0)),
     assert(webValue(Obj,tl,0)),
     assert(webValue(Obj,tf,0)).
 web_values(cellstat) :-
     component(_, cellstat, Obj),
+    assert(webValue(Obj, l,0)),
     assert(webValue(Obj,tt,0)),
     assert(webValue(Obj,tb,0)),
     assert(webValue(Obj,tl,0)),

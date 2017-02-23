@@ -70,8 +70,8 @@ initPID :-
 	pid_controllers(Cs),
 	launch_controllers(Cs).
 
-get_input(Component, Level) :-
-        get(Component, l, Level).
+get_input(Name, Type, Value) :-
+	webValue(@Name,Type,Value).
 
 %
 % set_output(Component, Old, New)
@@ -86,18 +86,23 @@ get_input(Component, Level) :-
 % Otherwise it must be the Cellstat's drain 'v0'
 %
 
-set_output(Obj, Old, New) :-
-     Inflow is integer(10*(New-Old)),
-     adjust(Obj, Inflow).
+set_output(Name, Old, New) :-
+     ( component(Name,cellstat,_)
+     -> Inflow is integer(50*(New-Old)) % 1000 mL vessel
+     ;  Inflow is integer(5*(New-Old))  %  100 mL (smaller)
+     ),
+     adjust(@Name, Inflow).
 
 adjust(Obj, Inflow) :-
      component_index(Obj,N),  % Index determines valve
      index_valve(N,InValve,OutValve),
      adjust_valve(Obj,Obj,InValve,Inflow, in),
+     flog(after(adjust_valve1)),
      assert(changed(Obj,InValve,Inflow)),
      component(_,sampler,VObj),
      Outflow is -Inflow,
      adjust_valve(Obj,VObj,OutValve,Outflow, out),
+     flog(after(adjust_valve2)),
      assert(changed(VObj,OutValve,Outflow)).
 
 adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-

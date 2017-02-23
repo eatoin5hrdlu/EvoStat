@@ -103,17 +103,17 @@ watcher(reintjes,'vp 9194525098',  6).  % Peter Reintjes
 deadzone(2). % No change needed if param is this close
     
 pid_controllers([
-   pid(cellstat,0.3, 0.1, 0.0, 85, 10, 100, 30),
-   pid(lagoon1, 0.3, 0.1, 0.0, 30, 10, 100, 30)]).
+   pid(newcellstat,0.1, 0.0, 0.1, 85, 10, 100, 30),
+   pid(lagoon1,    0.1, 0.0, 0.1, 30, 10, 100, 30)]).
 
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    
 %  control(Component, level, InflowTime, Alt-Component, OutflowTime)
-control( cellstat, level, 'v0', autosampler, 'v0').
-control(  lagoon1, level, 'v1', autosampler, 'v1').
-control(  lagoon2, level, 'v1', autosampler, 'v2').
-control(  lagoon3, level, 'v1', autosampler, 'v3').
-control(  lagoon4, level, 'v1', autosampler, 'v4').
+control(newcellstat, level, 'v0', autosampler, 'v0').
+control(  lagoon1,   level, 'v1', autosampler, 'v1').
+control(  lagoon2,   level, 'v1', autosampler, 'v2').
+control(  lagoon3,   level, 'v1', autosampler, 'v3').
+control(  lagoon4,   level, 'v1', autosampler, 'v4').
 
 %%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
 
