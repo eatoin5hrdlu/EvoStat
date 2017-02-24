@@ -5,10 +5,10 @@
 		  compute/0    ]).
 :- use_module(library(apply)).
 
-:- dynamic deadzone/1, stop_controllers/0, iterm/4, state/8.
+:- dynamic deadzone/1, stop_controllers/0, iterm/4, state/9.
 %
 % Proportional/Integral/Differential (PID) control
-% state machine via assert/retract of iterm/4, state/8.
+% state machine via assert/retract of iterm/4, state/9.
 %
 
 pidstop  :- assert(stop_controllers).
@@ -25,33 +25,29 @@ launch_controllers(List) :-
 % iterm( Id, IntegralTerm, LastInput, LastCycleTime )
 %
 % Per-controller information in:
-% state( Id, Kp, Ki, Kd, SetPoint, Min, Max, SampleTime)
+% state( Id, Kp, Ki, Kd, Var, SetPoint, Min, Max, SampleTime)
 
 % Time to next compute cycle for each controller
 next_interval(Interval) :-
 	get_time(Now),
 	iterm(Id, _, _, LastTime),
-	state(Id,_,_,_,_,_,_,DeltaT),
+	state(Id,_P,_I,_D,_V,_S,_MN,_MX,DeltaT),
         Time is DeltaT - (Now - LastTime),
 	limit(Time, 0, DeltaT, Interval).
 
 % Create PID controller from:
-% pid(Name, Kp, Ki, Kd, SetPt, Min, Max, DeltaT)
-% pid(lagoon,0.4,0.2,0.2, 30,   10, 100,  30 )
+% pid(Name, Kp, Ki, Kd, Var, SetPt, Min, Max, DeltaT)
+% pid(lagoon,0.4,0.2,0.2, l, 30,   10, 100,  30 )
 
-% sanity check: pid/9 specification subject to change.
-controller(PID) :-
-	\+ functor(PID,pid,8),
-	!,
-	writeln(error(pid_spec,PID)).
-
-controller(pid(Id,Kp,Ki,Kd,SetPt,Min,Max,DeltaT)) :-
+controller(pid(Id,Kp,Ki,Kd,Var,SetPt,Min,Max,DeltaT)) :-
+        concat_atom([t,Var],Target),
+	send(@Id, slot, Target, SetPt),
 	get_time(Last),
 	LastTime is Last - 1,
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id, SetPt, SetPt, LastTime)),
-	retractall(state(Id,_,_,_,_,_,_,_)),
-	assert(state(Id,Kp,Ki,Kd,SetPt,Min,Max,DeltaT)).
+	retractall(state(Id,_P,_I,_D,_V,_S,_MN,_MX,_Ds)),
+	assert(state(Id,Kp,Ki,Kd,Var,SetPt,Min,Max,DeltaT)).
 
 control :-
 	iterm(_, _, _, _), % requires an active controller
@@ -69,10 +65,10 @@ compute :-
 	iterm(Id, ITerm0, LastInput, LastTime),
 	get_time(Now),
 	Elapsed is Now - LastTime,
-	state(Id, Kp,Ki,Kd, SetPoint, Min, Max, SampleTime),
+	state(Id, Kp,Ki,Kd, Var, SetPoint, Min, Max, SampleTime),
 	Elapsed > SampleTime,
-	get_input(Id, l, Input),         % Get current value
-	flog(got_input(Id,Input)),
+	get_input(Id, Var, Input),       % Get current value
+	flog(got_input(Id,Var,Input)),
 	Error is SetPoint - Input,       % Calculate  Error
 	Integral is ITerm0 + Ki * Error, % New Integral Term
 	limit(Integral,0, Max, ITerm),   % Enforce upper bound (allow zero)
@@ -81,13 +77,13 @@ compute :-
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)),
 	flog(in_out_error(Input,Output,Error)),
-	( in_deadzone(SetPoint, Input)
-	-> flog(deadzone(SetPoint,Input,Output))
-         ; flog(pid(Id,Input,Output)),
- 	  set_output(Id, Input, Output)
+	( in_deadzone(Var, SetPoint, Input)
+	-> flog(deadzone(Var,SetPoint,Input,Output))
+         ; flog(pid(Id,Var,Input,Output)),
+ 	  set_output(Id, Var, Input, Output)
 	).
 
-in_deadzone(V1,V2) :- deadzone(D), N is abs(V1-V2), N<D.
+in_deadzone(Var, V1,V2) :- deadzone(Var, D), N is abs(V1-V2), N<D.
 
 % limit(In, MinValue, MaxValue, Out).
 

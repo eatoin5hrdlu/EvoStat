@@ -110,7 +110,6 @@ initialise(Self, Label:[name]) :->
         send(Self, myname, Label),
 	retractall(changed(Self,_,_)),
 	send(Self, slot, l,  30),
-	send(Self, slot, tl, 71),
 	send(Self, slot, socket, @nil),
 	new(Code,  message(Self, show_conversation)),
 

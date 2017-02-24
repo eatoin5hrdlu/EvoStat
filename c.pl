@@ -83,6 +83,7 @@ camera_reset :- windows, !.   % Null camera reset on Windows
 camera_reset :- \+ camera_exists,  % No camera to reset
 		plog(no_camera),
 		!.
+camera_reset :- !.
 camera_reset :-
     camera_device(Device),
     evostat_directory(Dir),
@@ -325,7 +326,7 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
-	 setup_web_values,
+         setup_web_values,
 	 initPID,                        % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),

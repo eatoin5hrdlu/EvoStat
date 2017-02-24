@@ -91,7 +91,7 @@ expand_type(Type)   -->
         get(Self,tl,TargetLevel),
         Amt is TargetLevel - Level,
         Error is abs(Amt),
-        ( Error < 4 -> true ; adjust(Self,Amt) ))].
+        ( Error < 4 -> true ; adjust(Self,l,Amt) ))].
 
 expand_type(_) --> [(check_level(_) :-> true)].
 
