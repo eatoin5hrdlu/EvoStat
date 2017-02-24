@@ -24,7 +24,9 @@
 :- dynamic dynamicFlowRateTable/5.
 :- multifile dynamicFlowRateTable/5.
 
-showFlowRateTable :-			 
+showFlowRateTable :-
+        timestring(TimeStamp),
+	flog(TimeStamp),
         flog('FLOW RATE TABLE'),
         flowRateTable(What,Dir,Rate,Min,Max),
         Term =.. [What,Dir,Rate,Min,Max],

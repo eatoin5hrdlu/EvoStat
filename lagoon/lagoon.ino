@@ -23,7 +23,111 @@ const char iface[] PROGMEM = {
  */
 #include <avr/wdt.h>
 #include "param.h"
- 
+
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_TSL2591.h>
+
+// void      lux_init(int id)
+// uint16_t  getLux()
+// Gain_t    luxGain()  [0-3]
+// Timing_t  luxTiming()  [0-5])
+// void      lux_details()
+
+Adafruit_TSL2591 tsl;
+int gain_setting;   // Luminometer
+int timing_setting;
+boolean luxOn;
+
+tsl2591Gain_t
+tsl_gain[4] = { TSL2591_GAIN_LOW,   //    1X
+	        TSL2591_GAIN_MED,   //   25X
+		TSL2591_GAIN_HIGH,  //  428X
+		TSL2591_GAIN_MAX }; // 9876X
+
+tsl2591IntegrationTime_t
+tsl_timing[6] = { TSL2591_INTEGRATIONTIME_100MS,
+	          TSL2591_INTEGRATIONTIME_200MS,
+		  TSL2591_INTEGRATIONTIME_300MS,
+		  TSL2591_INTEGRATIONTIME_400MS,
+		  TSL2591_INTEGRATIONTIME_500MS,
+		  TSL2591_INTEGRATIONTIME_600MS };
+
+void lux_set_timing(int t)
+{
+  if (t < 0 || t > 5)
+     printTermInt("e",101);
+  else if (luxOn)
+  {
+	tsl.setTiming(tsl_timing[t]);
+	timing_setting = t;
+  }
+  else 
+       printTermInt("e",99);
+}
+
+void lux_set_gain(int g)
+{
+   if (g < 0 || g > 3 )
+      printTermInt("e",100);
+   else if (luxOn) {
+   	tsl.setGain(tsl_gain[g]);
+	gain_setting = g;
+   } else
+     printTermInt("e",98);
+}
+
+void lux_init(int id)
+{
+  tsl  = Adafruit_TSL2591(id); // pass in id (for you later)
+  if (tsl.begin())
+  {
+        luxOn = true;
+	tsl.setGain(tsl_gain[gain_setting]);
+	tsl.setTiming(tsl_timing[timing_setting]);
+  }
+}
+
+int luxGain(void) // 0-3
+{
+  int i;
+  tsl2591Gain_t gainval = tsl.getGain();
+  for(i=0;i<4;i++)
+    if (gainval == tsl_gain[i]) return i;
+  return -1;
+}
+
+int luxTiming(void) // mSeconds
+{
+  return((tsl.getTiming() + 1)*100);
+}
+
+void lux_details()
+{
+    sensor_t sensor;
+    tsl.getSensor(&sensor);
+    Serial.print  ("Sensor:    "); Serial.println(sensor.name);
+    Serial.print  ("Driver Ver:"); Serial.println(sensor.version);
+    Serial.print  ("Unique ID: "); Serial.println(sensor.sensor_id);
+    Serial.print  ("Max Value: "); Serial.print(sensor.max_value);
+    Serial.println(" lux");
+    Serial.print  ("Min Value: "); Serial.print(sensor.min_value);
+    Serial.println(" lux");
+    Serial.print  ("Resolution:"); Serial.print(sensor.resolution);
+    Serial.println(" lux");  
+    Serial.println("------------------------------------");
+}
+
+uint16_t luxRaw(void)
+{
+	if (luxOn)
+	   return(tsl.getLuminosity(TSL2591_FULLSPECTRUM));
+	else
+	   return(0);
+  //    return(tsl.getLuminosity(TSL2591_VISIBLE));
+  //    return(tsl.getLuminosity(TSL2591_INFRARED));
+}
+
 #include <Servo.h>
 Servo myservo;
 
@@ -40,6 +144,7 @@ void swrite(int val) {
      }
      myservo.write(val);
 }
+
 
 #include "valve.h"        // Includes param.h (change constants there)
 int valveCycleTime = DEFAULT_CYCLETIME;
@@ -254,6 +359,19 @@ char vcmd[3];
 				auto_valve = false;
 			}
 			break;
+		case 'f':
+			switch(c2) 
+			{
+			case 'g':
+			     lux_set_gain(value);
+			     break;
+			case 't':
+			     lux_set_timing(value);
+			     break;
+			default:
+			     printTermUInt("f",luxRaw());
+			}
+			break;
 		case 'h':
 		     switch(d) {
 		        case 0:
@@ -386,6 +504,7 @@ void respondToRequest(void)
  */
 
 boolean once;
+boolean luxOn;
 
 void setup()
 {
@@ -433,6 +552,9 @@ void setup()
 	{
 		saveRestore(RESTORE); // Valve timing copied to valve object
 	}
+	luxOn = false;
+	Serial.println("starting lux_init");
+        lux_init(2591);
 	valve.setCycleTime(valveCycleTime);
 	once = true;
 	auto_temp = true;   // Maintain Temperature Control

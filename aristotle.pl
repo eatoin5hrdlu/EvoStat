@@ -4,15 +4,14 @@ config( [
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
-
-         cellstatRegion(120,200,280,250),
-	 cellstatContrast(1, 1.05, -110), % Iterations, Multiply, Subtract
+         cellstatRegion(180,210,360,260),
+	 cellstatContrast(1, 1.03, -100), % Iterations, Multiply, Subtract
 	 cellstatThreshold(144),
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
-         lagoonContrast(  2, 3.3, -50),
-	 lagoonThreshold(127),
+         lagoonContrast(  2, 3.5, -50),
+	 lagoonThreshold(110),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
