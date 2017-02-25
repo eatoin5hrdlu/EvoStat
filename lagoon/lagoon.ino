@@ -1,12 +1,29 @@
 /*
  * Lagoon controller
  */
-
+/*
+ * WIRING:
+ *  +5V                  Orange
+ *  HEATER (active-low)  Orange-white
+ *  M-LED (active-low)   Blue
+ *  UV-LED (active-low)  Blue-white
+ *  GND                  Green
+ *  MIXER (active-high)  Green-white
+ *  SCL                  Brown
+ *  SDA                  Brown-white
+ */
 const char iface[] PROGMEM = {
    "i( lagoon, ebutton,\n\
-      [ ro( t, int:=369, \"Temperature\"),\n\
-	rw(tt, int:=350, \"Target Temperature\"),\n\
-        rw(v1, int:=1000, \"Host Cell Valve Timing\"),\n\
+      [ ro( t, int:=369,  \"Temperature\"),\n\
+	rw(tt, int:=350,  \"Target Temperature\"),\n\
+	ro( f, int:= 0,   \"Fluorescence\"),\n\
+        rw(fg, int:=2,    \"Fluorescence Gain\"),\n\
+        rw(ft, int:=2,    \"Fluorescence Time\"),\n\
+        rw( l, int:=100,  \"Meniscus LED\"),\n\
+        rw(ms, int:=100,  \"Mixer Motor Speed\"),\n\
+        rw(uv, int:=100,  \"Ultra-violet LED\"),\n\
+        rw(ms, int:=100,  \"Mixer Motor Speed\"),\n\
+        rw(v1, int:=1000, \"Lagoon Valve 1 Timing\"),\n\
         rw(v2, int:=1000, \"Lagoon Valve 2 Timing\"),\n\
         rw(v3, int:=1000, \"Lagoon Valve 3 Timing\"),\n\
         rw(v4, int:=1000, \"Lagoon Valve 4 Timing\")\n\
@@ -24,6 +41,14 @@ const char iface[] PROGMEM = {
 #include <avr/wdt.h>
 #include "param.h"
 
+void printTermInt(char *f,int a)
+{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
+void printTermUInt(char *f, uint16_t a)
+{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
+void printTermFloat(char *f,double a)
+{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
+	
+
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_TSL2591.h>
@@ -37,6 +62,7 @@ const char iface[] PROGMEM = {
 Adafruit_TSL2591 tsl;
 int gain_setting;   // Luminometer
 int timing_setting;
+boolean once;
 boolean luxOn;
 
 tsl2591Gain_t
@@ -151,9 +177,53 @@ int valveCycleTime = DEFAULT_CYCLETIME;
 
 VALVE    valve = VALVE(NUM_VALVES+1, VALVEPIN);      // 5-position valve on pin 9
 
+/*
+ * Temperature Stuff
+ */
 
-#include "temperature.h" 
-TEMPERATURE temp = TEMPERATURE(A0);  // Analog Temperature on pin A0
+void initializeT()
+{
+  static boolean once = true;
+  if (once) { Wire.begin(); once = false; }
+}
+
+#define MLX90614_I2CADDR 0x5A
+#define MLX90614_TOBJ1   0x07
+
+uint16_t objTC(void) {
+  int tenths;
+  uint16_t ret;
+  initializeT();
+  Wire.beginTransmission((uint8_t) MLX90614_I2CADDR); // start transmission
+  Wire.write((uint8_t)MLX90614_TOBJ1);               // send register address for read
+  Wire.endTransmission(false);              // end transmission
+  Wire.requestFrom((uint8_t) MLX90614_I2CADDR, (uint8_t)3);// send data n-bytes read
+  ret = Wire.read();
+  ret |= Wire.read() << 8;                       // read three bytes
+  uint8_t pec = Wire.read();
+  tenths = ((ret<<1)-27315) / 10;  // Tenths of degrees C
+//  Serial.print(ret); Serial.print("  "); Serial.println(tenths);
+  return tenths;
+}
+
+int get_temperature()  // Temperature in tenths of degrees C
+{
+int tries = 4;
+int resets = 2;
+int tmp;
+
+      while(tries-- > 0)
+      {
+	    tmp = objTC();
+	    if (tmp>100  && tmp<800) return tmp;
+	    delayMicroseconds(5000);
+	    if ( tries == 0 && resets-- > 0 )
+	    {
+	       Wire.begin(); delayMicroseconds(5000); tries=4;
+	    }
+      }
+      return 888;
+}
 
 boolean auto_temp;   // Automatically control Heater
 boolean auto_valve;  // Automatically control Valves
@@ -177,7 +247,7 @@ int reading[10];
 
 void checkTemperature()
 {
-int t = temp.celcius();
+int t = get_temperature();
 	if (t < target_temperature)      digitalWrite(HEATER,1);
 	if (t > target_temperature + 5)  digitalWrite(HEATER,0);
 }
@@ -256,7 +326,7 @@ int  *ip = valve.getTimes();
 	Serial.println("cmd(s,'Save settings in EEPROM').");
 
 	Serial.print("cmd(t,[");
-	  Serial.print(temp.celcius());
+	  Serial.print(get_temperature());
 	  Serial.println("],'Get temperature in tenth degrees C').");
 
 	Serial.print("cmd(tt,[");
@@ -287,11 +357,6 @@ void mixer(byte v)
 	}
 }
 
-void printTermInt(char *f,int a)
-{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
-void printTermFloat(char *f,double a)
-{ Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
-	
 #define valveRange(c)  ((c) > '0' && (c) < '5')
 
 boolean lagoon_command(char c1, char c2, int value)
@@ -449,7 +514,7 @@ char vcmd[3];
 			     target_temperature = value;
 			}
 		        else {
-			    printTermInt("t",temp.celcius());
+			    printTermInt("t",get_temperature());
 			}
 			break;
 		case 'v':
@@ -503,9 +568,6 @@ void respondToRequest(void)
  *		3) Calls turbid_setup (LED/Optics)
  */
 
-boolean once;
-boolean luxOn;
-
 void setup()
 {
 //	wdt_disable();
@@ -553,7 +615,6 @@ void setup()
 		saveRestore(RESTORE); // Valve timing copied to valve object
 	}
 	luxOn = false;
-	Serial.println("starting lux_init");
         lux_init(2591);
 	valve.setCycleTime(valveCycleTime);
 	once = true;

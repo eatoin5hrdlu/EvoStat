@@ -30,32 +30,17 @@
 class TEMPERATURE
 {
  public:
-#define SAMPLES 10
 
-  TEMPERATURE(int pin) {
-    aIn = pin;
-    analogReference(INTERNAL);  /* 1.1 V == 1023 */
-    multiply = 1100;
-    divide = 1023;
-    sCL = -1;
-    sDA = -1;  
-  }
-
-  TEMPERATURE(int scl, int sda) { aIn = -1; sCL = scl; sDA = sda; }
+  TEMPERATURE(int scl, int sda) { sCL = scl; sDA = sda; }
 
   int farenheit(void)     { return C_TO_F(celcius()); }
   int celcius(void)
-  {
-    sum = 0;
-    for(int i=0; i < SAMPLES; i++) {
-	  sum += analogRead(ANALOG_TEMPERATURE);
-	  delay(2);
-	}
-	return A_TO_C(sum/SAMPLES);
+  { 
+    float ct = (float) mlx.readObjectTempC();
+    return ( (int) (ct*10.0) );
   }
 
   private:
-   int aIn;            // Analog Input pin
    int sCL;            // Melexis clock
    int sDA;            // Melexis data
    unsigned long int multiply;
