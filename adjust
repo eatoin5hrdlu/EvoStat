@@ -24,7 +24,9 @@
 :- dynamic dynamicFlowRateTable/5.
 :- multifile dynamicFlowRateTable/5.
 
-showFlowRateTable :-			 
+showFlowRateTable :-
+        timestring(TimeStamp),
+	flog(TimeStamp),
         flog('FLOW RATE TABLE'),
         flowRateTable(What,Dir,Rate,Min,Max),
         Term =.. [What,Dir,Rate,Min,Max],
@@ -70,11 +72,11 @@ initPID :-
 	pid_controllers(Cs),
 	launch_controllers(Cs).
 
-get_input(Name, Type, Value) :-
-	webValue(@Name,Type,Value).
+get_input(Name, Var, Value) :-
+	webValue(@Name, Var, Value).
 
 %
-% set_output(Component, Old, New)
+% set_output(Component, Var, Old, New)
 %
 % For liquid level control, level readings
 % result in incremental changes in valve open times.
@@ -86,20 +88,27 @@ get_input(Name, Type, Value) :-
 % Otherwise it must be the Cellstat's drain 'v0'
 %
 
-set_output(Name, Old, New) :-
+set_output(Name, Var, Old, New) :-
      ( component(Name,cellstat,_)
      -> Inflow is integer(50*(New-Old)) % 1000 mL vessel
      ;  Inflow is integer(5*(New-Old))  %  100 mL (smaller)
      ),
-     adjust(@Name, Inflow).
+     adjust(Var,@Name,Inflow).
 
-adjust(Obj, Inflow) :-
-     component_index(Obj,N),  % Index determines valve
-     index_valve(N,InValve,OutValve),
+% Different for levels (in and out valves)
+%       or temperature (heater on/off)
+
+adjust(l,Obj,Value) :- adjust_level(Obj,Value).
+adjust(t,Obj,NYI)   :- flog(adjust(pid,temperature,nyi)).
+
+% Adjust level is two calls to adjust_valve (in and out)
+adjust_level(Obj, Inflow) :-
+     Obj = @Name,		  
+     component_valves(Name,InValve,OutName,OutValve),
      adjust_valve(Obj,Obj,InValve,Inflow, in),
      flog(after(adjust_valve1)),
      assert(changed(Obj,InValve,Inflow)),
-     component(_,sampler,VObj),
+     component(OutName,_,VObj),
      Outflow is -Inflow,
      adjust_valve(Obj,VObj,OutValve,Outflow, out),
      flog(after(adjust_valve2)),

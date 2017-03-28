@@ -57,6 +57,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 (get(US,socket,@nil) -> Col=red ; Col=darkgreen),
 	 send(US,colour,colour(Col)),
 	 component(MyName,Type,US),
+%	 (MyName == autosampler -> trace  ; true),
 	 findall(P,retract(changed(US,P,_)),Ps),
 	 maplist( send(US,pull), ReadOnly),
          maplist( send(US,push), Ps),
@@ -91,7 +92,7 @@ expand_type(Type)   -->
         get(Self,tl,TargetLevel),
         Amt is TargetLevel - Level,
         Error is abs(Amt),
-        ( Error < 4 -> true ; adjust(Self,Amt) ))].
+        ( Error < 4 -> true ; adjust(l,Self,Amt) ))].
 
 expand_type(_) --> [(check_level(_) :-> true)].
 

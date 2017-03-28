@@ -4,15 +4,14 @@ config( [
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(1),
          imageSize(580,440),
-
-         cellstatRegion(120,200,280,250),
-	 cellstatContrast(1, 1.05, -110), % Iterations, Multiply, Subtract
+         cellstatRegion(180,210,360,260),
+	 cellstatContrast(1, 1.03, -100), % Iterations, Multiply, Subtract
 	 cellstatThreshold(144),
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
          lagoonRegion(470,10,620,460),
-         lagoonContrast(  2, 3.3, -50),
-	 lagoonThreshold(127),
+         lagoonContrast(  2, 3.5, -50),
+	 lagoonThreshold(110),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
@@ -94,26 +93,29 @@ watcher(reintjes,'vp 9194525098',  6).  % Peter Reintjes
 % input(lagoon1, 41).
 
 % pid(Component,
-%     Kp, Ki, Kd, Polarity,
-%     TargetValue, CurrentValue,
+%     Kp, Ki, Kd, 
+%     Variable, TargetValue,
 %     Minimum, Maximum, SampleTime)
 % Undershoot/Overshoot: Modify Kd and maybe Kp
-% Response too slow:    Increase Ki
+% Response too slow:    Increase Ki (Kp?)
 
-deadzone(2). % No change needed if param is this close
-    
+deadzone(l,2).  % No change needed if param is this close
+deadzone(t,1).  % Temperature closer than level  
+
+% l = level
+% t = temperature    
 pid_controllers([
-   pid(newcellstat,0.1, 0.0, 0.1, 85, 10, 100, 30),
-   pid(lagoon1,    0.1, 0.0, 0.1, 30, 10, 100, 30)]).
+   pid(newcellstat,1.0, 0.0, 0.1, l, 71, 10, 100, 120),
+   pid(lagoon1,    1.0, 0.0, 0.1, l, 31, 10, 100, 120)]).
 
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    
 %  control(Component, level, InflowTime, Alt-Component, OutflowTime)
-control(newcellstat, level, 'v0', autosampler, 'v0').
-control(  lagoon1,   level, 'v1', autosampler, 'v1').
-control(  lagoon2,   level, 'v1', autosampler, 'v2').
-control(  lagoon3,   level, 'v1', autosampler, 'v3').
-control(  lagoon4,   level, 'v1', autosampler, 'v4').
+component_valves(newcellstat, v0, autosampler, v0).
+component_valves(   lagoon1,  v1, autosampler, v1).
+component_valves(   lagoon2,  v1, autosampler, v2).
+component_valves(   lagoon3,  v1, autosampler, v3).
+component_valves(   lagoon4,  v1, autosampler, v4).
 
 %%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
 

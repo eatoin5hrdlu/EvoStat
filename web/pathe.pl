@@ -15,7 +15,10 @@ pathebody(body([background(NamePlate)],
     div(class=drainage,label([],'Waste')),
     form([class=mod,
           action='./controlpathe.pl'],
-          input([type=submit,name=submit,value=change]))])) :-
+          input([type=submit,name=submit,value=change])),
+  center(a([href('./plot.pl')],plotlink))]
+  ) %body
+  ) :- %pathebody
   backgroundImage(NamePlate),
   prepped(Supplies, Cellstat, Lagoons, Sampler).
 

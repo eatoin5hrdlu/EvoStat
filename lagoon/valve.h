@@ -90,13 +90,16 @@ class VALVE
 boolean checkValve(void) {
   int i;
   unsigned long now = millis();
-
   if (disabled)
     return false;
+
   
   if (current != 0 &&  (now > valve_open[current] + valve_time[current]) )
-    next_valve();
+    {
+      next_valve();
+    }
 
+  unsigned long x = lastcycle + cycletime - 300;
   if (now > lastcycle + cycletime - 300) // Time to start valve sequence
     {
       digitalWrite(VALVEDISABLE,0);
