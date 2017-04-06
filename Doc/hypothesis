@@ -1,0 +1,63 @@
+
+At the heart of Innatrix is an idea.  An idea that may provide a solution to the immediate crisis of anti-bacterial resistance.  Experience shows that killing pathogens outright plays into the strength of evolution.  A strong selection mechanism applied against an organism with a short life cycle will not, in general, lead to the extinction of that organism, but rather to an organism which escapes that strong selection.
+
+Rapid, function driven, changes that occur in short-lived organisms under selective pressure can
+
+
+Test out the hypothosis of pathogen weakening to avoid rapid anti-bacterial resistance.
+   1) Do not damage the microbiome with broad-spectrum antibiotic.
+   2) Do not provide a strong selection mechanism to drive evolution of resistance.
+   2) Weaken, without killing, the pathogen by reducing virulence factor binding.
+   3) Allow the normal immune response time to destroy the pathogen.
+
+A short description of the Innatrix mission is to automate phage-assisted affinity selection.
+
+  1) Plasmid design: Rapid construction of arbitrary target/ligand pairs
+  	A) Bait Plasmid containing the target protein
+	B) Predator ligand to undergo selective pressure, added to phage genome
+  2) The EvoStat: A machine to support unattended (~ 1 week) continuous evolution
+
+Opposing the evolution of bacteria Fighting
+Almost accidentally, Quite by happenstance,
+Evolution provides a solution to several problems of protein engineering.
+
+The Innatrix idea is different enough that one critical reviewer wrote: "No one does it this way" as if that was a valid reason not to fund an avenue of research.
+
+But let us assume that this central idea is wrong.  In this case, it is the mission of Innatrix to show exactly why this idea is wrong. Why this will not work and save any future effort along this line of research.  This is important.
+
+It may well be more important if this idea is correct, as it gives us an approach to anti-bacterial which does not damage the human micro-biome as a new broad-spectrum antibiotic would, and in fact exploits the the human immune system which has been successfully combating pathogens for millions of years in the absence of broad-spectrum antibiotics.
+
+The human micro-biome is essential to the operation of the immune system and broad-spectrum antibiotics are fundamentally injurious to the microbiome.  C. difficile is a problem that results from this injury to the microbiome.
+
+This idea may not be of fundamental interest to an investor, although they should not underestimate its importance for the motivation and esprit de corps of the Innatrix team.  However, one goal of Innatrix goes considerably beyond the problem of anti-bacterial resistance as it tackles the fundamental problems of protein engineering.
+
+A primary difficulty of protein engineering is the gulf of knowledge between the defining sequence and the quaternary three-dimentional structure.  Moreover, when we talk about the 'three-dimensional structure of proteins', we really mean at least five dimensions.  Multiple conformational configurations require the time dimension because in vivo proteins are flexible, oscillating structures, and the charge distribution on the surface of proteins is clearly a dimension of interest. One could argue that binding affinity is more about charge distribution than spatial conformation.
+
+One way to address this gulf of knowledge is to make small changes to sequence and observe the multi-dimensional effects of such a change.  However, if the task at hand is to modify some function such as increase the binding affinity of a protease inhibitor or increase efficiency of an enzyme, an alternative is to create selective pressure on the performance of that function and allow accellerated evolution to engineer a solution.
+
+We are developing a basic process to use evolution to increase binding affinity between selected proteins. The 90-second elevator pitch for what Innatrix is about may not mention improving enzymes for biofuel production or finding multiple-target binding of cryoproteins for resistance-proof agricultural pest control.  For these are only two applications of protein binding-affinity selection.
+
+A simple way to describe the Innatrix goal would be: the automation and accelleration of phage display technology. Simple, given that one understands the range of uses of phage display technology.
+
+We intend to create a process whereby the binding affinity between a protein substrate and a candidate protein ligand can be increased by many rounds of evolution of the candidate ligand.  Machinery supporting the unattended process of random mutations and ongoing selection.
+
+So although motivated to find a solution to the problem of anti-bacterial resistance, we should not lose sight of the general applicability of the technique of continuous directed evolution for general protein engineering.
+
+But we must solve the problem of the continued existance of Innatrix. Although there are probably many solutions, we will restrict ourselves to two.  In the spirit of evolution, we propose a competition involving simultaneous calls for investment:
+
+1) A crowd funding solution which will result in an open-source, open-hardware, royalty-free platform for performing continuous evolution affinity selection.
+
+2) A call for investors, which can include consortia of interested parties in pharmaceutical, bio-fuel, agricultural, and/or materials research (e.g. nanotechnology) in exchange for transferable access to Innatrix technology.
+
+These simultaneous calls for investement, with a specific time limit, during which progress reports from Innatrix. The winning bid, as it were, will determine the course taken by Innatrix.  Protein engineering is at the center of the biotechnology revolution, which is comparable in many ways to the electronic communication, and computer revolutions which preceeded it.  With direct impacts on food supply, energy production, and human health are obvious.
+
+There are at least two possibly negative aspects to this idea:
+First, investors of the capitalist kind may shy away from a project with this kind of overt publicity. They want to invest early, before anyone else has heard about the technology. This way, they have a rationalization that they are getting a good deal (not competitive). Secondly, the crowd-funding appeal may come across as a kind of threat or blackmail: "Give us your money or there will be patents preventing the free development of these ideas".
+
+The future of protein engineering will never be limited to a single idea, technique, or company, and Innatrix is just a small player.  However, a close look will show that the participants have long histories in this fundamental endeavor.
+
+Multple product Strategy:
+
+It seems that should, and already do, have a two-tiered product strategy.  The first tier is a low-risk product: the EvoStat.  This is low-risk because there are no open research questions to be answered, just basic engineering problems.  This product could be marketed as a way to do PACE, assuming that you will get a license from Harvard.  The second tier could be the successful application of PACE, or ideally our own process to perform affinity selection with directed evolution.
+
+Our longer-range (third tier?) goal can be to create a modular system for increasing the affinity of (almost) any two proteins ( more likely domains ), by dropping the two sequences into generic Bait and Preditor constructs.
