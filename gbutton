@@ -191,6 +191,7 @@ converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
 connect(Self) :->
 	send(Self, converse, id),
 	get(Self, reply, Reply),
+	plog(reply(id,Reply)),
 	parse_reply(Reply,Term),
 	nonvar(Term),
 	Term =.. [_,ID],
