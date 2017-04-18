@@ -9,9 +9,11 @@
 
 % Arduino controllers return type as a single character id(char),
 id_type(0's, supply).
-id_type(0'l, lagoon).
 id_type(0'c, cellstat).
+id_type(0'h, cellstat).
 id_type(0'a, sampler).
+id_type(0'l, lagoon).
+id_type(0'2, lagoon).
 
 mix_colors(   _, red,    red) :- !.
 mix_colors( red,   _,    red) :- !.
@@ -161,15 +163,19 @@ good_socket(Self, Socket) :-
         check_socket(Self, S, Socket).
 
 check_socket(_,S,S) :- integer(S), S>=0.
-check_socket(_,S,S) :- integer(S), S>=0,
-		        bt_areset(S),  % reset
-			sleep(4). % needs time
+check_socket(@Name,S,S) :-
+        integer(S), S>=0,
+	plog(reset(Name,S)),
+	bt_areset(S),  % reset
+	sleep(4). % needs time
+
 check_socket(Self, S, NewSocket) :-  % Get new/first socket
 	( integer(S), S>=0 -> close(S) ; true ),
 	component(Name, _, Self),
 	bt_device(Name, Addr),
 	bt_socket(Addr, NewSocket),
  	NewSocket >= 0,
+	plog(new_socket(Name,Addr,NewSocket)),
 	send(Self, slot, socket, NewSocket),
 	send(Self,colour,colour(darkgreen)).
 
@@ -180,11 +186,11 @@ check_socket(Self, _, _) :->
 converse(Self,_) :->
         component(Name, _, Self),
         not(bt_device(Name, _Addr)),
-        !. % Do nothing because no connection
+        !. % Do nothing because no current valid device
 	
 converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
 	good_socket(Self, Socket),     % nondet
-	bluetalk(Socket, Cmd, Reply),
+	bluetalk(Socket, Cmd, Reply),  % det if succeeds
 	replyok(Reply),
 	send(Self,reply,Reply).
 
@@ -196,11 +202,13 @@ connect(Self) :->
 	nonvar(Term),
 	Term =.. [_,ID],
 	id_type(ID,Type),
-	plog(connected(Type)).
+	plog(connected(Type)),
+	!.
 
 connect(Self) :->
 	get(Self, myname, MyName),
 	plog(failed(bt_socket(MyName))),
+	send(Self, slot, socket, @nil),
 	send(Self,colour,colour(red)).
 
 %

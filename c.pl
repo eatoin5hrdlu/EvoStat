@@ -548,7 +548,7 @@ about_atom(About) :-
 
 bluetalk(@nil,  _,  'no_connection.'  ).
 bluetalk(   _,  '', 'nothing_to_send.').
-bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
+bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply),!.
 bluetalk(   _,   _, 'send_failed.'    ).
 
 % Create executable (saved-state) with:  [c],save_evostat.
