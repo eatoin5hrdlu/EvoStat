@@ -56,6 +56,15 @@ flog(Term) :- open('web/flog.txt',write,S,[]),
 	      assert(flowStream(S)),
 	      flog(Term).
 
+:- dynamic dbStream/1.
+dblog(Type,Term) :-
+    ( dbStream(Type) -> true
+    ; concat_atom(['web/',Type,'log.txt'],File),
+      open(File, append, S, []),
+      assert(dbStream(Type,S))
+    ),
+    write(S,Term),nl(S),flush_output(S).
+
 logging :- windows, !, retractall(logfile(_)).
 logging :- ( logfile(File)
             -> tell(File),

@@ -38,7 +38,6 @@ const char iface[] PROGMEM = {
  *     d) set auto/manual flow control
  * 3) Check temperature and manage lagoon heater
  */
-#include <avr/wdt.h>
 #include "param.h"
 
 void printTermInt(char *f,int a)
@@ -237,7 +236,7 @@ int eeSize;
 int RomAddress  = 0;
 
 int mixerspeed;
-byte id = 'z'; // Zeno = unassigned, by default
+byte id = 'l'; // Lagoon
 int target_temperature;
 
 int interval;   // Variable to keep track of the time
@@ -248,8 +247,8 @@ int reading[10];
 void checkTemperature()
 {
 int t = get_temperature();
-	if (t < target_temperature)      digitalWrite(HEATER,1);
-	if (t > target_temperature + 5)  digitalWrite(HEATER,0);
+	if (t < target_temperature)      digitalWrite(HEATER,0);
+	if (t > target_temperature + 5)  digitalWrite(HEATER,1);
 }
 
 // 'RomAddress' global will be bumped by successive
@@ -440,10 +439,10 @@ char vcmd[3];
 		case 'h':
 		     switch(d) {
 		        case 0:
-			     digitalWrite(HEATER, 0);
+			     digitalWrite(HEATER, 1);
 			     break;
 			case 1:
-			     digitalWrite(HEATER, 1);
+			     digitalWrite(HEATER, 0);
 			     break;
 			default:
 			     printHelp();
@@ -460,13 +459,13 @@ char vcmd[3];
 		case 'l':
 		     switch(d) {
 		        case 0:
-			     digitalWrite(LED, 0);
-			     break;
-			case 1:
 			     digitalWrite(LED, 1);
 			     break;
+			case 1:
+			     digitalWrite(LED, 0);
+			     break;
 			default:
-			     printTermInt("led",digitalRead(LED));
+			     printTermInt("led",!digitalRead(LED));
 			}
 			break;
 		case 'm':
@@ -570,13 +569,12 @@ void respondToRequest(void)
 
 void setup()
 {
-//	wdt_disable();
 	Serial.begin(9600);
 	debug = false;
 
 	//  Active Low (power to valve) default 1 == no power
-	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 0);
-	pinMode(LED,       OUTPUT);  digitalWrite(LED, 1);
+	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 1);
+	pinMode(LED,       OUTPUT);  digitalWrite(LED, 0);
 
 	pinMode(VALVEDISABLE,OUTPUT);
 
@@ -595,7 +593,7 @@ void setup()
 
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
-		id = '2';	// Default Lagoon ID 
+		id = 'l';	// Default Lagoon ID 
 		target_temperature = 370;
 		mixerspeed = MIXERSPEED;
 		valve.setAngle(0,0);
