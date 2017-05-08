@@ -213,7 +213,7 @@ send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 
 send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
     Levels =.. [levels|Ls],
-    flog(Levels),
+    dblog(pid,Levels),
     report_temperatures,
     send_levels(Ls,0).
 
@@ -224,7 +224,7 @@ report_temperatures :-
     get(Co,t,CellstatTemp),
     component(lagoon1,lagoon,Lo),
     get(Lo,t,LagoonTemp),
-    flog(temps(CellstatTemp,LagoonTemp)).
+    dblog(pid,temps(CellstatTemp,LagoonTemp)).
     
 % Levels from OpenCV/python camera program
 % are stored in object l[evel] variable here.
@@ -421,25 +421,32 @@ prompt(W, Value:name) :<-
 % 5) Make a fast_update version for the GUI
 
 update(Self) :->
+    get(Self,name,ClassName),
+    plog(update(ClassName)),
     send(@gui, stopped),
     update_config(_),      % Re-load if change
     send(Self,quiet),      % plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
-% COMPONENT UPDATES IN MIXON
+    % COMPONENT UPDATES IN MIXON
+    plog(updatingall),
     send(Self,mixon),      plog(sent(mixon)),  % Send update
+    plog(updated),
     prep,              % refreshes assert with Web page data
     param(updateCycle(Seconds)),
     retractall(next_update(_)), % Reset the count-down
     assert(next_update(Seconds)),
-    
+    plog(calling(report)),
     report,
     send(@gui, started).
 
 quiet(Self) :->
-    simulator -> true ;
     send_to_type( Self?graphicals, lagoon,  [converse,m0] ), % Mixers OFF
     send_to_type( Self?graphicals, cellstat, [converse,m0] ), % Mixers OFF
-    send_to_type( Self?graphicals, cellstat, [converse,'o-'] ). % Air OFF
+    send_to_type( Self?graphicals, cellstat, [converse,'o-'] ), % Air OFF
+    !.
+quiet(Self) :->
+    get(Self,name,ClassName),
+    plog(quiet(ClassName,failed)).
 
 new_snapshot(Self) :->
     param(layout(Components)),
@@ -458,7 +465,7 @@ new_snapshot(Self) :->
     plog(update(snapShot)).
 
 mixon(Self) :->
-     plog('Updating ebuttons'),
+    plog('Updating ebuttons'),
     send_to_type(Self?graphicals, ebutton, [update]),
     plog('Updating snapshot'),
     send_to_type(Self?graphicals, snapshot, [update]),
@@ -541,7 +548,7 @@ about_atom(About) :-
 
 bluetalk(@nil,  _,  'no_connection.'  ).
 bluetalk(   _,  '', 'nothing_to_send.').
-bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply).
+bluetalk( S, Cmd, Reply) :- bt_converse(S ,Cmd, Reply),!.
 bluetalk(   _,   _, 'send_failed.'    ).
 
 % Create executable (saved-state) with:  [c],save_evostat.
@@ -601,7 +608,8 @@ reportTemperature(What,S) :-
     component(Who, What, Obj),
     get(Obj,t,Val),
     HiC is integer(Val/10), LoC is integer(Val) mod 10,
-    format(S, '~s Temp    ~d.~dC~n', [Who, HiC, LoC]).
+    format(S, '~s Temp    ~d.~dC~n', [Who, HiC, LoC]),
+    dblog(temperature,temperature(Who,Val)).
 
 reportTurbidity(What,S) :-
     component(Who, What, Obj),

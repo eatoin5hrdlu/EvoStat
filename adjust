@@ -99,7 +99,7 @@ set_output(Name, Var, Old, New) :-
 %       or temperature (heater on/off)
 
 adjust(l,Obj,Value) :- adjust_level(Obj,Value).
-adjust(t,Obj,NYI)   :- flog(adjust(pid,temperature,nyi)).
+adjust(t,@Name,NYI) :- flog(adjust_nyi(Name,temperature,NYI)).
 
 % Adjust level is two calls to adjust_valve (in and out)
 adjust_level(Obj, Inflow) :-

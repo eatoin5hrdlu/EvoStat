@@ -2,7 +2,7 @@ config( [
 	 textMessages(3600),  % Twice Daily (6min=360 hour=3600 4-hour=14400)
 	 updateCycle(90),    % In seconds
 	 debugpause(10),      % Debug essentially off when pause is 10ms
-	 numLagoons(1),
+	 numLagoons(2),
          imageSize(580,440),
          cellstatRegion(180,210,360,260),
 	 cellstatContrast(1, 1.03, -100), % Iterations, Multiply, Subtract
@@ -30,7 +30,7 @@ config( [
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
 		 lagoon( lagoon1, next_row, [TL, LS, LF]),
-		 lagoon( lagoond2, right,    [TL, LS, LF]),
+		 lagoon( lagoon2, right,    [TL, LS, LF]),
 		 lagoon( lagoon3, right,   [TL, LS, LF]),
 		 spacer(      x3, next_row, [color(darkgreen)]),
 		 sampler(autosampler, next_row, [shape(40,10),up(45),SF])
@@ -46,9 +46,11 @@ config( [
 % When testing with no devices, uncomment next line for fast startup.
 % bt_address(Name, Addr) :- !, fail.
 
-%bt_device(nutrient,    '98:D3:31:30:2A:D1').
-bt_device(newcellstat,    '98:D3:31:50:12:F4'). % HC-06
-bt_device(lagoon1,    '98:D3:31:80:34:39').
+%bt_device(nutrient,   '98:D3:31:30:2A:D1').
+bt_device(newcellstat, '98:D3:31:50:12:F4'). % HC-06
+%bt_device(lagoon1,    '98:D3:31:80:34:39').
+bt_device(lagoon1,     '98:D3:31:70:2B:70').
+bt_device(lagoon2,     '98:D3:31:50:14:06').
 bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 %bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
@@ -62,7 +64,6 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 %bt_device(autosampler,  '98:D3:31:40:1D:D4').
 
 %bt_device(autosamplerY, '98:D3:31:20:23:4F').
-%bt_device(autosamplerZ, '98:D3:31:70:2B:70').
 
 % BETA BOX simulator 
 %bt_device( cellstat,     '98:D3:31:90:2B:82').
@@ -80,7 +81,7 @@ bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
-watcher(reintjes,'vp 9194525098',  6).  % Peter Reintjes
+watcher(reintjes,'vp 9194525098',  4).  % Peter Reintjes
 %watcher(laurie,  'vp 9196987470', 24).   % Laurie Betts
 %watcher(pc,      'a 9193083839',  8).  % The Other Peter
 %watcher(marshall,'a 5056037415', 8).   % Marshall

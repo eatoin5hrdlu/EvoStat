@@ -55,9 +55,9 @@ control :-
 	repeat,
 	    setof(T,next_interval(T), [Interval|_]), % Soonest
 	    sleep(Interval),
-	    flog(compute(call)),
+	    dblog(pid,compute(call)),
 	    compute,           % Run one cycle
-	    flog(compute(succeed)),
+	    dblog(pid,compute(succeed)),
 	stop_controllers,      % Signal to stop
 	writeln('      Stopping PID Controllers').
 
@@ -68,7 +68,7 @@ compute :-
 	state(Id, Kp,Ki,Kd, Var, SetPoint, Min, Max, SampleTime),
 	Elapsed > SampleTime,
 	get_input(Id, Var, Input),       % Get current value
-	flog(got_input(Id,Var,Input)),
+	dblog(pid,got_input(Id,Var,Input)),
 	Error is SetPoint - Input,       % Calculate  Error
 	Integral is ITerm0 + Ki * Error, % New Integral Term
 	limit(Integral,0, Max, ITerm),   % Enforce upper bound (allow zero)
@@ -76,10 +76,10 @@ compute :-
 	limit(PID, Min, Max, Output),    % Keep within bounds
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id,ITerm,Input,Now)),
-	flog(in_out_error(Input,Output,Error)),
+	dblog(pid,in_out_error(Input,Output,Error)),
 	( in_deadzone(Var, SetPoint, Input)
-	-> flog(deadzone(Var,SetPoint,Input,Output))
-         ; flog(pid(Id,Var,Input,Output)),
+	-> dblog(pid,deadzone(Var,SetPoint,Input,Output))
+         ; dblog(pid,pid(Id,Var,Input,Output)),
  	  set_output(Id, Var, Input, Output)
 	).
 
