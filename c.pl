@@ -437,7 +437,8 @@ update(Self) :->
     assert(next_update(Seconds)),
     plog(calling(report)),
     report,
-    send(@gui, started).
+    send(@gui, started),
+    plog(start(gui)).
 
 quiet(Self) :->
     send_to_type( Self?graphicals, lagoon,  [converse,m0] ), % Mixers OFF
@@ -487,6 +488,7 @@ fastUpdate(Self) :->
     Next is Seconds - 10,
     assert(next_update(Next)),
     send_to_type(Self?graphicals, sampler, [up,Next]),
+    plog(updated(next_update,Next)),
     send_to_type(Self?graphicals, sampler, [update]),
     prep,
     check_web_files.
@@ -603,6 +605,7 @@ report :-
     findall(_,reportTemperature(lagoon,S),_),
     findall(_,(err(Who,Err),write(S,error(Who,Err)),nl(S)),_),
     close(S).
+report :- plog(report(failed)).
 
 reportTemperature(What,S) :-
     component(Who, What, Obj),

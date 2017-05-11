@@ -54,10 +54,10 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::
+	 component(MyName,Type,US),
+	 plog(updating(MyName)),
 	 (get(US,socket,@nil) -> Col=red ; Col=darkgreen),
 	 send(US,colour,colour(Col)),
-	 component(MyName,Type,US),
-%	 (MyName == autosampler -> trace  ; true),
 	 findall(P,retract(changed(US,P,_)),Ps),
 	 maplist( send(US,pull), ReadOnly),
          maplist( send(US,push), Ps),
@@ -68,7 +68,13 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 flatten(NewLabel,LabelAtoms),
 	 concat_atom(LabelAtoms,NewAtomicLabel),
 	 send_super(US, label, NewAtomicLabel),
+	 !,
 	 plog(updated(MyName))
+       ),
+       ( update(US) :->
+	 "Get r/o and push r/w values to Device"::
+	 component(MyName,Type,US),
+	 plog(update(MyName,failed))
        ),
        Methods,
        (:- pce_end_class)], List),
@@ -94,5 +100,5 @@ expand_type(Type)   -->
         Error is abs(Amt),
         ( Error < 4 -> true ; adjust(l,Self,Amt) ))].
 
-expand_type(_) --> [(check_level(_) :-> true)].
+expand_type(_) --> [(check_level(@X) :-> plog(null_check_level(X)),true)].
 

@@ -125,6 +125,14 @@ show_conversation(@Name) :->
 	    -> send(@Name, connect)
 	    ; new(_, dialin(Name,Socket))
 	).
+
+reset(Self) :-
+     get(Self, socket, Socket),
+     plog(resetting(Name,Socket)),
+     sleep(1),
+     bt_areset(Socket),
+     plog(reset(Name,Socket)), % pause after RESET
+     sleep(3).
 	
 compute(_) :-> true.
 
@@ -155,47 +163,66 @@ nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 %nullreply(NR) :- writeq(reply(good,NR)),fail.
 
-replyok(R) :- \+ nullreply(R).
+replyok(R) :- \+ nullreply(R),!.
+replyok(R) :- plog(replyok(R,failed)),fail.
 
-% Util maybe
+% Get the Bluetooth socket (first time or replace old)
+newsocket(Self) :-
+    (component(Name,_Type,Self)->true;plog(no_component(@Self))),
+    get(Self, socket, Old),
+    (Old = @nil -> true ; close(Old)),
+    (bt_device(Name, Addr)->true;plog(no_bluetooth_device(Name)),fail),
+    bt_socket(Addr, New),
+    (New >= 0 -> true ; plog(bluetooth_socket_failed(Name,Addr))),
+    send(Self, slot, socket, New),
+    send(Self, colour, colour(darkgreen)).
+
 good_socket(Self, Socket) :-
 	get(Self, socket, S),
-        check_socket(Self, S, Socket).
+        check_socket(Self, S, Socket),
+	integer(Socket),
+	Socket >= 0.
 
-check_socket(_,S,S) :- integer(S), S>=0.
-check_socket(@Name,S,S) :-
-        integer(S), S>=0,
-	plog(reset(Name,S)),
-	bt_areset(S),  % reset
-	sleep(4). % needs time
+% This predicate implements error handling on Bluetooth communications
+% It sets choicepoints which must be CUT by calling predicate
+% It sends a RESET and retries after the first failure,
+% Creates a new socket, sends RESET, and retries after the second failure,
+% Finally it will report failure and fail.
 
-check_socket(Self, S, NewSocket) :-  % Get new/first socket
-	( integer(S), S>=0 -> close(S) ; true ),
-	component(Name, _, Self),
-	bt_device(Name, Addr),
-	bt_socket(Addr, NewSocket),
- 	NewSocket >= 0,
-	plog(new_socket(Name,Addr,NewSocket)),
-	send(Self, slot, socket, NewSocket),
-	send(Self,colour,colour(darkgreen)).
-
+check_socket(_,    S, S).
+check_socket(Self, S, S)   :-
+        reset(Self).
+check_socket(Self, _, New) :-  % Get new/(or the very first) socket
+	newsocket(Self),
+	reset(Self),
+	get(Self, socket, New).
 check_socket(Self, _, _) :-> 
 	send(Self,colour,colour(red)),
 	fail.
 	
-converse(Self,_) :->
+converse(Self,_) :-> "Bluetooth Serial Communication"::
         component(Name, _, Self),
-        not(bt_device(Name, _Addr)),
+        \+ bt_device(Name, _Addr),
+	plog(no_bluetooth_device(Name)),
         !. % Do nothing because no current valid device
 	
 converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
 	good_socket(Self, Socket),     % nondet
 	bluetalk(Socket, Cmd, Reply),  % det if succeeds
+	plog(bluetalk_returned(Socket,Cmd,Reply)),
 	replyok(Reply),
-	send(Self,reply,Reply).
+	send(Self,reply,Reply),
+	!.   % check_socket/2 created a choice point for reconnect/reset
+
+converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
+        component(Name, _, Self),
+	plog(converse(Name,Cmd,failed)),
+	fail.
 
 connect(Self) :->
+	plog(connect_asking_for_id),
 	send(Self, converse, id),
+	plog(reply(id,Reply)),
 	get(Self, reply, Reply),
 	plog(reply(id,Reply)),
 	parse_reply(Reply,Term),

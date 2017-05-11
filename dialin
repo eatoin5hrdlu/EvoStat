@@ -7,7 +7,6 @@ arduino_windows(0).
 
 variable(socket, any, get, "Bluetooth Socket").
 
-
 initialise(Self, Label:[name], Socket:[any]) :->
 	"Have a short conversation over Bluetooth"::
         send_super(Self, initialise(Label)),
@@ -18,7 +17,7 @@ initialise(Self, Label:[name], Socket:[any]) :->
 
 	send(Editor?bindings, function, 'RET', message(Self,enter)),
 	screen(DW,DH,WF,HF,_),
-	MyW is 30+(DW*WF/100)/2,
+	MyW is 54+(DW*WF/100)/2,
 	MyH is (DH*HF/100)/2,
 	get(Editor,  area, Area),                     % Resize
 	send(Area, set(width:=MyW,height:=MyH)),
@@ -26,16 +25,20 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	updates_off,
 	send_super(Self, open, point(300,200)).
 
-updates_off :-	send(@gui,stopped),
-		retract(arduino_windows(N)),
-		NN is N + 1,
-		assert(arduino_windows(NN)).
+updates_off :-
+	    arduino_windows(N),
+	    plog(gui(off,windows(N))),
+	    retract(arduino_windows(N)),
+	    (N =:= 0 -> send(@gui,stopped) ; true),
+	    NN is N + 1,
+	    assert(arduino_windows(NN)).
 
 updates_on :- arduino_windows(NN),
 	      N is NN - 1,
-	      (N =:= 0 -> send(@gui, started) ; true ),
 	      retract(arduino_windows(NN)),
-	      assert(arduino_windows(N)).
+	      assert(arduino_windows(N)),
+	      plog(gui(on,windows(N))),
+	      (N =:= 0 -> send(@gui, started) ; true ).
 
 enter(Self) :-> "Stateful question/answer window"::
 	retract(show_conversation(Self)),
@@ -54,7 +57,9 @@ enter(Self) :-> "Send or clear window (alternately)"::
 
 talk(Self, Cmd, Editor) :-
 	get(Self, socket, Socket),
+	plog(before(Socket,Cmd)),
 	bluetalk(Socket, Cmd, Msg),
+	plog(after(Socket,Msg)),
 	( ( Msg=[] ; string_length(Msg,0) )
 	     -> get_super(Self, label, Whoami),
 		send(Editor?text_buffer, append, '\nreconnecting('),
@@ -78,18 +83,9 @@ reset(Self) :->
      get(Self, slot, socket, Sock),
      bt_areset(Sock).
 
-unlink(Self) :->
-	     arduino_windows(NN),
-	     NN > 0,
-	     retract(arduino_windows(NN)),
-	     N is NN -1,
-	     (N =:= 0 -> send(@gui, started) ; true),
-	     assert(arduino_windows(N)),
-	     send_super(Self,unlink).
-
 % Program crashes if you don't pass unlink on to super
 unlink(Self) :->
-	     updates(on),
+	     updates_on, % We had shut off EvoStat updates
 	     send_super(Self,unlink).
 
 :- pce_end_class.

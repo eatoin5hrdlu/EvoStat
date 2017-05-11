@@ -391,9 +391,19 @@ void printTerm2Int(char *functor, int arg1, int arg2)
 void printTermChar(char *functor, char arg)
 { Serial.print(functor); Serial.print("(");Serial.print(arg);Serial.println(")."); }
 
+unsigned long int
+elapsed(unsigned long int cur_time, unsigned long int prev_time)
+{
+   if (cur_time < prev_time)   // handle rollover
+      return( cur_time - *( (long int *)&prev_time ) );
+   else
+      return ( cur_time - prev_time );
+}
+
 void process(char c, char c2, int value)
 {
 unsigned long time_left;
+unsigned long time_since;
 unsigned int temp;
 int i;
 int vnum;
@@ -468,14 +478,22 @@ char vn[3];
 			else 		valveInterval = value;
 			break;
 		case 't' :  // ts for Time to next Sample
+		     if (c2 == 's') {
 		     	if (value == 0) {
-			   time_left = sampleTimeMS - (millis()-lastSampleTime);
+			   time_since = elapsed( millis(), lastSampleTime );
+			   if (time_since < sampleTimeMS)
+			      time_left = sampleTimeMS - time_left;
+			   else
+			      time_left = 0;
 			   temp = (int) ( time_left/1000UL );
 			   printTermInt("ts", temp);
 			}
 			else 
 			     sampleTime = value;
-			break;
+		      }
+		      else
+			printTermChar("e",(int)c2);
+		      break;
 		case 'u' :
 		     	if (value == 0) {
 			   printTermInt("up", updateTime);
@@ -606,6 +624,10 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 		}
 		break;
 	}
+// NOT NEEDED IF HARDWARE IS WORKING CORRECTLY
+	now = millis();
+	if (ok && ( now > lastSampleTime + sampleTimeMS + 10000))
+	     lastSampleTime = now;
 }
 
 boolean checkValves()  // Returns true if all valves are closed (so sampling would be okay)
