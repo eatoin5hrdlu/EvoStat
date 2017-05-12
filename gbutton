@@ -164,6 +164,7 @@ nullreply(``) :- !,writeln(reply(emptystring)).
 nullreply(AS) :- atom_string('',AS),!,writeq(reply(atomstring)).
 %nullreply(NR) :- writeq(reply(good,NR)),fail.
 
+replyok(send_failed) :- !, fail.
 replyok(R) :- \+ nullreply(R),!.
 replyok(R) :- plog(replyok(R,failed)),fail.
 
