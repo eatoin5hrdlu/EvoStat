@@ -413,6 +413,7 @@ char vcmd[3];
 			   valve.setAngle(vnum,value);
 			break;
 		case 'e':
+		        break;
 			if (d == 1) {
 				valve.enable(true);
 				auto_temp = true;
@@ -490,7 +491,7 @@ char vcmd[3];
 			break;
 		case 'p':
 			if (valveRange(c2)) {
-				auto_valve = false;
+			       // auto_valve = false; dangerous?
 				valve.position(c2-'0');
 			}
 			break;
@@ -613,7 +614,7 @@ void setup()
 		saveRestore(RESTORE); // Valve timing copied to valve object
 	}
 	luxOn = false;
-        lux_init(2591);
+//        lux_init(2591);
 	valve.setCycleTime(valveCycleTime);
 	once = true;
 	auto_temp = true;   // Maintain Temperature Control
@@ -628,7 +629,7 @@ void loop()
 int t;
 	respondToRequest();     // Check for command
 	if (auto_valve) valve.checkValve();
-	delay(500);
+	delay(200);
 	if (auto_temp)	checkTemperature();
 
        // Check valve timing regularly during pause before mixer spin up
