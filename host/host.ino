@@ -4,7 +4,6 @@
 #else
  #include "WProgram.h"
 #endif
-//
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_TSL2591.h>
@@ -299,7 +298,7 @@ cmd(cl,'clear backlog (no output)').\n\
 cmd(v,[0,1,2,3,4],["));
 	 for(i=0;i<NUM_VALVES;i++) {
 	   Serial.print(*times++); if (i<(NUM_VALVES-1)) Serial.print(","); }
-        Serial.println(F("],'valve open times in msec')."));
+        Serial.println(F("],'valve open msec V0=NUTRIENT')."));
 	Serial.println(F("cmd(e,[0,1],'enable inputs vs. flow calibration')."));
 	Serial.println(F("cmd(h,[0,1],'heater off/on auto_temp off')."));
 	Serial.println(F("cmd(l,[0,1],'light off/on')."));
@@ -367,13 +366,31 @@ bool wfProcess_command(char c1, char c2, int value)
 }
 #endif
 
-// Keep temperature within 0.5 degree C
+// PID Controller to keep temperature within 0.5 degree C
+
+#include "pid.h"         // Local copy
+double Setpoint, TempInput, TempOutput;
+double Kp=2, Ki=5, Kd = 1;
+int windowSize = 10000;
+unsigned long windowStartTime;
+
+PID temppid(&TempInput, &TempOutput, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void checkTemperature()
 {
 int t   = objTC();
-	if (t < target_temperature - 2) digitalWrite(HEATER,1);
-	else                            digitalWrite(HEATER,0);
+  TempInput = (float) t;
+  temppid.Compute();
+  if (millis() - windowStartTime > windowSize) // move Relay Window
+  {
+    windowStartTime += windowSize;
+  }
+  if (TempOutput < millis() - windowStartTime) digitalWrite(HEATER, 1);
+  else                                         digitalWrite(HEATER, 0);
+
+// OLD CODE
+//	if (t < target_temperature - 2) digitalWrite(HEATER,1);
+//	else                            digitalWrite(HEATER,0);
 }
 
 // 'RomAddress' global will be bumped by successive
@@ -397,7 +414,7 @@ void saveRestore(int op)
 	RomAddress = 0;
 	moveData(op, 1, &id);
 	moveData(op, sizeof(int), (byte *) &target_temperature);
-	moveData(op, NUM_VALVES*sizeof(int), (byte *) valves.getTimes());
+	moveData(op, NUM_VALVES*sizeof(uint16_t), (byte *) valves.getTimes());
 	moveData(op, sizeof(int), (byte *) &target_turbidity);
 	moveData(op, sizeof(int), (byte *) &gtscale);
 	moveData(op, sizeof(int), (byte *) &gtoffset);
@@ -643,7 +660,7 @@ byte d;
 			   v[0] = 'v';
 			   v[1] = c2;
 			   v[2] = 0;
-			   printTermInt(v,valves.getTime(vn));
+			   printTermUInt(v,valves.getTime(vn));
 			   }
 			} else
 			  printTermInt("e",(int)(c2-'0'));
@@ -750,9 +767,9 @@ int i;
 	auto_mixer = true; // Maintain Mixer
 	auto_air = true;   // Maintain Aeration
 
-	pinMode(NUTRIENT,  OUTPUT); digitalWrite(NUTRIENT, 0);
-	pinMode(NUTRIENT, OUTPUT);  digitalWrite(INDUCE1,  0);
-	pinMode(INDUCE2, OUTPUT);   digitalWrite(INDUCE2,  0);
+	pinMode(NUTRIENT, OUTPUT); digitalWrite(NUTRIENT, 0);
+	pinMode(INDUCE1,  OUTPUT); digitalWrite(INDUCE1,  0);
+	pinMode(INDUCE2,  OUTPUT); digitalWrite(INDUCE2,  0);
 	valves.setup_valve(0,NUTRIENT,3000,INFLOW);
 	valves.setup_valve(1,INDUCE1,500,INFLOW);
 	valves.setup_valve(2,INDUCE2,400,INFLOW);
@@ -771,10 +788,9 @@ int i;
 	analogWrite(MIXER, 0);
 
 	interval = millis();
-//	mlx = Adafruit_MLX90614();
+//	mlx = Adafruit_MLX90614(); // Don't use this kludge anymore
 //	mlx = MLX90614();
 //	mlx.begin();   // Initialize Mexexis Thermometer
-	Serial.println("starting restore");
 	if (EEPROM.read(0)==0 || EEPROM.read(0)==255)	// First time
 	{
 		id = 'h';	// Default Lagoon ID (haldane)
@@ -799,7 +815,6 @@ int i;
 #endif
 	}
 	luxOn = false;
-	Serial.println("starting lux_init");
         lux_init(2591);
         valves.setCycletime(gcycletime);
 	once = true;
@@ -807,7 +822,12 @@ int i;
 	    turbread[i] = analogRead(ANALOG_TURBIDITY);
 	mixer_state = false;
 	mixer(1);
-	Serial.println("leaving setup");
+
+        windowStartTime = millis();
+	windowSize = 10000;
+       	Setpoint = (double) target_temperature;
+	temppid.SetOutputLimits(0, windowSize);
+	temppid.SetMode(AUTOMATIC);
 }
 
 #define LEAK	(leakage()<300)
