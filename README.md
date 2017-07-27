@@ -95,7 +95,7 @@ Inject host cells into Cellstat when target temperature is reached.
 
 Normal flow control begins when OD target has been reached.
 
-Infect laggons with phage.
+Infect lagoons with phage.
 
 Regular texts will be sent to report EvoStat status.
 	Each text includes the URL to EvoStat status/control page.
