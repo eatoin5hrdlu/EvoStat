@@ -343,6 +343,15 @@ def camSettle(n) :
     for i in range(n) :
         cam.read()
 
+
+        
+def delta(reticules, levels) :
+    for l in levels:
+        for i,j in zip(reticules[0::2],reticules[1::2]) :
+            avg = (i+j)/2
+            if abs(avg-l) < 30 :
+                print(str(l-avg))
+
 if __name__ == "__main__" :
     global referenceImage
     global positions
@@ -373,4 +382,5 @@ if __name__ == "__main__" :
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,180),2)
     cv2.imwrite(name,cv2.resize(referenceImage,params['imageSize']))
     release()
+    delta(reticules, vlevels)
 
