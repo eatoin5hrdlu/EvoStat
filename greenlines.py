@@ -1,14 +1,16 @@
 #!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
 from __future__ import print_function
-import sys, os, time, socket
+import sys, os, time, socket, glob, subprocess
 # To get rid of spurious messages from openCV library
 from suppress_stdout_stderr import suppress_stdout_stderr
 import numpy as np
 import cv2
 import cv2.cv as cv
 
-debug = True
+from shutil import copyfile
+
+debug = False
 ######## Data Structures
 # BB (bounding box) is (y1, x1, y2, x2)
 ( blue, green, red, maxIntensity ) = ( 0, 1, 2, 255.0 )
@@ -45,7 +47,20 @@ def termPairList(f,l) :
     if (l == None ):
         plog("Empty argument list: " + f)
         return f+"."
-    return f+"("+", ".join([str(i[1])+":"+str(i[0]) for i in l])+")."
+    return f+"("+", ".join([str(i[0])+":"+str(i[1]) for i in l])+")."
+
+def termTripleList(f,l) :
+    if (l == None ):
+        plog("Empty argument list: " + f)
+        return f+"."
+    return f+"("+", ".join([str(i[0])+":"+str(i[1])+":"+str(i[2]) for i in l])+")."
+
+def termNumberList(f,l) :
+    outstr = ""
+    for i in range(len(l)) :
+        outstr = outstr + "{0}({1},{2}).\n".format(f, i, l[i][2])
+    return outstr
+
 
 def icheck(image, who) :
     if (image == None) :
@@ -84,7 +99,6 @@ def showdb(img, delay=500) :
         cv2.imshow("camera", img)
         if cv.WaitKey(delay) == 27:
             exit(0)
-
 def exportImage(image) :
     if (image != None ) :
         (cy1,cx1,cy2,cx2) = params['cellstatRegion']
@@ -97,7 +111,28 @@ def exportImage(image) :
                           (100, 255-i*60, i*60), 2)
         name = "./web/phagestat.jpg"
         cv2.imwrite(name,cv2.resize(image,params['imageSize']))
-    
+
+def make_movie() :
+    dir = '/tmp/timelapse'
+    out = '/home/peter/src/EvoStat/web/timelapse.avi'
+    cmd=['ffmpeg','-y','-framerate','2','-i','%05dm.jpg','-codec','copy',out]
+    subprocess.call(cmd,cwd=dir)
+
+def movie_file(name) :
+    location = '/tmp/timelapse/'
+    numstart = len(location)
+    type = 'jpg'
+    next_file = location + '00000m.jpg'
+    numend = numstart + 5
+    imfiles = glob.glob(location+'*m.'+type)
+    if (len(imfiles)>0) :
+        last_file = max(imfiles, key=os.path.getctime)
+        seq = int(last_file[numstart:numend]) + 1
+        if (seq%10 == 0) :
+            make_movie()
+        next_file =  last_file[:-10]+"{0:0>5}".format(seq)+"m."+type
+    copyfile(name, next_file)
+
 def release() :
     global cam
     if (cam != None) :
@@ -172,7 +207,6 @@ def amplify(num, c=2, fraction=0.7) :
     """Return accumulated monochrome image minus a fraction of
     the sum of the other colors."""
     img = grab()
-    showdb(img,3000)
     mono = img[:,:,c]
     mono = cv2.subtract(mono,
                         cv2.multiply(cv2.add( img[:,:,(c+1)%3],
@@ -218,6 +252,16 @@ def showLines(img, y, color) :
                 
     return(img)
 
+def showLinePositions(img, xy, color) :
+    w = img.shape[0]
+    h = img.shape[1]
+    for (px,py) in xy:
+        cv2.line(img,(px,py),(px,py), color, 2)
+        cv2.putText(img,str(py),(20+px,py),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color,2)
+    return(img)
+
+# Returns list of (x,y) (centroids of lines)
 def hlines(img, minlen=12) :
     """Return horizontal line levels"""
     global positions
@@ -226,7 +270,7 @@ def hlines(img, minlen=12) :
     (h,w) = img.shape
     retLines = []
     edges = cv2.Canny(img, 90, 130)
-    showdb(edges,400)
+    showdb(edges,4000)
     if (edges == None) :
         plog("level: Bad Canny output. Not calling HoughLines")
         return -1
@@ -238,15 +282,39 @@ def hlines(img, minlen=12) :
             if (l[1] == l[3]) : # Horizontal, not near top or bottom
                 if ( l[1] < h-5 and l[1] > 5 and l[1] < h-5) :
                     retLines.append(l[1])
-                    positions.append(tuple([l[1], (l[0]+l[2])/2]))
+                    positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
     return sorted(retLines)
 
-def getNLevels(c, quan) :
+def horiz_lines(img, minlen=12) :
+    """Return horizontal line levels"""
+    global positions
+    positions = []
+    icheck(img,"hlines")
+    (h,w) = img.shape
+    retLines = []
+    edges = cv2.Canny(img, 90, 130)
+    showdb(edges,4000)
+    if (edges == None) :
+        plog("level: Bad Canny output. Not calling HoughLines")
+        return -1
+    alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
+    if (alllines == None) :
+        return retLines
+    for lines in alllines:
+        for l in lines : # Find min Y line (not on the edge)
+            if (l[1] == l[3]) : # Horizontal, not near top or bottom
+                if ( l[1] < h-5 and l[1] > 5 and l[1] < h-5) :
+                    retLines.append(tuple([(l[0]+l[2])/2, l[1] ]))
+                    positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
+    retLines.sort(key=lambda x: x[1])  # Sort on Y value (top to bottom)
+    return retLines
+
+def getReticules(c) :
     global referenceImage
     """Level value is a y position in the region"""
     lvls = []
-    while(not len(lvls) == quan ):
-        mono = amplify(2,c)
+    while(not len(lvls) == 4 ):
+        mono = amplify(2,c, fraction=0.8) # default is .7
         showdb(mono)
         (ret,cimg) = cv2.threshold(mono, 220, 255, cv2.THRESH_BINARY)
         showdb(cimg)
@@ -255,11 +323,9 @@ def getNLevels(c, quan) :
         cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),4)
         hls = hlines(cimg,minlen=8)
         lvls = condense(hls)
-        if (quan == 2):  # Hack Blue for now
-            quan = len(lvls)
     return lvls
 
-def getOneLevel(color, thresh, con, quan) :
+def getLevels(color, thresh, con, quan, reticules) :
     """Level value is a y position in the region"""
     lvls = []
     (it, sc, off) = con
@@ -270,16 +336,23 @@ def getOneLevel(color, thresh, con, quan) :
         showdb(mono)
         mono = cv2.dilate(mono,np.ones((2,8),np.uint8),2)
         showdb(mono)
-        rawlevels = hlines(mono,minlen=6)
-        lvls = filter_levels(rawlevels)
+        rawlevels = horiz_lines(mono,minlen=6)
+        print("rawlevels")
+        print(rawlevels)
+        print("nearest")
+        lvls = nearest(reticules, rawlevels)
     return(lvls)
 
 def grab():
     global cam, params
+    rval = None
     for ifile in sys.argv :
         if (ifile.endswith('.jpg')) :
             return cv2.imread(ifile) # Ignore rotation parameter
-    (rval,img) = cam.read()
+    tries = 5
+    while (rval is None and tries > 0) :
+        (rval,img) = cam.read()
+        tries = tries - 1
     if (rval):
         plog(str(params['rotate']))
         showUser(img)
@@ -307,8 +380,7 @@ def condense(lst) :
             extraneous.append(lst[i+1])
     return [num for num in lst if num not in extraneous]
 
-def filter_levels(lst) :
-    lst.sort()
+def filter_levels(lst) : # (px,py,y1,y2)
     if len(lst) > 1 :
         return [ lst[0], lst[-1] ]
     extraneous = []
@@ -333,7 +405,7 @@ def get_positions(ylist) :
     plist = []
     for y in ylist:
         for p in positions:
-            if (y == p[0]):
+            if (y == p[1]):
                 plist.append(p)
     return plist
 
@@ -343,24 +415,66 @@ def camSettle(n) :
     for i in range(n) :
         cam.read()
 
-
-        
-def delta(reticules, levels) :
-    for l in levels:
+def xydeltay(reticules, xyLevels) :
+    dy = []
+    for (x,y) in xyLevels:
         for i,j in zip(reticules[0::2],reticules[1::2]) :
             avg = (i+j)/2
-            if abs(avg-l) < 30 :
-                print(str(l-avg))
+            if abs(avg-y) < 64 : # Level must be near reticule
+                dy.append(tuple([x,y,y-avg]))
+    return dy
 
+def nearest(reticules, hlines) :
+    rlevels = []
+    for i,j in zip(reticules[0::2],reticules[1::2]) :
+        avg = (i+j)/2
+        hlines.sort(key=lambda l: abs(l[1]-avg))
+        levels = []
+        for h in hlines :
+            levels.append(tuple([h[0],h[1]]))
+        rlevels.append(tuple([i,j,levels]))
+    return rlevels
+
+def sortOutLevels(xydeltayLevels) :
+    allLevels = sorted(xydeltayLevels)  # Sorted by horizontal position
+    if (len(allLevels) == 0) :
+        print("nolevels.")
+        return
+    cellstat = (None,1000,None)
+    for (x,y,dy) in allLevels:     # Find least y (Host Cell Level)
+        if (y < cellstat[1]) :
+            cellstat = (x,y,dy)
+    allLevels.remove(cellstat)  # Remove it to get Lagoon list
+    print(termNumberList("host",[cellstat]))
+    allLevels.insert(0, tuple([4,5,10]))
+    print(termNumberList("lagoon", allLevels))
+
+def printRLevels(rlevels) :
+    if not ( len(rlevels) == 2 ) :
+        print("Wrong number of reticules")
+    (hy1, hy2, h) = rlevels[0]
+    print(termIntList("host", [h[0][0],h[0][1],hy1,hy2]))
+    showLines(referenceImage,[h[0][1]],paintColor(referenceImage,blue))
+    (ly1, ly2, lgs) = rlevels[1]
+    lgs.sort(key=lambda x: x[0])  # Sort on X value (left to right)
+    l = lgs[0]
+    print(termIntList("lagoon", [l[0],l[1],ly1,ly2]))
+    showLines(referenceImage,[l[1]],paintColor(referenceImage,green))
+#    for l in lgs :
+#        print(termIntList("lagoon", [l[0],l[1],ly1,ly2]))
+           
 if __name__ == "__main__" :
     global referenceImage
     global positions
     params = settings()
     if ('show' in sys.argv) :
         params['debugpause'] = 1000
+        debug = True
     cam = cv2.VideoCapture(params['camera'])
     camSettle(3)
-    referenceImage = grab()
+    referenceImage = None
+    while (referenceImage == None) :
+        referenceImage = grab()
     if (True) :
         with suppress_stdout_stderr() :
             cv2.namedWindow("camera", cv2.CV_WINDOW_AUTOSIZE)
@@ -370,17 +484,19 @@ if __name__ == "__main__" :
                 plog("Update OpenCV (can't find moveWindow)")
     i1 = grab()
     showdb(i1)
-    reticules = getNLevels(red, 4)
-    print(termIntList('reticule', reticules))
+    reticules = getReticules(red)
+#    print(termIntList('reticule', reticules))
     showLines(referenceImage,reticules,paintColor(referenceImage,red))
-    vlevels = getOneLevel(green, 120, (1, 1.5, -70), 2)
-    print(termPairList('levels', get_positions(vlevels)))
-    showLines(referenceImage,vlevels,paintColor(referenceImage,green))
+    rlevels = getLevels(green, 127, (1, 1.5, -70), 2, reticules)
+    printRLevels(rlevels)
     name = "./web/phagestat.jpg"
     (he,wi,de) = referenceImage.shape
     cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/10,he/2),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,180),2)
     cv2.imwrite(name,cv2.resize(referenceImage,params['imageSize']))
+    movie_file(name)
     release()
-    delta(reticules, vlevels)
+#    print(str(vlevels))
+#    print(str(get_positions(vlevels)))
+#    print(str(xydeltay(reticules,get_positions(vlevels))))
 
