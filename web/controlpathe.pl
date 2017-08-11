@@ -4,7 +4,7 @@ var_label(tb) --> [' Turbidity: '].
 var_label(tf) --> [' Flow Rate: '].
 var_label(tl) --> [' Level : '].
 
-var_units(tt) --> [ &('#8530'),sup(o),'C' ].
+var_units(tt) --> [ &('#x2152'),sup(o),'C' ].
 var_units(tb) --> [' OD',sub(600) ].
 var_units(tf) --> [' Volumes/hour '].
 var_units(tl) --> [' % full '].
@@ -26,16 +26,18 @@ inputItems(Type) --> {findall(I,inputItem(Type,I,[]),Is)}, Is.
 evoStatFields --> inputItems(cellstat), inputItems(lagoon).
 
 controlpathe(_Req) :-
-    backgroundSettings(BackPlate),
+    %   backgroundImage(BackPlate),
+    ( motd(Message) -> true ; Message = 'No Status Information' ),
     assert(html_syntax),
     evoStatFields(Fields,[]),
-    flatten([Fields, input([type=submit,name=submit]),
+    flatten([ input([type=text,id=motd,name=motd,value=Message]),br([]),
+	      Fields, input([type=submit,name=submit,value='Submit']),
 	input([ type=button,name='Cancel',value='Cancel',
         onClick='window.location="/web/pathe.pl"'])],Inputs),
     reply_html_page([title('Pathe Control Panel'),
 	             script([ language(javascript) ],[])],
-	body(background(BackPlate),
-	     form(action='./change.pl', Inputs ))),
+	body(background('/web/images/brushed.jpg'),
+	     form(action='./change.pl', Inputs))),
     retract(html_syntax).
 
 controlpathe(Request) :-

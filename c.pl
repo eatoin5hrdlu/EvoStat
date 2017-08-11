@@ -270,6 +270,7 @@ get_level(Type) :-
 get_level(Type) :- 
     plog(failed(levelUpdate(Type))).
 
+
 newFlux(end_of_file,_) :- !.
 newFlux(FluxTerm, Stream) :-
 	FluxTerm =.. [Lagoon,FluxValue],
@@ -424,8 +425,8 @@ update(Self) :->
     get(Self,name,ClassName),
     plog(update(ClassName)),
     send(@gui, stopped),
-    update_config(_),      % Re-load if change
-    send(Self,quiet),      % plog(sent(quiet)),
+    update_config(_),      plog(updated(config)),
+    send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     % COMPONENT UPDATES IN MIXON
     plog(updatingall),
@@ -477,7 +478,8 @@ mixon(Self) :->
     send(CellStat,converse,'o2'),
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
-readLevels(_) :-> get_level(alllevels).
+readLevels(_) :-> consult_python('./greenlines.py',[]).
+% readLevels(_) :-> get_level(alllevels).
 
 % Things to be refreshed often (e.g. GUI) such as
 % the Next Update countdown in Sampler label.
@@ -678,11 +680,15 @@ main(_Argv) :-
 % Results in sending <var><value> to object with <name>
 change_request :-
     ( changeRequest(List)
-    -> maplist(new_value,List),
+     -> maplist(new_value,List),
        retract(changeRequest(List))
     ; true
     ).
 
+new_value(submit='Submit') :- !.
+new_value(motd=Message)    :- !,
+			      retractall(motd(_)),
+			      assert(motd(Message)).
 new_value(Attr=Value) :-
   atomic_list_concat([Name,Var],'_',Attr),
   ensure_value(Value, EValue), % atom -> int if possible

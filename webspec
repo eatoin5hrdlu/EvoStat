@@ -10,6 +10,9 @@
 :- use_module(library(http/http_authenticate)).
 :- use_module(library(http/http_client)).
 
+:- dynamic motd/1.
+motd('Default Message of the Day').
+
 :- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
 html_syntax --> {html_syntax}. % Also callable as a grammar rule
 
@@ -29,8 +32,8 @@ stop_http  :- catch(http_stop_server(21847,[]),_,true).
 start_http :-
     ( running -> true
      ;
-     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
-%     process_files('web/*',       [] ),  % No authentication
+%     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
+     process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
@@ -49,6 +52,8 @@ suffix_mime( png, [image/png] ).
 suffix_mime( gif, [image/gif] ).
 suffix_mime( jpg, [image/jpg] ).
 suffix_mime(jpeg, [image/jpg] ).
+suffix_mime( mkv, [video/webm] ).
+suffix_mime( avi, [video/x-msvideo] ).
 suffix_mime(html, [] ).
 
 add_handlers([],_).
@@ -58,7 +63,7 @@ add_handlers([Path|T],Options) :-
 	file_name_extension(Root, Ext, Base),
 	( add_handler(Ext, URL, Root, Path, Options)
 	  -> true % message('Created a handler for ~w~n',[URL])
-	  ; message('Did not create a handler for ~w~n',[URL])
+	  ; true % message('Did not create a handler for ~w~n',[URL])
 	),
 	add_handlers(T, Options).
 

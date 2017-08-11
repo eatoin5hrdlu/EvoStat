@@ -86,6 +86,11 @@ body {
         outline-style: none;
     }
 
+#motd {
+        width : 100%;
+    }
+
+
 .mod input {
         clear: both;
         margin-left: 29%;
@@ -143,6 +148,7 @@ body {
 	z-index: -1;
 	top: 20px;
     }
+
 
     div.lagoon    {
 	display: flex;

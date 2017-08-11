@@ -330,16 +330,13 @@ def getLevels(color, thresh, con, quan, reticules) :
     lvls = []
     (it, sc, off) = con
     while(not len(lvls) == quan ):
-        mono = amplify(3, color, fraction=0.5)
+        mono = amplify(1, color, fraction=0.5)
         showdb(mono)
         mono = contrast(mono, thresh, iter=it, scale=sc, offset=off)
         showdb(mono)
         mono = cv2.dilate(mono,np.ones((2,8),np.uint8),2)
         showdb(mono)
         rawlevels = horiz_lines(mono,minlen=6)
-        print("rawlevels")
-        print(rawlevels)
-        print("nearest")
         lvls = nearest(reticules, rawlevels)
     return(lvls)
 
@@ -487,7 +484,7 @@ if __name__ == "__main__" :
     reticules = getReticules(red)
 #    print(termIntList('reticule', reticules))
     showLines(referenceImage,reticules,paintColor(referenceImage,red))
-    rlevels = getLevels(green, 127, (1, 1.5, -70), 2, reticules)
+    rlevels = getLevels(green, 127, (1, 1.0, -70), 2, reticules)
     printRLevels(rlevels)
     name = "./web/phagestat.jpg"
     (he,wi,de) = referenceImage.shape
