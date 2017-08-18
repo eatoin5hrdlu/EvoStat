@@ -11,7 +11,7 @@
 :- use_module(library(http/http_client)).
 
 :- dynamic motd/1.
-motd('Default Message of the Day').
+motd('Currently Running Flow Tests with Water').
 
 :- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
 html_syntax --> {html_syntax}. % Also callable as a grammar rule
@@ -32,8 +32,8 @@ stop_http  :- catch(http_stop_server(21847,[]),_,true).
 start_http :-
     ( running -> true
      ;
-%     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
-     process_files('web/*',       [] ),  % No authentication
+     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
+%    process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),

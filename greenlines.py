@@ -15,10 +15,11 @@ debug = False
 # BB (bounding box) is (y1, x1, y2, x2)
 ( blue, green, red, maxIntensity ) = ( 0, 1, 2, 255.0 )
 colors = ["blue", "green", "red"]
+imageName = "./web/phagestat.jpg"
 
 def paintColor(img,color) :
     if (len(img.shape) == 3) :
-        tricolor = [180,180,180]
+        tricolor = [100,100,100]
         tricolor[color] = 250
         return (tuple(tricolor))
     else :
@@ -65,14 +66,14 @@ def termNumberList(f,l) :
 def icheck(image, who) :
     if (image == None) :
         plog("Image equal to None in " + who)
-        exit(4)
+        exit(13)
     if (len(image.shape) == 2) :
         (h,w) = image.shape
     else :
         (h,w,d) = image.shape
     if (h == 0 or w == 0) :
         plog(who + ": Image shape is degenerate: " + str(img.shape))
-        exit(4)
+        exit(14)
 
 def settings() :
     for root in sys.argv:  # Argument specifies .setting file
@@ -116,7 +117,8 @@ def make_movie() :
     dir = '/tmp/timelapse'
     out = '/home/peter/src/EvoStat/web/timelapse.avi'
     cmd=['ffmpeg','-y','-framerate','2','-i','%05dm.jpg','-codec','copy',out]
-    subprocess.call(cmd,cwd=dir)
+    with suppress_stdout_stderr() :
+        subprocess.call(cmd,cwd=dir)
 
 def movie_file(name) :
     location = '/tmp/timelapse/'
@@ -235,13 +237,13 @@ def rotateImage(img, angle=90):
         return cv2.warpAffine(img, rotate,
                               (img.shape[1],img.shape[0]))
 
-def showLines(img, y, color) :
+def showLines(img, y, color, width=2) :
     if (len(img.shape) == 3):
         (w,h,d) = img.shape
     else :
         (w,h) = img.shape
     for i in range(len(y)):
-        cv2.line(img,(w/3,y[i]),(30+w/3,y[i]), color, 2)
+        cv2.line(img,(w/3,y[i]),(30+w/3,y[i]), color, width)
         cv2.putText(img,str(y[i]),(10+w/2,y[i]),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, color,2)
         if (i>0) :
@@ -313,7 +315,8 @@ def getReticules(c) :
     global referenceImage
     """Level value is a y position in the region"""
     lvls = []
-    while(not len(lvls) == 4 ):
+    tries = 5
+    while(not len(lvls) == 4 and tries > 0):
         mono = amplify(2,c, fraction=0.8) # default is .7
         showdb(mono)
         (ret,cimg) = cv2.threshold(mono, 220, 255, cv2.THRESH_BINARY)
@@ -323,13 +326,18 @@ def getReticules(c) :
         cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),4)
         hls = hlines(cimg,minlen=8)
         lvls = condense(hls)
+        tries = tries - 1
+    if tries == 0 :
+        imageOut()
+        exit(5)
     return lvls
 
 def getLevels(color, thresh, con, quan, reticules) :
     """Level value is a y position in the region"""
     lvls = []
     (it, sc, off) = con
-    while(not len(lvls) == quan ):
+    tries = 3
+    while(not len(lvls) == quan and tries > 0):
         mono = amplify(1, color, fraction=0.5)
         showdb(mono)
         mono = contrast(mono, thresh, iter=it, scale=sc, offset=off)
@@ -338,6 +346,10 @@ def getLevels(color, thresh, con, quan, reticules) :
         showdb(mono)
         rawlevels = horiz_lines(mono,minlen=6)
         lvls = nearest(reticules, rawlevels)
+        tries = tries - 1
+    if tries == 0 :
+        imageOut()
+        exit(4)
     return(lvls)
 
 def grab():
@@ -350,6 +362,8 @@ def grab():
     while (rval is None and tries > 0) :
         (rval,img) = cam.read()
         tries = tries - 1
+    if (tries == 0) :
+        exit(12)
     if (rval):
         plog(str(params['rotate']))
         showUser(img)
@@ -448,8 +462,12 @@ def sortOutLevels(xydeltayLevels) :
 
 def printRLevels(rlevels) :
     if not ( len(rlevels) == 2 ) :
-        print("Wrong number of reticules")
+        imageOut()
+        exit(7)
     (hy1, hy2, h) = rlevels[0]
+    if (len(h) == 0) :
+        imageOut()
+        exit(8)
     print(termIntList("host", [h[0][0],h[0][1],hy1,hy2]))
     showLines(referenceImage,[h[0][1]],paintColor(referenceImage,blue))
     (ly1, ly2, lgs) = rlevels[1]
@@ -459,7 +477,16 @@ def printRLevels(rlevels) :
     showLines(referenceImage,[l[1]],paintColor(referenceImage,green))
 #    for l in lgs :
 #        print(termIntList("lagoon", [l[0],l[1],ly1,ly2]))
-           
+
+def imageOut():
+    global imageName
+    (he,wi,de) = referenceImage.shape
+    cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/10,he/2),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,180),2)
+    cv2.imwrite(imageName,cv2.resize(referenceImage,params['imageSize']))
+    movie_file(imageName)
+    
+
 if __name__ == "__main__" :
     global referenceImage
     global positions
@@ -470,8 +497,13 @@ if __name__ == "__main__" :
     cam = cv2.VideoCapture(params['camera'])
     camSettle(3)
     referenceImage = None
-    while (referenceImage == None) :
+    tries = 10
+    while (referenceImage == None and tries > 0) :
+        time.sleep(0.1)
         referenceImage = grab()
+        tries = tries - 1
+    if tries == 0 :
+        exit(10)
     if (True) :
         with suppress_stdout_stderr() :
             cv2.namedWindow("camera", cv2.CV_WINDOW_AUTOSIZE)
@@ -483,15 +515,10 @@ if __name__ == "__main__" :
     showdb(i1)
     reticules = getReticules(red)
 #    print(termIntList('reticule', reticules))
-    showLines(referenceImage,reticules,paintColor(referenceImage,red))
-    rlevels = getLevels(green, 127, (1, 1.0, -70), 2, reticules)
+    showLines(referenceImage,reticules,paintColor(referenceImage,red),width=3)
+    rlevels = getLevels(green, 127, (1, 1.5, -70), 2, reticules)
     printRLevels(rlevels)
-    name = "./web/phagestat.jpg"
-    (he,wi,de) = referenceImage.shape
-    cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/10,he/2),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,180),2)
-    cv2.imwrite(name,cv2.resize(referenceImage,params['imageSize']))
-    movie_file(name)
+    imageOut()
     release()
 #    print(str(vlevels))
 #    print(str(get_positions(vlevels)))

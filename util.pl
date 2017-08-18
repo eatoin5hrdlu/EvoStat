@@ -56,13 +56,27 @@ flog(Term) :- open('web/flog.txt',write,S,[]),
 	      assert(flowStream(S)),
 	      flog(Term).
 
-:- dynamic dbStream/1.
-dblog(Type,Term) :-
-    ( dbStream(Type) -> true
+:- dynamic dbStream/2.
+
+dbstream(Type,Stream) :-
+    ( dbStream(Type,Stream) -> true
     ; concat_atom(['web/',Type,'log.txt'],File),
-      open(File, append, S, []),
-      assert(dbStream(Type,S))
-    ),
+      open(File,append,Stream,[]),
+      assert(dbStream(Type,Stream)),
+      dbtimestamp(Type)
+    ).
+
+dbtimestamp(Type) :-
+      timestring(Now),
+      Stamp =.. [Type, Now],
+      dblog(Type,Stamp).
+    
+dblog(Term) :-
+    functor(Term,Type,_),
+    dblog(Type,Term).
+    
+dblog(Type,Term) :-
+    dbstream(Type,S),
     write(S,Term),nl(S),flush_output(S).
 
 logging :- windows, !, retractall(logfile(_)).
@@ -137,6 +151,21 @@ load_newest(File) :-
     source_file_property(File,modified(Time)),
     retractall(file_modtime(File,_)),
     assert(file_modtime(File, Time)).
+
+% Run python progam and consult its output
+% Consult (e.g. reconsult) replaces predicates unless multifile/1 declared
+
+consult_python(Program, Options) :-
+    python(Python),
+    evostat_directory(Dir),
+    process_create(Python,[Program|Options],
+		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
+    load_files(Program,[stream(Out)]),
+    close(Out),
+    !.
+
+consult_python(Program,Options) :-
+    plog(failed(python(Program,Options))).
 
 count(ErrorType, Who) :-
     Prev =.. [ErrorType, _When, HowMany],

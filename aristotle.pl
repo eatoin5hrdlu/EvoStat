@@ -4,7 +4,8 @@ config( [
 	 debugpause(10),      % Debug essentially off when pause is 10ms
 	 numLagoons(2),
          imageSize(580,440),
-         cellstatRegion(180,210,360,260),
+%        cellstatRegion(ytop,xleft,ybot,xright),
+         cellstatRegion(130,210,360,260),
 	 cellstatContrast(1, 1.03, -100), % Iterations, Multiply, Subtract
 	 cellstatThreshold(144),
 	 cellstatHeight(230),  % same as 100% of cellstat volume
@@ -15,17 +16,21 @@ config( [
 	 lagoonHeight(130),          % same as 100% of lagoon volume
 	 lagoonWidth(40),
 
+	 hostReticule(200,300,400,450),
+	 hostReticuleContrast(1, 1.4, -100),
+	 hostReticuleThreshold(144),
+
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
 	 camera(0),
-	 rotate(90),
+	 rotate(0),
 	 screen(40,52,point(120,1)),
 	 layout([
-		 supply( nutrient, below,  [Supply,levelUnits('L')]),
+		 supply( nutrient, below,  [Supply,levelUnits('L'),v(10)]),
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
-		 cellstat(newcellstat,below, [tb(400),shape(36,14),CF]),
+		 cellstat( host0,   below, [tb(400),shape(36,14),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
@@ -47,10 +52,13 @@ config( [
 % bt_address(Name, Addr) :- !, fail.
 
 %bt_device(nutrient,   '98:D3:31:30:2A:D1').
-bt_device(newcellstat, '98:D3:31:50:12:F4'). % HC-06
+% bt_device( cellstat, '98:D3:31:50:12:F4'). % HC-06 could be bad now
+bt_device(   host0, '98:D3:31:40:1E:80'). % HC-06 could be bad now
+%NEW bt_device(newcellstat, '98:D3:31:FD:2D:05'). % HC-06 could be bad now
 %bt_device(lagoon1,    '98:D3:31:80:34:39').
-bt_device(lagoon1,     '98:D3:31:70:2B:70').
-bt_device(lagoon2,     '98:D3:31:50:14:06').
+
+%bt_device(lagoon1,     '98:D3:31:50:14:06').
+bt_device( lagoon2,     '98:D3:31:70:2B:70').
 bt_device(autosampler, '98:D3:31:40:1D:D4').
 
 %bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
@@ -106,18 +114,19 @@ deadzone(t,1).  % Temperature closer than level
 % l = level
 % t = temperature    
 pid_controllers([
-   pid(newcellstat,1.0, 0.0, 0.1, l, 71, 10, 100, 120),
-   pid(lagoon1,    1.0, 0.0, 0.1, l, 31, 10, 100, 120)]).
+   pid(   host0, 1.0, 0.0, 0.1, l, 71, 10, 100, 120),
+   pid( lagoon1, 1.0, 0.0, 0.1, l, 31, 10, 100, 120)]).
 
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    
 %  control(Component, level, InflowTime, Alt-Component, OutflowTime)
-component_valves(newcellstat, v0, autosampler, v0).
-component_valves(   lagoon1,  v1, autosampler, v1).
-component_valves(   lagoon2,  v1, autosampler, v2).
-component_valves(   lagoon3,  v1, autosampler, v3).
-component_valves(   lagoon4,  v1, autosampler, v4).
+component_valves(   host0,  v0, autosampler, v0).
+component_valves( lagoon1,  v1, autosampler, v1).
+component_valves( lagoon2,  v1, autosampler, v2).
+component_valves( lagoon3,  v1, autosampler, v3).
+component_valves( lagoon4,  v1, autosampler, v4).
 
+    
 %%%%%%%%%%%%%% SYSTEM/USER DEPENDENT STUFF 
 
 % To build stand-alone executable there are different emulators

@@ -478,7 +478,13 @@ mixon(Self) :->
     send(CellStat,converse,'o2'),
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
-readLevels(_) :-> consult_python('./greenlines.py',[]).
+readLevels(_) :->
+    catch( consult_python('./greenlines.py',[]),
+	   Caught,
+	   plog(exception(consult_python/2, Caught)) ),
+    (host(A,B,C,D) -> plog(host(A,B,C,D)) ; plog(host(null))),
+    (lagoon(E,F,G,H) -> plog(lagoon(E,F,G,H)) ; plog(lagoon(null))).
+    
 % readLevels(_) :-> get_level(alllevels).
 
 % Things to be refreshed often (e.g. GUI) such as

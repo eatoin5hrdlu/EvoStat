@@ -24,6 +24,64 @@
 :- dynamic dynamicFlowRateTable/5.
 :- multifile dynamicFlowRateTable/5.
 
+%
+% (r1, r2, lx, ly)   (upper, lower reticule, readingX, readingY)
+% (94, 109, 250, 121)
+% reticuleCenterSU = ( r1+r2 )/2
+% reticuleVolumeSU = ( r2 - r1 )
+%
+% scaleToSU     =   (reticuleVolumeSU / reticuleVolumePC)
+% scaleToPC     =   (reticuleVolumePC / reticuleVolumeSU)
+% 
+% reticuleVolumePC   =   10
+% targetVolumePC = 30     
+% targetVolumeSU =  targetVolumePC * (reticuleVolumeSU/reticuleVolumePC)
+% zeroLevelSU    =  reticuleCenterSU + targetVolumePC * (reticuleVolumeSU/reticuleVolumePC)
+%
+% inputValuePC  = ( zeroLevelSU - inputLevelSU )* scaleToPC
+% 
+% TEST: TARGET = ( center + TARGET * rvsu/rvpc - center) * (rcpc/rvsu)
+% 
+% fullVolumeSU   = 100 * (reticuleVolumeSU/reticuleVolumePC)
+% zeroLelelSU    = reticuleCenterSU + targetVolumeSU
+
+:- dynamic host/4, lagoon/4.
+
+current_level(lagoon, Num, Level) :-
+        lagoon(R1, R2, _X, LY),
+	param(lagoonReticuleVolumemL(Num, RVmL)),
+	param(lagoonTargetVolumemL(Num, TVmL)),
+	param(lagoonReticuleVolumePC(Num,RVPC)),
+	current_level(R1,R2,LY,RVmL,TVmL,RVPC, Level).
+
+current_level(host, 0, Level) :-
+        host(R1,R2,_X, LY),
+	param(hostReticuleVolumemL(RVmL)),
+	param(hostTargetVolumemL(TVmL)),
+	param(hostReticuleVolumePC(RVPC)),
+	current_level(R1,R2,LY,RVmL,TVmL,RVPC, Level).
+
+current_level(R1,R2,Y, RVmL, TVmL, RVPC, LevelPC) :-
+	ReticuleCenterSU is ( R1+R2 )/2,
+	ReticuleVolumeSU =  R2 - R1,
+%	ScaleToSU  is  ReticuleVolumeSU / RVPC,
+	ScaleToPC  is  RVPC / ReticuleVolumeSU,
+	ZeroLevelSU is ReticuleCenterSU + (TVmL * (ReticuleVolumeSU / RVmL)),
+	LevelPC is  (ZeroLevelSU - Y) * ScaleToPC.
+	
+get_error(Name, Error) :-
+        dblog(pid,get_error(Name)),
+        atom_codes(Name,NCodes),
+	append(FCodes,[NC],NCodes),
+	atom_codes( Functor, FCodes ),
+	( number_codes( N, [NC]) ->
+	  Query =.. [Functor,N,Error],
+	  dblog(pid,calling(Query)),
+	  ( call(Query) -> true ; dblog(pid,failed(Query)) ),
+	  dblog(pid,called(Query))
+	  ; dblog(pid,error(component_name,no_digit,Name))
+	).
+
 showFlowRateTable :-
         timestring(TimeStamp),
 	flog(TimeStamp),
@@ -72,7 +130,10 @@ initPID :-
 	pid_controllers(Cs),
 	launch_controllers(Cs).
 
+get_input(Name, l, Value) :-
+	get_error(Name, Value), fail.
 get_input(Name, Var, Value) :-
+        dblog(pid,webValue(Name,Var)),
 	webValue(@Name, Var, Value).
 
 %
@@ -98,8 +159,12 @@ set_output(Name, Var, Old, New) :-
 % Different for levels (in and out valves)
 %       or temperature (heater on/off)
 
-adjust(l,Obj,Value) :- adjust_level(Obj,Value).
-adjust(t,@Name,NYI) :- flog(adjust_nyi(Name,temperature,NYI)).
+adjust(l,Obj,Value) :-
+	dblog(pid,adjust_level(Obj,Value)),
+	adjust_level(Obj,Value),
+	dblog(pid,adjusted(Value)).
+adjust(t,@Name,NYI) :-
+	dblog(pid, adjust_nyi(Name,temperature,NYI)).
 
 % Adjust level is two calls to adjust_valve (in and out)
 adjust_level(Obj, Inflow) :-
