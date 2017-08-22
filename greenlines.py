@@ -11,6 +11,19 @@ import cv2.cv as cv
 from shutil import copyfile
 
 debug = False
+######## Critical Parameters
+# Contrast (iterations, mul, subtract) ( 1,  1.28,  -80 )
+# Threshold   (50%)                      127
+# Symmetrical (2x2) erode iterations     3
+# Asymmetrical (2x4) dilation iterations 2
+defaultParams = [ (1,2),      # Contrast Iterations
+                  (1.2,1.5),  # Contrast Scale
+                  (-80.01,-60.01),  # Contrast Offset
+                  (120.01,144.01),  # Contrast Threshold
+                  (1,3),      # Erode Iterations
+                  (1,2)]      # Dilate Iterations
+
+
 ######## Data Structures
 # BB (bounding box) is (y1, x1, y2, x2)
 ( blue, green, red, maxIntensity ) = ( 0, 1, 2, 255.0 )
@@ -220,7 +233,7 @@ def amplify(num, c=2, fraction=0.7) :
                     cv2.multiply(cv2.add( img[:,:,(c+1)%3],
                                           img[:,:,(c+2)%3]),fraction))
         mono = cv2.add(mono,mono2)
-    showdb(mono,3000)
+    showdb(mono,1000)
     return mono
 
 def rotateImage(img, angle=90):
@@ -272,7 +285,7 @@ def hlines(img, minlen=12) :
     (h,w) = img.shape
     retLines = []
     edges = cv2.Canny(img, 90, 130)
-    showdb(edges,4000)
+    showdb(edges,2000)
     if (edges == None) :
         plog("level: Bad Canny output. Not calling HoughLines")
         return -1
@@ -295,7 +308,7 @@ def horiz_lines(img, minlen=12) :
     (h,w) = img.shape
     retLines = []
     edges = cv2.Canny(img, 90, 130)
-    showdb(edges,4000)
+    showdb(edges,2000)
     if (edges == None) :
         plog("level: Bad Canny output. Not calling HoughLines")
         return -1
@@ -342,6 +355,7 @@ def getLevels(color, thresh, con, quan, reticules) :
         showdb(mono)
         mono = contrast(mono, thresh, iter=it, scale=sc, offset=off)
         showdb(mono)
+        mono = cv2.erode(mono,np.ones((2,2),np.uint8),3)
         mono = cv2.dilate(mono,np.ones((2,8),np.uint8),2)
         showdb(mono)
         rawlevels = horiz_lines(mono,minlen=6)
@@ -485,11 +499,74 @@ def imageOut():
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,180),2)
     cv2.imwrite(imageName,cv2.resize(referenceImage,params['imageSize']))
     movie_file(imageName)
+
+def processRegion(image, bbox, function) :
+    # Apply function() to subwindow (bbox) of image
+    # to find features
+    # Return feature coordinates relative to original image
+    cropped = crop(img, bbox)
+    features = function(cropped)
+    transformed = []
+    for feature in features:
+        transformed.append(transform(feature, bbox, image.shape))
+    return transformed
+
+def hunt(low, high) :
+    if ( isinstance(high,float) and isinstance(low,float) ):
+        delta = (high-low)/2.0
+        center = (high+low)/2.0
+        lvals = [center]
+        if not delta == 0 :
+            for x in np.arange(0.0,delta,delta/5.0) :
+                lvals.append(center+x)
+                lvals.append(center-x)
+    else :
+        center = (high+low)/2
+        lvals = [center]
+        for x in range(low,high,1) :
+            lvals.append(center+x)
+            lvals.append(center-x)
+    return lvals
+
+def vary(params) :
+    vparams = []
+    for (low,high) in params:
+        l = hunt(low,high)
+        vparams.append(hunt(low,high))
+    start = [vparams[i][0] for i in range(len(vparams))]
+    yield start
+    for i in range(len(vparams)-1) :
+        column = vparams[i+1]
+        for j in range(len(column)-1) :
+            yield start[0:i+1] + [column[j+1]] + start[i+2:]
+#            start[i+1] = column[j+1]
+#            yield start
+
+def processRegion2(image, bbox, function, params, n) :
+    """Apply function() to subwindow (bbox) of image to find N
+    features and return them in original coordinates
+    Each BBOX can have min/max values for each of:
+             CONTRAST:  (iteration, scale, offset) (1, 1.28,-80)
+             THRESHOLD:  thresh                       127
+             ERODE    :  erode_iteration                3
+             DIALATE  :  dilation_iteration             2
+    After three solutions, return params of middle solution
+    """
+    transformed = []
+    features = function(crop(image, bbox),*params)
+    if (len(features) == n) :
+        for feature in function(crop(image, bbox)):
+            transformed.append(transform(feature, bbox, image.shape))
+        return transformed
+    return None
     
 
 if __name__ == "__main__" :
     global referenceImage
     global positions
+    pfile = open("vary.txt",'w')
+    for v in vary(defaultParams) :
+        print(v,file=pfile)
     params = settings()
     if ('show' in sys.argv) :
         params['debugpause'] = 1000
@@ -516,7 +593,8 @@ if __name__ == "__main__" :
     reticules = getReticules(red)
 #    print(termIntList('reticule', reticules))
     showLines(referenceImage,reticules,paintColor(referenceImage,red),width=3)
-    rlevels = getLevels(green, 127, (1, 1.5, -70), 2, reticules)
+#    rlevels = getLevels(green, 127, (1, 1.5, -70), 2, reticules)
+    rlevels = getLevels(green, 127, (1, 1.28, -80), 2, reticules)
     printRLevels(rlevels)
     imageOut()
     release()
