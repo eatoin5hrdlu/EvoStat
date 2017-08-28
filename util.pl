@@ -239,10 +239,11 @@ window_percent(WFraction,HFraction,W,H) :-
 	W is integer(DW*WW*WFraction/10000),
 	H is integer(DH*WH*HFraction/11000).
 
+% E.g. leak detection: compare_delta(Op,N,500,200),
 compare_delta(Op, A, Base, Delta) :-
     Min is Base - Delta,
     Max is Base + Delta,
-    compare_minmax(Op,Min,Max,A).
+    compare_minmax(Op,A,Min,Max).
 
 compare_minmax(>, Val,  _, Max) :- Val > Max, !.
 compare_minmax(<, Val, Min,  _) :- Val < Min, !.

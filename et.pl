@@ -4,6 +4,7 @@
 :- op(1200,xfx,':<-').
 :- op(910, xfx,'::').
 :- dynamic webValue/3.
+:- dynamic offline/1.
 
 % Generate XPCE/HTML interfaces for Arduino devices
 % Arduino response to 'i' is iface(Class, Parent, Variables)
@@ -34,11 +35,11 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( push(S1,N1:name) :-> "Push value to Arduino"::
                               get(S1,N1,V1),
 	                      concat_atom([N1,V1],Cmd),
+	                      S1 = @Npush,
 	                      (send(S1,converse,Cmd)
                                -> PushStatus = succeeded
 			       ;  PushStatus = failed
 			      ),
-	                      S1 = @Npush,
 	                      flog(push(Npush,N1,V1,PushStatus))
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
@@ -56,19 +57,15 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 "Get r/o and push r/w values to Device"::
 	 component(MyName,Type,US),
 	 plog(updating(MyName)),
-	 (get(US,socket,@nil) -> Col=red ; Col=darkgreen),
-	 send(US,colour,colour(Col)),
-	 findall(P,retract(changed(US,P,_)),Ps),
-	 maplist( send(US,pull), ReadOnly),
-         maplist( send(US,push), Ps),
-	 ( Ps = [] -> true; send(US,converse, s) ),
-         send(US,check_level),  % PID will obviate this ?
-	 retractall(html_syntax), % labels with nl, not HTML
-	 label(Type,MyName,NewLabel,[]),
-	 flatten(NewLabel,LabelAtoms),
-	 concat_atom(LabelAtoms,NewAtomicLabel),
-	 send_super(US, label, NewAtomicLabel),
-	 !,
+	 (offline(US) -> true
+	  ; send(US,colour,colour(darkgreen)),
+	    findall(P,retract(changed(US,P,_)),Ps),
+	    maplist( send(US,pull), ReadOnly),
+            maplist( send(US,push), Ps),
+	    ( Ps = [] -> true; send(US,converse, s) ),
+	  send(US,check_level)   % PID will obviate this ?
+	 ),
+	 send(US,relabel),
 	 plog(updated(MyName))
        ),
        ( update(US) :->
@@ -102,3 +99,17 @@ expand_type(Type)   -->
 
 expand_type(_) --> [(check_level(@X) :-> plog(null_check_level(X)),true)].
 
+online(Obj) :-
+    get(Obj,socket,Socket),
+    integer(Socket),
+    Socket > -1.
+    
+offline(Obj) :-
+    get(Obj,socket,S),
+    ( S == @nil -> true ; S == -1 ),
+    send(Obj,colour,colour(darkred)).
+
+%    component(Name,_,Obj),
+%    concat_atom([Name,'\nOFF LINE'], NewAtomicLabel),
+%    send(Obj, label, NewAtomicLabel).
+    

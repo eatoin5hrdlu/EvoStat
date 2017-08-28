@@ -426,6 +426,7 @@ update(Self) :->
     plog(update(ClassName)),
     send(@gui, stopped),
     update_config(_),      plog(updated(config)),
+    check_leak,
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     % COMPONENT UPDATES IN MIXON
@@ -603,6 +604,12 @@ c(Name) :-
     ),
     plog(c(done)).
 
+initialize_report :-
+    open('evostat.report', write, S),
+    nl(S), write(S,'EvoStat started:'),
+    timeline(S),
+    close(S).
+
 report :-
     open('evostat.report', append, S),
     nl(S), timeline(S),
@@ -653,8 +660,7 @@ evostat_running :-
 main(_Argv) :-
     \+ evostat_running,
     assert(textCycle(0)),
-    open('evostat.report', write, S),
-    nl(S),write(S,'EvoStat started:'),timeline(S),close(S),
+    initialize_report,
     evostat_directory(HomeDir),
     assert(file_search_path(HomeDir)),
     cleanup,     % Remove temp_file/1 entries

@@ -191,3 +191,12 @@ adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-
       send(ValveObj, Valve, Actual),
       flog(sent),
       flog(adjusted(Name,VName,Valve,old(Setting),delta(Amt),new(New),actual(Actual))).
+
+close_all_valves :- findall(N,close_valves(N),_).
+
+close_valves(Name) :-
+       component_valves(Name,InValve,Name2,OutValve),
+       component(Name,_,V1Obj),
+       send(Obj, InValve, 0),
+       component(Name2,_,V2Obj),
+       send(V2Obj, OutValve, 0).

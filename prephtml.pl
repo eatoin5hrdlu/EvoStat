@@ -13,6 +13,10 @@ getx(Obj,ID)               --> {get(Obj,ID,Data),
                                [Data].
 component(Name, Type, Obj) --> {component(Name,Type,Obj)}, [Name].
 
+online(Obj)  --> {online(Obj)}.               % Just a test
+
+offline(Obj) --> {offline(Obj)}, ['OFFLINE']. % Also creates label
+
 refresh(Obj,Var,Value) :-
        webValue(Obj,Var,_),
        retractall(webValue(Obj,Var,_)),
@@ -54,7 +58,11 @@ label(level, Obj) -->
 label(lux, Obj) --> { get(Obj,f,Lux),
                       component(_,cellstat,CObj),
                       get(CObj,b,OD),
-                      RLU is Lux/OD  },
+                     (OD = 0
+                      -> plog(prephtml(zerodiv,label(lux(od(0))))), NZOD=0.1
+		       ; NZOD = OD
+		     ),
+                      RLU is Lux/NZOD  },
                     [Lux,' '], getx(Obj, fluxUnits),
                     [' '], floatfmt(RLU), [' '], getx(Obj,rlUnits), nl.
 
@@ -68,26 +76,32 @@ label(flow, Obj) --> ['Rate '],
                      getx(Obj,fr), [' '], getx(Obj,flowUnits).
 
 label(supply,Name) --> component(Name,supply,Obj), nl,
+                       online(Obj),
                        getx(Obj, v),
                        getx(Obj, levelUnits).
 
 label(cellstat,Name) --> 
                          component(Name,cellstat,Obj), [' '],
+                         online(Obj),
                          label(level,Obj),       nl,
                          label(temperature,Obj), nl,
                          label(od, Obj), nl,
                          label(lux, Obj).
 
 label(lagoon,Name) --> component(Name,lagoon,Obj), [' '],
+                       online(Obj),
                        label(level,Obj),       nl,
                        label(temperature,Obj), nl,
                        label(flow, Obj), nl,
                        label(lux, Obj).
 
 label(sampler,Name) -->  component(Name,sampler,Obj), nl,
+    online(Obj),
     [ 'Next Level Reading in '], getx(Obj,up), ['s'], nl,
     [ 'Next Sample '], getx(Obj,ns).
 
+label(Type,Name) -->  component(Name,Type,Obj), nl,
+                      offline(Obj).
 
 prep :-                   % Prepare Data for the web page
     assert(html_syntax),

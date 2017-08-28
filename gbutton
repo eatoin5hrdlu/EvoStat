@@ -80,7 +80,8 @@ update(Self) :->
       R is random(100),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
-      send(Self, display, new(_, bitmap(NewFile))),
+      new(I,image(NewFile)),
+      send(Self, display, new(_, bitmap(I))),
       delete_file(NewFile),
       write(user_error, updated(snapshot)), nl(user_error).
 
@@ -172,7 +173,7 @@ replyok(R) :- plog(replyok(R,failed)),fail.
 newsocket(Self) :-
     (component(Name,_Type,Self)->true;plog(no_component(@Self))),
     get(Self, socket, Old),
-    (Old = @nil -> true ; close(Old)),
+    (Old = @nil -> true ; bt_close(Old)),
     (bt_device(Name, Addr)->true;plog(no_bluetooth_device(Name)),fail),
     bt_socket(Addr, New),
     (New >= 0 -> true ; plog(bluetooth_socket_failed(Name,Addr))),
@@ -191,14 +192,15 @@ good_socket(Self, Socket) :-
 % Creates a new socket, sends RESET, and retries after the second failure,
 % Finally it will report failure and fail.
 
-check_socket(_,    S, S).
-check_socket(Self, S, S)   :-
-        reset(Self).
+check_socket(_,    S, S) :- plog(' check_socket'(norm)).
+check_socket(Self, S, S) :- reset(Self), plog('  check_socket'(reset)).
 check_socket(Self, _, New) :-  % Get new/(or the very first) socket
+        plog('   check_socket'(new)),
 	newsocket(Self),
 	reset(Self),
 	get(Self, socket, New).
 check_socket(Self, _, _) :-> 
+        plog('    check_socket'(fail)),
 	send(Self,colour,colour(red)),
 	fail.
 	
@@ -274,35 +276,43 @@ updateArduino(Obj, ReadOnly) :-
     ( Ps = [] -> true; send(Obj,converse, s) ),
     send(Obj, check_level).
 
-updateLabel(Obj, NewLabel) :-
-    component(Name,Type,Obj),
+relabel(Obj) :->
+    component(MyName,Type,Obj),
+    ( offline(Obj) -> C = darkred ; C = darkgreen),
+    send(Obj,colour,colour(C)),
     retractall(html_syntax), % labels with nl, not HTML
-    label(Type, Name, Label,[]),
-    flatten(Label, List),
-    concat_atom(List, NewLabel).
+    label(Type,MyName,NewLabel,[]),
+    flatten(NewLabel,LabelAtoms),
+    concat_atom(LabelAtoms,NewAtomicLabel),
+    send_super(Obj, label, NewAtomicLabel).
 
 :- pce_end_class. % ebutton
 
 paint(Things, Color) :-
 	send(@gui?graphicals, for_all,
 		if(message(@arg1,instance_of,Things),
-				message(@arg1,color(Color)))).
+				message(@arg1,colour,colour(Color)))).
 
+leak_color(=, orange).
+leak_color(>,   blue).
+leak_color(<,    red).
+
+leak_type(=,    maybe).
 leak_type(<, definite).
-leak_type(>, no).
-leak_type(=, possible).
-
-leak_color(definite, red).
-leak_color(      no, blue).
-leak_color(possible, orange).
 
 check_leak :-
 	component(_,cellstat,Obj),
-	get(Obj, a0, N),
-	compare_delta(Op,N,500,200),
-        leak_type(Op,Type),
+	get(Obj, w, N),
+	plog('CHECKING LEAK'(N)),
+	compare_delta(Op,N,600,100),
 	retractall(leak(_)),
-	assert(leak(Type)),
+	( leak_type(Op,Type)
+	-> assert(leak(Type)),
+	   report,
+	   sending_text(0),
+	   plog(sent(text))
+	; true
+	),
         leak_color(Op,Color),
 	paint(spacer,Color).
 
