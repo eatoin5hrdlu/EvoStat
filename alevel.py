@@ -501,6 +501,12 @@ def nearest(reticules, hlines) :
         rlevels.append(tuple([i,j,levels]))
     return rlevels
 
+def nearest_reticule(reticule, hlines) :
+    (i,j) = reticule
+    avg = (i+j)/2
+    hlines.sort(key=lambda l: abs(l[1]-avg))
+    return tuple([hlines[0][1], hlines[0][0]])
+
 def sortOutLevels(xydeltayLevels) :
     allLevels = sorted(xydeltayLevels)  # Sorted by horizontal position
     if (len(allLevels) == 0) :
@@ -573,8 +579,8 @@ def vary(params) :
     vparams = []
     for (p) in params:
         if isinstance(p,float) :
-            low = p - p/10
-            high = p + p/10
+            low = p - p/2
+            high = p + p/2
         else :
             low = p - 1
             high = p + 1
@@ -609,9 +615,9 @@ def save_plist(plist) :
     f.write(str(plist))
     f.close()
 
-def getALevel(color, threshold, p, reticules) :
+def getALevel(color, threshold, p, reticule) :
     """Level value is a y position in the region"""
-    lvls = []
+    lvl = None
     for varp in vary(p[3:]) :
         vp = tuple( [ p[0], p[1], p[2] ] + varp )
         print(" variation: " + str(vp))
@@ -624,10 +630,11 @@ def getALevel(color, threshold, p, reticules) :
         mono = cv2.dilate(mono,np.ones((2,8),np.uint8),di)
         showdb(mono)
         rawlevels = horiz_lines(mono,minlen=6)
-        lvls = nearest(reticules, rawlevels)
-        if (len(lvls) > 0) :
-            vp = tuple([name,lvls[0],bbox,it,sc,off,ei,di,ai,af])
-            break
+        if len(rawlevels) < 1 :
+            continue
+        lvl = nearest_reticule(reticule, rawlevels)
+        vp = tuple([name,lvl,bbox,it,sc,off,ei,di,ai,af])
+        break
     imageOut()
     return(vp)
 
@@ -641,7 +648,6 @@ if __name__ == "__main__" :
     plist = get_previous()
     params = settings()
     debug = 'show' in sys.argv
-    print(debug)
     cam = cv2.VideoCapture(params['camera'])
     camSettle(3)
     referenceImage = None
@@ -666,19 +672,16 @@ if __name__ == "__main__" :
     newplist = []
     if 'q' in sys.stdin.readline() :
         exit(0)
-    for p in plist :
-        newplist.append(getALevel(green, 127, p, reticules))
-    print("WHOLE LIST")
+    for i in range(len(plist)) :
+        ret = tuple( [ reticules[2*i] , reticules[2*i+1] ] )
+        newplist.append(getALevel(green, 127, plist[i], ret))
     for np in newplist:
         print(np[0]+"("+str(np[2][0][0]+np[1][0])+").")
     different = False
     for i in range(len(plist)) :
         for j in range(len(plist[0]))[2:] :
             if (plist[i][j] != newplist[i][j]):
-                print("Different")
                 different = True
-            print(plist[i][j],end=' ')
-        print()
     if (different) :
         save_plist(newplist)
 
