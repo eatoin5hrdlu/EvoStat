@@ -639,7 +639,6 @@ def getALevel(color, threshold, p, reticule) :
         lvl = nearest_reticule(reticule, rawlevels)
         vp = tuple([name,lvl,bbox,it,sc,off,ei,di,ai,af])
         break
-    imageOut()
     return(vp)
 
 if __name__ == "__main__" :
@@ -689,4 +688,5 @@ if __name__ == "__main__" :
                 different = True
     if (different) :
         save_plist(newplist)
+    imageOut()
 
