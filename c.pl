@@ -50,6 +50,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     webValue/3,
 	     screen/5,
 	     levelStream/2,
+	     level/4,
 	     air/0,
 	     mix/0,
 	     simulator/0,
@@ -480,11 +481,12 @@ mixon(Self) :->
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
-    catch( consult_python('./greenlines.py',[]),
+    catch( consult_python('./alevel.py',[]),
 	   Caught,
 	   plog(exception(consult_python/2, Caught)) ),
-    (host(A,B,C,D) -> plog(host(A,B,C,D)) ; plog(host(null))),
-    (lagoon(E,F,G,H) -> plog(lagoon(E,F,G,H)) ; plog(lagoon(null))).
+    findall(level(A,B,C,D),level(A,B,C,D),Levels),
+    plog(levels(Levels)),
+    flow_report(Levels).
     
 % readLevels(_) :-> get_level(alllevels).
 
@@ -585,6 +587,9 @@ scan :-
 c :- main([]),!. % This calls c(EvoStatName) (choicepoint somewhere?)
 
 c(Name) :-
+    ( exists_directory('/tmp/timelapse') -> true
+    ; make_directory('/tmp/timelapse')
+    ),
     free(@gui),
     new(@gui, evostat(Name)),
     send(@gui?frame, icon, bitmap('./evo.xpm')),
@@ -719,3 +724,9 @@ backgroundImage(ImageFile) :-
 backgroundSettings(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'_Settings.png'],ImageFile).
+
+flow_report([]).
+flow_report([level(Who,What,R1,R2)|Ls]) :-
+    Error is (R1+R2)/2 - What,
+    flog(adjustment(Who, Error)),
+    flow_report(Ls).

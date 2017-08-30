@@ -1,4 +1,8 @@
-
+camreset: camreset.c
+	cc camreset.c -o camreset
+	sudo chown root camreset
+	sudo chgrp root camreset
+	sudo chmod +s camreset
 
 test : plblue.so pace
 	swipl -s pace -g main

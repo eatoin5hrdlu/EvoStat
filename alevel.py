@@ -30,6 +30,8 @@ defaultParams = [ (1,2),      # Contrast Iterations
 colors = ["blue", "green", "red"]
 imageName = "./web/phagestat.jpg"
 
+frameLocation = "/tmp/timelapse"
+    
 def paintColor(img,color) :
     if (len(img.shape) == 3) :
         tricolor = [100,100,100]
@@ -132,6 +134,7 @@ def showdb(img, delay=500) :
         cv2.imshow("camera", img)
         if cv.WaitKey(delay) == 27:
             exit(0)
+
 def exportImage(image) :
     if (image != None ) :
         (cy1,cx1,cy2,cx2) = params['cellstatRegion']
@@ -144,21 +147,19 @@ def exportImage(image) :
                           (100, 255-i*60, i*60), 2)
         name = "./web/phagestat.jpg"
         cv2.imwrite(name,cv2.resize(image,params['imageSize']))
-
+        
 def make_movie() :
-    dir = '/tmp/timelapse'
     out = '/home/peter/src/EvoStat/web/timelapse.avi'
     cmd=['ffmpeg','-y','-framerate','2','-i','%05dm.jpg','-codec','copy',out]
     with suppress_stdout_stderr() :
-        subprocess.call(cmd,cwd=dir)
+        subprocess.call(cmd,cwd=frameLocation)
 
 def movie_file(name) :
-    location = '/tmp/timelapse/'
-    numstart = len(location)
+    numstart = len(frameLocation)
     type = 'jpg'
-    next_file = location + '00000m.jpg'
+    next_file = frameLocation + '00000m.jpg'
     numend = numstart + 5
-    imfiles = glob.glob(location+'*m.'+type)
+    imfiles = glob.glob(frameLocation+'*m.'+type)
     if (len(imfiles)>0) :
         last_file = max(imfiles, key=os.path.getctime)
         seq = int(last_file[numstart:numend]) + 1
@@ -383,6 +384,7 @@ def getReticules(c) :
         tries = tries - 1
     if tries == 0 :
         imageOut()
+        print("reticule(null).")
         exit(5)
     return lvls
 
@@ -404,6 +406,7 @@ def getLevels(color, thresh, con, quan, reticules) :
         tries = tries - 1
     if tries == 0 :
         imageOut()
+        print("level_detection(null).")
         exit(4)
     return(lvls)
 
@@ -620,7 +623,8 @@ def getALevel(color, threshold, p, reticule) :
     lvl = None
     for varp in vary(p[3:]) :
         vp = tuple( [ p[0], p[1], p[2] ] + varp )
-        print(" variation: " + str(vp))
+        if (debug) :
+            print(" variation: " + str(vp),file=sys.stderr)
         (name, oldpt, bbox, it, sc, off, ei, di, ai, af) = vp
         mono = amplify(bbox, ai, color, fraction=af)
         showdb(mono)
@@ -642,7 +646,7 @@ if __name__ == "__main__" :
     global referenceImage
     global positions
     with suppress_stdout_stderr() :
-        os.system("sudo ./usbreset /dev/bus/usb/005/011")
+        os.system("./camreset quickcam")
         time.sleep(1)
         os.system("/usr/bin/uvcdynctrl -L aristotle.gpfl --device=/dev/video0")
     plist = get_previous()
@@ -670,17 +674,18 @@ if __name__ == "__main__" :
     reticules = getReticules(red)
     showLines(referenceImage,reticules,paintColor(referenceImage,red),width=3)
     newplist = []
-    if 'q' in sys.stdin.readline() :
-        exit(0)
-    for i in range(len(plist)) :
-        ret = tuple( [ reticules[2*i] , reticules[2*i+1] ] )
-        newplist.append(getALevel(green, 127, plist[i], ret))
-    for np in newplist:
-        print(np[0]+"("+str(np[2][0][0]+np[1][0])+").")
+    retlist = []
     different = False
     for i in range(len(plist)) :
+        ret = tuple( [ reticules[2*i] , reticules[2*i+1] ] )
+        n = getALevel(green, 127, plist[i], ret)
+        print("level("+n[0]+","
+              +str(n[2][0][0]+n[1][0])+","
+              +str(ret[0])+","
+              +str(ret[1])+").")
+        newplist.append(n)
         for j in range(len(plist[0]))[2:] :
-            if (plist[i][j] != newplist[i][j]):
+            if (plist[i][j] != n[j]):
                 different = True
     if (different) :
         save_plist(newplist)
