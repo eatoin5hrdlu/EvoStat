@@ -306,7 +306,7 @@ check_leak :-
 	plog('CHECKING LEAK'(N)),
 	compare_delta(Op,N,600,100),
 	retractall(leak(_)),
-	( leak_type(Op,Type)
+	( ( leak_type(Op,Type), N =\= 500 )
 	-> assert(leak(Type)),
 	   report,
 	   sending_text(0),
