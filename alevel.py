@@ -25,16 +25,20 @@ defaultParams = [ (1,2),      # Contrast Iterations
 
 
 ######## Data Structures
-# BB (bounding box) is (y1, x1, y2, x2)
+# BB (bounding box) is ( (uly, ulx), (lry, lrx) )
+# Levels are usually just y values
+# Coordinates are frequently (y,x)
+# Upper left corner is y = 0 (larger y going down)
+# Points must be (x,y) for openCV drawing functions
+
 ( blue, green, red, maxIntensity ) = ( 0, 1, 2, 255.0 )
 colors = ["blue", "green", "red"]
 imageName = "./web/phagestat.jpg"
-
-frameLocation = "/tmp/timelapse"
+frameLocation = "/tmp/timelapse/"
     
 def paintColor(img,color) :
     if (len(img.shape) == 3) :
-        tricolor = [100,100,100]
+        tricolor = [150,150,150]
         tricolor[color] = 250
         return (tuple(tricolor))
     else :
@@ -291,14 +295,18 @@ def rotateImage(img, angle=90):
         return cv2.warpAffine(img, rotate,
                               (img.shape[1],img.shape[0]))
 
-def showLines(img, y, color, width=2) :
+def showLevels(img, y, color, dir=1, width=2) :
     if (len(img.shape) == 3):
         (w,h,d) = img.shape
     else :
         (w,h) = img.shape
+    if (dir == 1):
+        off = 30
+    else :
+        off = -60
     for i in range(len(y)):
         cv2.line(img,(w/3,y[i]),(30+w/3,y[i]), color, width)
-        cv2.putText(img,str(y[i]),(10+w/2,y[i]),
+        cv2.putText(img,str(y[i]),(off+w/3,y[i]),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, color,2)
         if (i>0) :
             delta = abs(y[i-1]-y[i])
@@ -306,15 +314,6 @@ def showLines(img, y, color, width=2) :
                 cv2.putText(img,str(delta),(50+w/2,y[i]-delta/2),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color,2)
                 
-    return(img)
-
-def showLinePositions(img, xy, color) :
-    w = img.shape[0]
-    h = img.shape[1]
-    for (px,py) in xy:
-        cv2.line(img,(px,py),(px,py), color, 2)
-        cv2.putText(img,str(py),(20+px,py),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color,2)
     return(img)
 
 # Returns list of (x,y) (centroids of lines)
@@ -339,6 +338,7 @@ def hlines(img, minlen=12) :
                 if ( l[1] < h-5 and l[1] > 5 and l[1] < h-5) :
                     retLines.append(l[1])
                     positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
+    positions.sort(key= lambda l: l[1])
     return sorted(retLines)
 
 def horiz_lines(img, minlen=12) :
@@ -362,7 +362,8 @@ def horiz_lines(img, minlen=12) :
                 if ( l[1] < h-5 and l[1] > 5 and l[1] < h-5) :
                     retLines.append(tuple([(l[0]+l[2])/2, l[1] ]))
                     positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
-    retLines.sort(key=lambda x: x[1])  # Sort on Y value (top to bottom)
+    retLines.sort(key=lambda l: l[1])  # Sort on Y value (top to bottom)
+    positions.sort(key=lambda l: l[1])  # Sort on Y value (top to bottom)
     return retLines
 
 def getReticules(c) :
@@ -387,28 +388,6 @@ def getReticules(c) :
         print("reticule(null).")
         exit(5)
     return lvls
-
-def getLevels(color, thresh, con, quan, reticules) :
-    """Level value is a y position in the region"""
-    lvls = []
-    (it, sc, off) = con
-    tries = 3
-    while(not len(lvls) == quan and tries > 0):
-        mono = amplify(1, color, fraction=0.5)
-        showdb(mono)
-        mono = contrast(mono, thresh, iter=it, scale=sc, offset=off)
-        showdb(mono)
-        mono = cv2.erode(mono,np.ones((2,2),np.uint8),3)
-        mono = cv2.dilate(mono,np.ones((2,8),np.uint8),2)
-        showdb(mono)
-        rawlevels = horiz_lines(mono,minlen=6)
-        lvls = nearest(reticules, rawlevels)
-        tries = tries - 1
-    if tries == 0 :
-        imageOut()
-        print("level_detection(null).")
-        exit(4)
-    return(lvls)
 
 def grab():
     global cam, params
@@ -510,6 +489,10 @@ def nearest_reticule(reticule, hlines) :
     hlines.sort(key=lambda l: abs(l[1]-avg))
     return tuple([hlines[0][1], hlines[0][0]])
 
+def nearest_y(reticule, y, hlines) :
+    hlines.sort(key=lambda l: abs(l[1]-y))
+    return tuple([hlines[0][1], hlines[0][0]])
+
 def sortOutLevels(xydeltayLevels) :
     allLevels = sorted(xydeltayLevels)  # Sorted by horizontal position
     if (len(allLevels) == 0) :
@@ -524,29 +507,14 @@ def sortOutLevels(xydeltayLevels) :
     allLevels.insert(0, tuple([4,5,10]))
     print(termNumberList("lagoon", allLevels))
 
-def printRLevels(rlevels) :
-    if not ( len(rlevels) == 2 ) :
-        imageOut()
-        exit(7)
-    (hy1, hy2, h) = rlevels[0]
-    if (len(h) == 0) :
-        imageOut()
-        exit(8)
-    print(termIntList("host", [h[0][0],h[0][1],hy1,hy2]))
-    showLines(referenceImage,[h[0][1]],paintColor(referenceImage,blue))
-    (ly1, ly2, lgs) = rlevels[1]
-    lgs.sort(key=lambda x: x[0])  # Sort on X value (left to right)
-    l = lgs[0]
-    print(termIntList("lagoon", [l[0],l[1],ly1,ly2]))
-    showLines(referenceImage,[l[1]],paintColor(referenceImage,green))
-#    for l in lgs :
-#        print(termIntList("lagoon", [l[0],l[1],ly1,ly2]))
-
 def imageOut():
+    """Adds a blue-grey timestamp to the current referenceImage
+       saves it to the imageName (/tmp/timelapse/NNNNNm.jpg) file
+       and periodically (every 10 frames), makes a movie"""
     global imageName
     (he,wi,de) = referenceImage.shape
     cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/10,he/2),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,180),2)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,200),2)
     cv2.imwrite(imageName,cv2.resize(referenceImage,params['imageSize']))
     movie_file(imageName)
 
@@ -636,10 +604,32 @@ def getALevel(color, threshold, p, reticule) :
         rawlevels = horiz_lines(mono,minlen=6)
         if len(rawlevels) < 1 :
             continue
-        lvl = nearest_reticule(reticule, rawlevels)
+        lvl = rawlevels[0] # nearest_reticule(reticule, rawlevels)
+        showSpots([lvl], bbox, (0,255,250))
         vp = tuple([name,lvl,bbox,it,sc,off,ei,di,ai,af])
         break
     return(vp)
+
+def showBBox(params, color) :
+    ( (yul,xul), (ylr,xlr) ) = params[2]
+    cv2.rectangle(referenceImage,(xul,ylr),(xlr,yul),color,2)
+
+def showSpots(ptlist, bbox, color) :
+    for (x,y) in ptlist :
+        ( (uly,ulx), (lry, lrx) ) = bbox
+        tx = ulx + x
+        ty = uly + y
+        cv2.rectangle(referenceImage,(tx-4,ty-1),(tx+4,ty+1),color,2)
+    
+def showVesselLevel(who, y) :
+    color = paintColor(referenceImage,red)
+    if (who[:-1] == 'host') :
+        color = paintColor(referenceImage,blue)
+    elif (who[:-1] == 'lagoon') :
+        color = paintColor(referenceImage,green)
+    else :
+        print("unrecognized vessel " + who, file=sys.stderr)
+    showLevels(referenceImage,[y],color,dir=-1)
 
 if __name__ == "__main__" :
     global referenceImage
@@ -671,17 +661,20 @@ if __name__ == "__main__" :
     i1 = grab()
     showdb(i1)
     reticules = getReticules(red)
-    showLines(referenceImage,reticules,paintColor(referenceImage,red),width=3)
+    showLevels(referenceImage,reticules,paintColor(referenceImage,red),width=3)
     newplist = []
     retlist = []
     different = False
     for i in range(len(plist)) :
         ret = tuple( [ reticules[2*i] , reticules[2*i+1] ] )
         n = getALevel(green, 127, plist[i], ret)
+        y = n[2][0][0] + n[1][1]  # Points are (x,y) now
         print("level("+n[0]+","
-              +str(n[2][0][0]+n[1][0])+","
+              +str(y) +","
               +str(ret[0])+","
               +str(ret[1])+").")
+        showVesselLevel(n[0], y)
+        showBBox(n,(255,255,255))
         newplist.append(n)
         for j in range(len(plist[0]))[2:] :
             if (plist[i][j] != n[j]):
