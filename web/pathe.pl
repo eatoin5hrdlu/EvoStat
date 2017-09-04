@@ -17,11 +17,10 @@ pathebody(body([background(NamePlate)],
     form([class=mod,
           action='./controlpathe.pl'],
           input([type=submit,name=submit,value=change])),
-  center(a([href('./plot.pl')],plotlink)),
-    center(a([href('./timelapse.avi')],timelapse)),
-    center(
-    	   video([width(320),height(240),autoplay],
-		   source([src('./timelapse.avi'),type('video/x-msvideo')],[])))
+    center(a([href('./plot.pl')],plotlink)),
+    center(a([href('./flog.txt')],flowlog)),
+    center(a([href('./datalog.txt')],datalog)),
+    center(a([href('./timelapse.avi')],timelapse))
   ]
   ) %body
   ) :- %pathebody

@@ -6,7 +6,7 @@
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
 :- use_module(library(ctypes)).
-
+:- use_module(library(filesex)).
 % Arduino controllers return type as a single character id(char),
 id_type(0's, supply).
 id_type(0'c, cellstat).
@@ -76,11 +76,13 @@ initialise(Self, Label:[name]) :->
 	send(Self, display, new(_, bitmap(I))).
 
 update(Self) :->
+	"Must copy image to new filename to avoid caching"::
       writeln(updating(snapshot)),
       R is random(100),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
       new(I,image(NewFile)),
+      send(Self, clear),
       send(Self, display, new(_, bitmap(I))),
       delete_file(NewFile),
       write(user_error, updated(snapshot)), nl(user_error).
@@ -171,7 +173,7 @@ replyok(R) :- plog(replyok(R,failed)),fail.
 
 % Get the Bluetooth socket (first time or replace old)
 newsocket(Self) :-
-    (component(Name,_Type,Self)->true;plog(no_component(@Self))),
+    (component(Name,_Type,Self)->true;plog(no_component(Name))),
     get(Self, socket, Old),
     (Old = @nil -> true ; bt_close(Old)),
     (bt_device(Name, Addr)->true;plog(no_bluetooth_device(Name)),fail),

@@ -441,6 +441,7 @@ update(Self) :->
     plog(calling(report)),
     report,
     send(@gui, started),
+    datalog,
     plog(start(gui)).
 
 quiet(Self) :->
@@ -486,6 +487,8 @@ readLevels(_) :->
 	   plog(exception(consult_python/2, Caught)) ),
     findall(level(A,B,C,D),level(A,B,C,D),Levels),
     plog(levels(Levels)),
+    findall(Who:Level, propagate_level(Who,Level),Props),
+    plog(propagated(Props)),
     flow_report(Levels).
     
 % readLevels(_) :-> get_level(alllevels).
@@ -717,6 +720,18 @@ new_value(Attr=Value) :-
       assert(changed(Obj,Var,EValue))
   ).
 
+propagate_level(Name,VolumePC) :-
+    level(Name,Level,R1,R2),
+    component(Name,_,Obj),
+    Delta is R2-R1,
+    get(Obj,tl,TargetLevel),
+    Zero is ( (R1+R2)/2 ) + ( (TargetLevel*Delta) / 10 ),
+    plog(settingZero(Name,Zero,Level)),
+    VolumeScreen is Zero - Level, % Zero > Level
+    VolumePC is (VolumeScreen * 10)/Delta,
+    plog(settingLevel(VolumePC)),
+    send(Obj,l,VolumePC).
+
 backgroundImage(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'.png'],ImageFile).
@@ -730,3 +745,29 @@ flow_report([level(Who,What,R1,R2)|Ls]) :-
     Error is (R1+R2)/2 - What,
     flog(adjustment(Who, Error)),
     flow_report(Ls).
+
+
+datalog :-
+    open('web/datalog.txt',append,F),
+    get_time(NowFloat),
+    format_time(atom(TS),'time(%T)',NowFloat),
+    write_term(F,TS,[fullstop(true),nl(true)]),
+    Now is integer(NowFloat),
+    ( dataset(Now,Term),
+      write_term(F,Term,[fullstop(true),nl(true)]),
+      flush_output(F),
+      fail
+    ; close(F)
+    ).
+
+dataset(Time, Term) :-
+    member(Type:Data,
+       [ cellstat:[t:temperature,l:level,v0:valve],
+         lagoon:  [t:temperature,l:level,v1:valve],
+         sampler:  [v0:hostValve,v1:lagoonValve]
+    ]),
+    component(Name,Type,Obj),
+    online(Obj),
+    member(Var:Functor,Data),
+    get(Obj,Var,Value),
+    Term =.. [ Functor, Name, Time, Value ].

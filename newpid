@@ -2,7 +2,7 @@
 		  pidstart/0,
 		  pidstop/0,
 		  limit/4,
-		  compute/0    ]).
+		  compute/1    ]).
 :- use_module(library(apply)).
 
 :- dynamic deadzone/1, stop_controllers/0, iterm/4, state/9.
@@ -28,7 +28,7 @@ launch_controllers(List) :-
 % state( Id, Kp, Ki, Kd, Var, SetPoint, Min, Max, SampleTime)
 
 % Time to next compute cycle for each controller
-next_interval(Interval) :-
+next_interval(Id:Interval) :-
 	get_time(Now),
 	iterm(Id, _, _, LastTime),
 	state(Id,_P,_I,_D,_V,_S,_MN,_MX,DeltaT),
@@ -47,25 +47,30 @@ controller(pid(Id,Kp,Ki,Kd,Var,SetPt,Min,Max,DeltaT)) :-
 	retractall(iterm(Id,_,_,_)),
 	assert(iterm(Id, SetPt, SetPt, LastTime)),
 	retractall(state(Id,_P,_I,_D,_V,_S,_MN,_MX,_Ds)),
-	assert(state(Id,Kp,Ki,Kd,Var,SetPt,Min,Max,DeltaT)).
+	assert(state(Id,Kp,Ki,Kd,Var,SetPt,Min,Max,DeltaT)),
+	dblog(pid,created(pid,Id)).
 
 control :-
+	dblog(pid,control),
 	iterm(_, _, _, _), % requires an active controller
 	retractall(stop_controllers),
 	repeat,
-	    setof(T,next_interval(T), [Interval|_]), % Soonest
+	    setof(T,next_interval(T), [Id:Interval|_]), % Soonest
+	    dblog(pid,sleeping(Interval)),
 	    sleep(Interval),
-	    dblog(pid,compute(call)),
-	    compute,           % Run one cycle
+	    dblog(pid,compute(Id)),
+	    compute(Id),             % Run one cycle
 	    dblog(pid,compute(succeed)),
 	stop_controllers,      % Signal to stop
 	writeln('      Stopping PID Controllers').
 
-compute :-
+compute(Id) :-
 	iterm(Id, ITerm0, LastInput, LastTime),
+	dblog(pid,iterm(Id)),
 	get_time(Now),
 	Elapsed is Now - LastTime,
 	state(Id, Kp,Ki,Kd, Var, SetPoint, Min, Max, SampleTime),
+	dblog(pid,compute(Elapsed,SampleTime)),
 	Elapsed > SampleTime,
 	get_input(Id, Var, Input),       % Get current value
 	dblog(pid,got_input(Id,Var,Input)),
@@ -78,7 +83,7 @@ compute :-
 	assert(iterm(Id,ITerm,Input,Now)),
 	dblog(pid,in_out_error(Input,Output,Error)),
 	( in_deadzone(Var, SetPoint, Input)
-	-> dblog(pid,deadzone(Var,SetPoint,Input,Output))
+	-> dblog(pid,deadzone(Id,Var,SetPoint,Input,Output))
          ; dblog(pid,pid(Id,Var,Input,Output)),
  	  set_output(Id, Var, Input, Output)
 	).

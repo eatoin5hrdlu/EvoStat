@@ -45,30 +45,8 @@
 % fullVolumeSU   = 100 * (reticuleVolumeSU/reticuleVolumePC)
 % zeroLelelSU    = reticuleCenterSU + targetVolumeSU
 
-:- dynamic host/4, lagoon/4.
+:- dynamic level/4.
 
-current_level(lagoon, Num, Level) :-
-        lagoon(R1, R2, _X, LY),
-	param(lagoonReticuleVolumemL(Num, RVmL)),
-	param(lagoonTargetVolumemL(Num, TVmL)),
-	param(lagoonReticuleVolumePC(Num,RVPC)),
-	current_level(R1,R2,LY,RVmL,TVmL,RVPC, Level).
-
-current_level(host, 0, Level) :-
-        host(R1,R2,_X, LY),
-	param(hostReticuleVolumemL(RVmL)),
-	param(hostTargetVolumemL(TVmL)),
-	param(hostReticuleVolumePC(RVPC)),
-	current_level(R1,R2,LY,RVmL,TVmL,RVPC, Level).
-
-current_level(R1,R2,Y, RVmL, TVmL, RVPC, LevelPC) :-
-	ReticuleCenterSU is ( R1+R2 )/2,
-	ReticuleVolumeSU =  R2 - R1,
-%	ScaleToSU  is  ReticuleVolumeSU / RVPC,
-	ScaleToPC  is  RVPC / ReticuleVolumeSU,
-	ZeroLevelSU is ReticuleCenterSU + (TVmL * (ReticuleVolumeSU / RVmL)),
-	LevelPC is  (ZeroLevelSU - Y) * ScaleToPC.
-	
 get_error(Name, Error) :-
         dblog(pid,get_error(Name)),
         atom_codes(Name,NCodes),
@@ -130,12 +108,9 @@ initPID :-
 	pid_controllers(Cs),
 	launch_controllers(Cs).
 
-get_input(Name, l, Value) :-
-	get_error(Name, Value), fail.
 get_input(Name, Var, Value) :-
-        dblog(pid,webValue(Name,Var)),
-	webValue(@Name, Var, Value).
-
+	component(Name,_,Obj),
+	get(Obj,Var,Value).
 %
 % set_output(Component, Var, Old, New)
 %

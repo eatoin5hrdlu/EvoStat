@@ -30,7 +30,7 @@ config( [
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
-		 cellstat( host0,   below, [tb(400),shape(36,14),CF]),
+		 cellstat( host0,   below, [tb(400),TL,shape(36,14),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
@@ -42,7 +42,7 @@ config( [
                 ])
 	 ]) :-
  Supply = shape(11,4),
- LS = shape(31,14),
+ LS = shape(30,14),
  TL = tl(31),
  LF = font(font(times,roman,18)),
  CF = font(font(times,roman,16)),
@@ -59,7 +59,7 @@ bt_device(   host0, '98:D3:31:40:1E:80'). % HC-06 could be bad now
 
 %bt_device(lagoon1,     '98:D3:31:50:14:06').
 bt_device( lagoon2,     '98:D3:31:70:2B:70').
-bt_device(autosampler, '98:D3:31:40:1D:D4').
+bt_device(autosampler, '98:D3:32:30:42:6A').
 
 %bt_device(cellstat,    '98:D3:31:70:3B:34'). % Lagoon1 substituted
 %bt_device(cellstat,    '98:D3:31:90:29:0E').
@@ -114,8 +114,8 @@ deadzone(t,1).  % Temperature closer than level
 % l = level
 % t = temperature    
 pid_controllers([
-   pid(   host0, 1.0, 0.0, 0.1, l, 71, 10, 100, 120),
-   pid( lagoon1, 1.0, 0.0, 0.1, l, 31, 10, 100, 120)]).
+   pid(   host0, 1.0, 0.0, 0.1, l, 32, 10, 100, 120),
+   pid( lagoon2, 1.0, 0.0, 0.1, l, 29, 10, 100, 120)]).
 
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    
