@@ -201,6 +201,13 @@ int toolong = 100;
 	}
 }
 
+void setvpin(int v,int p)
+{
+  pinMode(p,OUTPUT);
+  digitalWrite(p,0);
+  valvePin[v] = p; 
+}
+
 int ctr;
 void setup()
 {
@@ -216,18 +223,12 @@ int i;
 	pinMode(phaseB,    INPUT);
 
         // Five Drain Valves
-	pinMode(A1,OUTPUT);digitalWrite(A1,0);
-	pinMode(A2,OUTPUT);digitalWrite(A2,0);
-	pinMode(A3,OUTPUT);digitalWrite(A3,0);
-	pinMode(A4,OUTPUT);digitalWrite(A4,0);
-	pinMode(A5,OUTPUT);digitalWrite(A5,0);
-	pinMode(A6,OUTPUT);digitalWrite(A6,0); // Change NUM_VALVES to use this one
-	valvePin[0] = A1;
-	valvePin[1] = A2;
-	valvePin[2] = A3;
-	valvePin[3] = A4;
-	valvePin[4] = A5;
-	valvePin[5] = A6;
+	setvpin(0,A1);
+  setvpin(1,A2);
+  setvpin(2,A3);
+  setvpin(3,A4);
+  setvpin(4,A5);
+  setvpin(5,A6);
 	
 	closedPosition = false;
 	lastTime = millis();
