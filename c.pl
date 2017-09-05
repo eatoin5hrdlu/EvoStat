@@ -746,26 +746,40 @@ flow_report([level(Who,What,R1,R2)|Ls]) :-
     flog(adjustment(Who, Error)),
     flow_report(Ls).
 
-
-datalog :-
-    open('web/datalog.txt',append,F),
-    get_time(NowFloat),
-    format_time(atom(TS),'time(%T)',NowFloat),
-    write_term(F,TS,[fullstop(true),nl(true)]),
-    Now is integer(NowFloat),
-    ( dataset(Now,Term),
-      write_term(F,Term,[fullstop(true),nl(true)]),
-      flush_output(F),
-      fail
-    ; close(F)
+log_file(F, Name, Header) :-
+    ( exists_file(Name)
+     ->	open(Name,append, F)
+     ;	open(Name, write, F),
+	maplist(write(F),Header)
     ).
 
-dataset(Time, Term) :-
-    member(Type:Data,
-       [ cellstat:[t:temperature,l:level,v0:valve],
-         lagoon:  [t:temperature,l:level,v1:valve],
-         sampler:  [v0:hostValve,v1:lagoonValve]
-    ]),
+header(Types, DataSet, Arity, Header) :-
+    findall([':- ',Type,' ',Functor,'/',Arity,'.\n'],
+	    ( member(_:Terms,DataSet),
+	      member(_:Functor,Terms),
+	      member(Type,Types) ),    DDs),
+    flatten(['% Parameter( Component, Time, Value )\n',
+	     ':- discontiguous timestamp/1.\n'|DDs],Header).
+    
+datalog :-
+    get_time(NowFloat),
+    format_time(atom(TS),'timestamp(%T)',NowFloat),
+    Now is integer(NowFloat),
+    DataSet = [ cellstat:[t:temperature,l:level,v0:valve,b:turbidity],
+		lagoon:  [t:temperature,l:level,v1:valve],
+		sampler:  [v0:hostValve,v1:lagoonValve]],
+    header([dynamic, multifile,discontiguous],DataSet,3,Header),
+    log_file(F, 'web/datalog.txt', Header),
+
+    write_term(F,TS,[fullstop(true),nl(true)]),
+    (  dataset(Now, DataSet, Term), % Generator
+       write_term(F,Term,[fullstop(true),nl(true)]),
+       fail
+     ; close(F)
+    ).
+
+dataset(Time, Dataset, Term) :-
+    member(Type:Data,Dataset),
     component(Name,Type,Obj),
     online(Obj),
     member(Var:Functor,Data),
