@@ -1,0 +1,40 @@
+
+# name: k1
+# type: global scalar
+0.3
+
+# name: k2
+# type: global scalar
+0.5
+
+# name: k3
+# type: global scalar
+0.1
+
+# name: k4
+# type: global scalar
+100
+
+# name: k5
+# type: global scalar
+0.1
+
+# name: k6
+# type: global scalar
+0.1
+
+# name: kg
+# type: global scalar
+0.1
+
+# name: fr
+# type: global scalar
+1
+
+# name: h0
+# type: global scalar
+1000000000
+
+# name: vol
+# type: global scalar
+40
