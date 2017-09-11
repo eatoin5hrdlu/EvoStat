@@ -35,6 +35,7 @@ start_http :-
      process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
 %    process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
+     process_files('web/*.pdf',   [] ),
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
      process_files('web/images/*', [] ),
@@ -46,6 +47,7 @@ process_files(WildCard, Security) :-
 	add_handlers(Files, Security).
 
 suffix_mime( txt, [text/plain] ).
+suffix_mime(   m, [text/x-matlab] ).
 suffix_mime(  js, [text/javascript] ).
 suffix_mime( css, [text/css] ).
 suffix_mime( png, [image/png] ).
@@ -54,6 +56,7 @@ suffix_mime( jpg, [image/jpg] ).
 suffix_mime(jpeg, [image/jpg] ).
 suffix_mime( mkv, [video/webm] ).
 suffix_mime( avi, [video/x-msvideo] ).
+suffix_mime( pdf, [application/pdf] ).
 suffix_mime(html, [] ).
 
 add_handlers([],_).
@@ -161,8 +164,12 @@ evostatName(Req,Name) :- memberchk(search(L), Req),
 			 !.
 evostatName(_,Name) :- config_name(Name,_).
 
-defaultHead(Title,
+refreshHead(Title,
   [ title(Title),
     meta(['http-equiv'(refresh),content(20)],[]),% refresh
+    script([ language(javascript) ],[])]).
+
+defaultHead(Title,
+  [ title(Title),
     script([ language(javascript) ],[])]).
 
