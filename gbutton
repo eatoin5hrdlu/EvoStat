@@ -87,7 +87,7 @@ update(Self) :->
       delete_file(NewFile),
       write(user_error, updated(snapshot)), nl(user_error).
 
-:- pce_end_class.
+:- pce_end_class.  % snapshot
 
 :- pce_begin_class(ebutton, button).
 
@@ -302,21 +302,39 @@ leak_color(<,    red).
 leak_type(=,    maybe).
 leak_type(<, definite).
 
-check_leak :-
+
+% To enable leak reporting an hour after last report:
+% ?- reenable_reporting(leak, 3600)
+
+:- dynamic reported/4. % Absence of this fact enables reporting
+
+enable_reporting(Type, Elapsed) :-
+    reported(Type,Severity,ReportTime,_), % There was a report
+    get_time(NowFloat),
+    NowFloat > ReportTime + Elapsed,      % But time has passed
+    retract(reported(Type,Severity,ReportTime,_)), % Remove it
+    !.
+enable_reporting( _, _).
+
+check_condition(leak) :-
+	enable_reporting(leak, 3600), % and re-enable after 1 hour
 	component(_,cellstat,Obj),
 	get(Obj, w, N),
 	plog('CHECKING LEAK'(N)),
+	get_time(NowFloat),
 	compare_delta(Op,N,600,100),
-	retractall(leak(_)),
-	( ( leak_type(Op,Type), N =\= 500 )
-	-> assert(leak(Type)),
+	( ( leak_type(Op,Type),
+	    N =\= 500,
+	    \+ reported(leak, Type, _, _) )
+	-> assert(reported(leak,Type,NowFloat,N)),
 	   report,
-	   sending_text(0),
+	   sending_text(0), % Immediate send
 	   plog(sent(text))
-	; true
+	; true % No leak, or already reported within the last hour
 	),
-        leak_color(Op,Color),
-	paint(spacer,Color).
+        leak_color(Op, Color),
+	paint(spacer, Color).
+
 
 reportDeltaT(Who, Old, New) :-
 	DeltaT is integer(abs(Old-New)/10), % DeltaT in degrees
@@ -358,7 +376,7 @@ resetColor(Self) :->
      send(Self, colour, colour(C)).
 
 update(_Self) :-> true.
-:- pce_end_class.
+:- pce_end_class. % spacer
 
 :- pce_begin_class(hotbox, box).
 initialise(Self, Color:[name]) :->
@@ -367,10 +385,10 @@ initialise(Self, Color:[name]) :->
         send_super(Self, initialise(Width,Height)),
 	send(Self, colour, colour(black)),
         send(Self, fill_pattern, colour(Color)).
-:- pce_end_class.
+:- pce_end_class.  % hotbox
 
 % Arduino interface objects [cellstat,lagoon, etc.]
-:- tell(iface), [ard], told.   % Create Interface classes
+:- tell(iface), [ard], told.   % Create Interface classes (> iface)
 :- [iface].                    % CONSULT
 :- [dialin].   % Pop up Arduino dialog
 :- [prephtml]. % prepare PCE data for web

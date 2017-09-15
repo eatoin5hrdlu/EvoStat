@@ -1,16 +1,29 @@
 % LAGOON MODEL:  FOUR COUPLED DIFFERENTIAL EQUATIONS:
+% (currently solving with Hindmarsh's LSODE algorithm)
 %
+%   x is a four-element array of differential equations
+%   x(1)           x(2)         x(3)           x(4)
+%
+% representing the following populations (not concentrations)
+% 
 % UNINFECTED  -> ADSORBED  -> PRODUCTIVE  ->  PHAGE
 %  (cells)        (cells)      (cells)      (particles)
 
 function xdot = f(x,t)
 global kg ad ec pp fr h0 vol;
+% fr (alias dc-dilution constant) is flow rate in volumes/hour
+% h0 is host cell concentration
+% vol is volume of lagoon
 
+% Delta adds or subtracts a small portion to get a range of models
+% I model plus and minus (this is plus) and plot both curves
   lkg = delta(kg, 0.02); % Local (varied) normal E. coli growth constant
   lad = delta(ad, 0.1);  % Local (varied) adsorption coefficient
   lec = delta(ec, 0.1);  % Local (varied) rate exiting eclipse
-  lpp = delta(pp, 0.05);  % Local (varied) phage production per cell
+  lpp = delta(pp, 0.05); % Local (varied) phage production per cell
+
   dc = fr;     % new variable so we could model dynamic modification
+  % Imagine a dc is computed non-trivially from flow rate (fr)
 
 % Inhibited growth rates for subsequent stages of E. coli
 % Ultimately this should be measured for given strains of E. coli and M13

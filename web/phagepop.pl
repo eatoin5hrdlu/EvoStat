@@ -41,7 +41,7 @@ phage_var_label(ec)  --> [ 'Leaving Eclipse : '].
 phage_var_label(dur)  --> [ 'Simulation Length : '].
 phage_var_label(fr) --> [' Flow Rate : '].
 phage_var_label(vol) --> [' Lagoon Volume : '].
-phage_var_label(h0) --> [' Initial Cell Population: '].
+phage_var_label(h0) --> [' Host Cell Concentration: '].
 phage_var_label(p0) --> [' Initial Phage Population: '].
 phage_var_label(pp) --> [' Phage Production: '].
 phage_var_label(kg) --> !, [' E. coli Growth Rate : '].
@@ -52,13 +52,13 @@ phage_var_label(K)  --> { concat_atom([k,X],K) }, [' Growth Factor ',X,' : '].
 % Variable prefix determines some parameter types:
 % kXXX   is a growth constant
 % tmXXX  a temperature in deg C
-phage_var_units(ad) --> [ 'hour', sup(-1) ].
+phage_var_units(ad) --> [ 'mL/min' ].
 phage_var_units(kg) --> [ 'hour', sup(-1) ].
 phage_var_units(dur) --> [ 'hours' ].
 phage_var_units(ec) --> [ 'hour', sup(-1) ].
 phage_var_units(fr) --> [ 'Volumes/hour' ].
 phage_var_units(vol) --> [ 'mL' ].
-phage_var_units(h0) --> [ 'Cells' ].
+phage_var_units(h0) --> [ 'Cells/mL' ].
 phage_var_units(p0) --> [ 'Virons/mL' ].
 phage_var_units(pp) --> [' Phage/Cell '].
 phage_var_units(moi) --> [' Phage/Cell '].
@@ -94,16 +94,10 @@ phagepop(_Req) :-
 	      center(a([href='/web/model.txt',style='color:white'],
 		    [font([size='+2'],'CLICK HERE TO SEE MODEL SOURCE')])),
 	      center(font([size='+2',style='color:white'],
-			  [' ',br([],[]),
-			   'Do not forget leading zeros (enter 0.2, not .2)',
-                  br([],[]),
-                 'That is how Marshall broke it, last time.',
-                  br([],[]),
-                 'Easier to add this message than fix number parsing today'])),
-	      br([],[]),
+			  [' ',br([],[])])),
 	      form(action='./run_model.pl', Inputs)])).
 
 phagepop(Request) :-
-    errorPage(Request, 'EvoStat not yet ready for Phage Population Modelling').
+    errorPage(Request, 'There was a problem generating the model').
 
 

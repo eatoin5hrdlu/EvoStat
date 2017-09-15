@@ -1,4 +1,4 @@
-% PROLOG FILES [c,gbutton,adjust,newpid,iface,dialin,prephtml,webspec,util].
+g% PROLOG FILES [c,gbutton,adjust,newpid,iface,dialin,prephtml,webspec,util].
 %
 % Create configuration file <hostname>.pl from  template.pl
 % (or <evostatname>.pl if more than one on the same computer).
@@ -427,7 +427,7 @@ update(Self) :->
     plog(update(ClassName)),
     send(@gui, stopped),
     update_config(_),      plog(updated(config)),
-    check_leak,
+    check_condition(leak), % Immediately send text if leak detected
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     % COMPONENT UPDATES IN MIXON
@@ -482,7 +482,7 @@ mixon(Self) :->
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
-    catch( consult_python('./alevel.py',[]),
+    catch( consult_python('./alevel.py', [], 2),
 	   Caught,
 	   plog(exception(consult_python/2, Caught)) ),
     findall(level(A,B,C,D),level(A,B,C,D),Levels),
@@ -600,6 +600,9 @@ c(Name) :-
     assert(webok),
     showFlowRateTable,
     start_http,
+    % It might be a while before first sampler communication
+    % So go ahead and try connecting Bluetooth(TM)
+    send_to_type(@gui?graphicals, sampler, [connect]),
     get(@gui, prompt, Reply),
     (Reply = quit ->
          send(@fastUpdatetimer, stop),
@@ -622,13 +625,19 @@ report :-
     open('evostat.report', append, S),
     nl(S), timeline(S),
     ( camera_exists -> true ; write(S,'NO CAMERA!'),nl(S) ),
-    ( leak(Type)    -> write(S,leak(Type)),nl(S) ; true ),
+    report_conditions(S),
     reportTemperature(cellstat,S),
     reportTurbidity(cellstat,S),
     findall(_,reportTemperature(lagoon,S),_),
     findall(_,(err(Who,Err),write(S,error(Who,Err)),nl(S)),_),
     close(S).
 report :- plog(report(failed)).
+
+report_conditions(S) :-
+    reported(Condition,Type,_,Value),
+    write(S,status(Condition,Type,Value)),nl(S),
+    fail.
+report_conditions(_).
 
 reportTemperature(What,S) :-
     component(Who, What, Obj),
@@ -675,8 +684,8 @@ main(_Argv) :-
     logging,     % stderr to FILE if logfile(FILE)
 
     % Delay if the computer is just starting up (low PID #)
-    current_prolog_flag(pid, PID),
-    (PID < 900 -> sleep(30) ; true),
+    current_prolog_flag(pid, ProcessID),
+    (ProcessID < 900 -> sleep(30) ; true),
     set_prolog_flag(save_history,false),
     at_halt(pathe_report(verbose)),  % Called on exit
     ( windows

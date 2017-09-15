@@ -2,7 +2,7 @@ pkg load image
 hostcolor =  [0.00 0.00 1.00];  % Blue Devil Blue
 host2color = [0.00 0.75 0.00];  % Green
 host3color = [0.75 0.00 0.00];  % Red
-phagecolor = [0.20 0.25 0.65];  % Carolina Blue
+phagecolor = [0.4  0.6  0.85];  % Carolina Blue
 zcolor     = [0.75 0.00 0.75];  % Purple
 % colors = [hostcolor, host2color, host3color, phagecolor]
 
@@ -49,11 +49,19 @@ o = x(middle,1)*0.2;
 lo = x(middle,1)*0.4;  % large offset
 
 pos1 = dur/2;
-pos2 = dur/5;
-text(pos1,x(middle,1)-lo,'Uninfected Host','fontsize',22,'color','k');
-text(pos2,x(leftp,2)+so,  'Adsorbed Host',  'fontsize',24,'color',host2color);
-text(pos2,x(leftp,3)+to,  'Productive Host','fontsize',20,'color',host3color);
-text(pos1,x(middle,4),   'Phage',          'fontsize',32,'color',phagecolor);
-
+pos2 = dur/6;
+% Y position is the data axis, so to get nice label offset from curves:
+% Multiply by powers of 10 for semilog, add/subtract fraction for linear.
+if (lsl == 0)
+text(pos1,x(middle,1)/100,'Uninfected Host','fontsize',22,'color','k');
+text(pos2,x(leftp,2)*10,  'Adsorbed Host',  'fontsize',24,'color',host2color);
+text(pos2,x(leftp,3)/10,  'Productive Host','fontsize',20,'color',host3color);
+text(pos1,x(middle,4)*100,  'Phage',        'fontsize',32,'color',phagecolor);
+else
+text(pos1,x(middle,1)-so,'Uninfected Host','fontsize',22,'color','k');
+text(pos2,x(leftp,2)+o,  'Adsorbed Host',  'fontsize',24,'color',host2color);
+text(pos2,x(leftp,3)-o,  'Productive Host','fontsize',20,'color',host3color);
+text(pos1,x(middle,4)+lo,   'Phage',          'fontsize',32,'color',phagecolor);
+endif
 print(fhandle,'-dpng','-color','web/phagepop.png');
 
