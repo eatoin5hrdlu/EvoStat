@@ -2,6 +2,7 @@
 
 octaveParameters([])            --> [].
 octaveParameters([X=Y|Ps])      -->
+    { atom_concat('.',_,Y)->atomic_list_concat(['0',Y],NY);Y=NY},
     ['\n# name: ', X, '\n# type: global scalar\n', Y, '\n' ],
     octaveParameters(Ps).
 
