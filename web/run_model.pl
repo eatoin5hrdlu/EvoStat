@@ -17,7 +17,7 @@ run_model(Req) :-
 		   ['--path', './web', './web/modrun.m'],
 		   [process(PID)]),
     process_wait(PID, Exit, [timeout(10)]),
-    defaultHead('Population Plot', Head),
+    nocacheHead('Population Plot', Head),
     reply_html_page(Head,body(background('phagepop.png'),[pre([],Exit)])).
 
 run_model(Request) :-
