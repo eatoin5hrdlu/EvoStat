@@ -3,7 +3,7 @@
 octaveParameters([])            --> [].
 octaveParameters([X=Y|Ps])      -->
     { atom_concat('.',_,Y)->atomic_list_concat(['0',Y],NY);Y=NY},
-    ['\n# name: ', X, '\n# type: global scalar\n', Y, '\n' ],
+    ['\n# name: ', X, '\n# type: global scalar\n', NY, '\n' ],
     octaveParameters(Ps).
 
 run_model(Req) :-
