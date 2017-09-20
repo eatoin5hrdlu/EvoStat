@@ -14,12 +14,17 @@ run_model(Req) :-
     open('./web/ES_params.txt',write,F),
     maplist(write(F),List),
     close(F),
+    Plot = 'phagepop.png',
+    (exists_file(Plot) -> delete_file(Plot); true),
     process_create('/usr/bin/octave',
 		   ['--path', './web', './web/modrun.m'],
 		   [process(PID)]),
     process_wait(PID, Exit, [timeout(10)]),
     nocacheHead('Population Plot', Head),
-    reply_html_page(Head,body(background('phagepop.png'),[pre([],Exit)])).
+    timestring(Time),
+    reply_html_page(Head,body(background(Plot),
+			[font([size('+3')],[Time,'  ', 'Exit Code ', Exit]),
+			       br([],[])])).
 
 run_model(Request) :-
       errorPage(Request, 'Error changing parameters').
