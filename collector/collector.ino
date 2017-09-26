@@ -224,11 +224,11 @@ int i;
 
         // Five Drain Valves
 	setvpin(0,A1);
-  setvpin(1,A2);
-  setvpin(2,A3);
-  setvpin(3,A4);
-  setvpin(4,A5);
-  setvpin(5,A6);
+	setvpin(1,A2);
+	setvpin(2,A3);
+	setvpin(3,A4);
+	setvpin(4,A5);
+	setvpin(5,A6);
 	
 	closedPosition = false;
 	lastTime = millis();
@@ -371,8 +371,10 @@ void respondToRequest(void)
 	}
 	if ( is.length() > 0 )  {   // process the command
 		int value = 0;
-		if (is.length() > 2)
+		if (is.length() > 2) {
 			value = atoi(&is[2]);
+			if (value == 0) value = 1;
+		}
 		process(is[0], is[1], value);
 	}
 }

@@ -62,8 +62,8 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	    findall(P,retract(changed(US,P,_)),Ps),
 	    maplist( send(US,pull), ReadOnly),
             maplist( send(US,push), Ps),
-	    ( Ps = [] -> true; send(US,converse, s) ),
-	  send(US,check_level)   % PID will obviate this ?
+	    ( Ps = [] -> true; send(US,converse, s) )
+	  %  send(US,check_level)   % PID will obviate this ?
 	 ),
 	 send(US,relabel),
 	 plog(updated(MyName))

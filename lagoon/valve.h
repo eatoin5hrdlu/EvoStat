@@ -77,11 +77,21 @@ class VALVE
 
    void next_valve(void)
    {
-    if (current == 0)            up = true;  // First half of sequence
-    if (up && current == size-1) up = false; // Second half
+    boolean skip = true;
+    int looping = 10;
     valve_open[current] = 0;
-    if (up) current = current + 1;
-    else    current = current - 1;
+    while (skip)
+    {
+      if (current == 0)
+      {
+	if (looping-- < 1) break; // Quit at neutral pos
+	else up = true;  // First half of sequence
+      }
+      if (up && current == size-1) up = false; // Second half
+      if (up) current = current + 1;
+      else    current = current - 1;
+      if valve_time[current] > 1) skip = false;
+    }
     swrite(valve_angle[current]);
     if (current != 0)
       valve_open[current] = millis();

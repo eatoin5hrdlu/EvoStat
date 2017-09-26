@@ -2,7 +2,8 @@
 		  pidstart/0,
 		  pidstop/0,
 		  limit/4,
-		  compute/1    ]).
+		  compute/1,
+		  pid_controlled/1 ]).
 :- use_module(library(apply)).
 
 :- dynamic deadzone/1, stop_controllers/0, iterm/4, state/9.
@@ -14,7 +15,7 @@
 pidstop  :- assert(stop_controllers).
 
 pidstart :-
-	thread_create(control, _, []),
+	thread_create(control, _, [alias(pidcontrol)]),
 	writeln('PID controllers started').
 
 launch_controllers(List) :-
@@ -96,5 +97,15 @@ limit(X, Min,   _, Min) :- X < Min, !.
 limit(X,   _, Max, Max) :- X > Max, !.
 limit(X,   _,   _,   X).
 
+%
+% pid_controlled/1 will verify PID controlled components from
+% Name, Type, or Object, but only 'generates' a set of names.
+% Change the order of memberchk/2 list to generate another Id,
+% or change to member/2 to generate all three for each component.
+% pid_controlled(?Id)
+%
 
-
+pid_controlled(Id) :-
+    state(Name,_,_,_,_,_,_,_,_),    % There is a PID controller
+    component(Name,Type,Obj),       % For component with this Id
+    memberchk(Id, [Name,Type,Obj]). % (but only 'generate' Name)

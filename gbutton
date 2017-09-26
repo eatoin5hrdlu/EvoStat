@@ -276,7 +276,7 @@ updateArduino(Obj, ReadOnly) :-
     maplist( send(Obj,pull), ReadOnly),
     maplist( send(Obj,push), Ps),
     ( Ps = [] -> true; send(Obj,converse, s) ),
-    send(Obj, check_level).
+    send(Obj, check_level).  % Non PID level control
 
 relabel(Obj) :->
     component(MyName,Type,Obj),
@@ -311,11 +311,14 @@ leak_type(<, definite).
 enable_reporting(Type, Elapsed) :-
     reported(Type,Severity,ReportTime,_), % There was a report
     get_time(NowFloat),
-    NowFloat > ReportTime + Elapsed,      % But time has passed
+    NowFloat > ReportTime + Elapsed,      % But it has expired
     retract(reported(Type,Severity,ReportTime,_)), % Remove it
     !.
 enable_reporting( _, _).
-
+%
+% Reporting is imediate when condition occurs, but further
+% reporting of the same condition is suppressed for 1 hour(3600 sec
+%)
 check_condition(leak) :-
 	enable_reporting(leak, 3600), % and re-enable after 1 hour
 	component(_,cellstat,Obj),

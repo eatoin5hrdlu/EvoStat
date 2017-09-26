@@ -94,11 +94,15 @@ sFlowRateTable(cellstat,in,Rate,MinVin,MaxVin) :-
           MinVin is integer(Rate * 100),
           MaxVin is integer(Rate * 2000).
 sFlowRateTable(cellstat,out, Rate,MinVout,MaxVout) :-
-          MinVout is 0,  % Lagoons might consume all host cells
-          MaxVout is integer(Rate * 2000).
+          MinVout is 1,  % Lagoons might consume all host cells
+          MaxVout is integer(Rate * 500).
 
 inTimeRange(Obj, Val, Dir, NewVal) :-
-     component(_,Type,Obj),
+     component(Comp,Type,Obj),
+     ( Comp = host0, Val=0
+     -> flog('            inTimeRange'(Obj,Val,Dir,NewVal))
+     ; true
+     ),
      get(Obj,tf,Rate),
      chkFlowRateTable(Type,Dir,Rate,Min,Max),
      compare_minmax(Op, Val, Min, Max),
@@ -110,7 +114,13 @@ initPID :-
 
 get_input(Name, Var, Value) :-
 	component(Name,_,Obj),
-	get(Obj,Var,Value).
+	dblog(pid,waiting_get(Name,Var)),
+	get(Obj,Var,Value),
+	!.
+
+get_input(Name, Var, _) :-
+	dblog(pid,failed(get_input(Name,Var))),
+	fail.
 %
 % set_output(Component, Var, Old, New)
 %
@@ -161,6 +171,7 @@ adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-
       get(ValveObj, Valve, Setting),
       New is Setting + Amt,
       flog(check_range(Name,VName,Valve,Dir,New)),
+      ( (Name=host0,VName=host0,Valve=v0,New=0) -> trace ; true ),
       inTimeRange(Obj, New, Dir, Actual),
       flog(sending(VName, Valve,Actual)),
       send(ValveObj, Valve, Actual),
@@ -175,3 +186,89 @@ close_valves(Name) :-
        send(V1Obj, InValve, 0),
        component(Name2,_,V2Obj),
        send(V2Obj, OutValve, 0).
+
+%
+% Get the 'next' name, by incrementing the last 'letter'
+% e.g.  abba -> abbb     v0 -> v1
+%
+increment_atom(Name,NextName) :-
+	atom_codes(Name,Codes),
+	append(Prefix,[IndexCode],Codes),
+	Index is IndexCode + 1, % increment works on codes (in this case)
+	append(Prefix,[Index],ICodes),
+	atom_codes(NextName, ICodes).
+
+%
+% Total flow out for a vessel is the sum of the flow inputs
+% to it's successors. The corresponding valve name for a
+% successor is the incremented valve name  v0 -> v1.
+%
+% Valve vN of Object O shares flow time/volume with
+% valves v(N+1) forall objects SO where successor(O,SO).
+%
+successor_type(nutrient, cellstat).
+successor_type(nutrient, lagoon).
+successor_type(inducer1, cellstat).
+successor_type(inducer1, lagoon).
+successor_type(inducer2, lagoon).
+successor_type(cellstat, lagoon).
+
+successor_name(Name,SName) :- component(Name,Type,_),
+			      successor_type(Type,SType),
+			      component(SName,SType).
+			      
+successor_obj(Obj,SObj) :- component(_,Type,Obj),
+                     	   successor_type(Type,SType),
+			   component(_,SType,SObj).
+%
+% Completely general successor relation (names, types, or objects)
+%
+successor(P, S) :-
+    component( N, T, O),           % find a component
+    arg(Index,component(N,  T, O), P), % with matching position,
+    successor_type(T, ST),         % get successor(s)
+    component(SN, ST, SO),
+    arg(Index,component(SN,ST,SO), S). % use position to get Id
+
+
+% 
+% For any given component with a PID controller,
+% its successors may or may not have PID controllers.
+%
+% Its succcessors with PID controllers represent outflow timings
+% that are not under its control and therefore summed and treated
+% as the uncontrolled lower bound of the components outflow.
+% This sum-of-pid-controlled-successor-inputs is subtracted from
+% the desired control Outflow parameter and the remainder is applied
+% as the timing of the specified Output-Valve.
+%
+% The system will be fully adaptable to multiple input/output configurations
+% configurations as long as the sum-of-pid-controlled-successor-inputs
+% does not exceed the flow rate of the predecessor vessel.
+%
+% When the flow rate (and not absolute volume) is to be controlled,
+% the predecessor vessel adapts by increasing it's control level,
+% thereby maintaining the original flow rate (expressed in volumes/hour)
+% while supplying a larger quantity of liquid to it's successors.
+%
+%
+
+% split_out( + Component-Object,
+%            + Output-Valve,
+%            + Total-Outflow-Time,
+%            - Residual-Time)
+% followed by:
+% send(Component-Object            + Output-Valve,
+%            + Total-Outflow-Time,
+%            - Residual-Time)
+
+% Negative Residual will require this Objects Level to be raised
+%
+split_out(ValveObj, OutValve, Outflow, Residual) :-
+	increment_atom(OutValve, Valve),
+	findall(InT, ( successor(ValveObj,InObj),
+		       pid_controlled(InObj),
+		       get(InObj,Valve,InT) ),   InTs),
+	sum_list(InTs, TotalTime),
+	Residual is Outflow - TotalTime.
+	

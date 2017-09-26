@@ -522,8 +522,7 @@ char vcmd[3];
 		     	int vnum = c2-'0';
 		        if (value == 0) {
 			   sprintf(reply,"v%c(%d).",c2,valve.getTime(vnum));
-			} else if (value == 1)
-			   valve.setup_valve(vnum, 0);
+			}
 			else
 			   valve.setup_valve(vnum, value);
 	             } else
@@ -554,8 +553,10 @@ void respondToRequest(void)
 	}
 	if ( is.length() > 0 )  {   // process the command
 		int value = 0;
-		if (is.length() > 2)
+		if (is.length() > 2) {
 			value = atoi(&is[2]);
+			if (value == 0) value = 1;
+		}
 		if (!lagoon_command(is[0], is[1], value))
 			Serial.println("e('" + is + "').\nend_of_data");
 	}

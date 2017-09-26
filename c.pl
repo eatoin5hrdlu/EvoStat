@@ -615,6 +615,20 @@ c(Name) :-
     ),
     plog(c(done)).
 
+initial_sync :-
+    setof(Name:Vs,Type^Obj^( component(Name,Type,Obj),
+			     setof(V,A^B^( component_valves(Name,V,A,B)
+	 				  ;component_valves(A,B,Name,V)),Vs) ),
+	  All ),
+    initial_sync_list(All).
+
+initial_sync_list([]).
+initial_sync_list([Name:Vs|T]) :-
+    send(@Name, connect),
+    maplist(send(@Name,pull),Vs),
+    initial_sync_list(T).
+    
+
 initialize_report :-
     open('evostat.report', write, S),
     nl(S), write(S,'EvoStat started:'),
@@ -772,15 +786,14 @@ header(Types, DataSet, Arity, Header) :-
     
 datalog :-
     get_time(NowFloat),
-    format_time(atom(TS),'timestamp(%T)',NowFloat),
+    format_time(atom(TS),'%T',NowFloat),
     Now is integer(NowFloat),
     DataSet = [ cellstat:[t:temperature,l:level,v0:valve,b:turbidity],
 		lagoon:  [t:temperature,l:level,v1:valve],
 		sampler:  [v0:hostValve,v1:lagoonValve]],
     header([dynamic, multifile,discontiguous],DataSet,3,Header),
     log_file(F, 'web/datalog.txt', Header),
-
-    write_term(F,TS,[fullstop(true),nl(true)]),
+    write_term(F,timestamp(TS,Now),[fullstop(true),nl(true)]),
     (  dataset(Now, DataSet, Term), % Generator
        write_term(F,Term,[fullstop(true),nl(true)]),
        fail

@@ -150,10 +150,12 @@ int target_turbidity;
 int gtscale;
 int gtoffset;  // Offset and scale for Turbidity calculation
 int OD;
-
 int interval;   // Variable to keep track of the time
 int mixerspeed;
 int reading[10];
+boolean dflag = false;
+int drate;
+
 /*
  * Temperature Stuff
  */
@@ -299,6 +301,7 @@ cmd(v,[0,1,2,3,4],["));
 	 for(i=0;i<NUM_VALVES;i++) {
 	   Serial.print(*times++); if (i<(NUM_VALVES-1)) Serial.print(","); }
         Serial.println(F("],'valve open msec V0=NUTRIENT')."));
+	Serial.println(F("cmd(d,[0,1],'debug off or on')."));
 	Serial.println(F("cmd(e,[0,1],'enable inputs vs. flow calibration')."));
 	Serial.println(F("cmd(h,[0,1],'heater off/on auto_temp off')."));
 	Serial.println(F("cmd(l,[0,1],'light off/on')."));
@@ -378,15 +381,30 @@ PID temppid(&TempInput, &TempOutput, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void checkTemperature()
 {
+unsigned long int dtee;
 int t   = objTC();
   TempInput = (float) t;
+//  Serial.println("TempInput");
+//  Serial.println(TempInput);
   temppid.Compute();
+  if (dflag && ((drate++ % 500) == 0 )) {
+     Serial.print(target_temperature);
+     Serial.print(", ");
+     Serial.print(TempInput);
+     Serial.print(", ");
+     Serial.println(TempOutput);
+  }
   if (millis() - windowStartTime > windowSize) // move Relay Window
   {
+    Serial.println("move relay window");
     windowStartTime += windowSize;
   }
-  if (TempOutput < millis() - windowStartTime) digitalWrite(HEATER, 1);
-  else                                         digitalWrite(HEATER, 0);
+  dtee = millis() - windowStartTime;
+// Serial.println("delta ");
+//  Serial.println(dtee);
+//  Serial.println(TempOutput);
+  if (TempOutput < millis() - windowStartTime) digitalWrite(HEATER, 0);
+  else                                         digitalWrite(HEATER, 1);
 
 // OLD CODE
 //	if (t < target_temperature - 2) digitalWrite(HEATER,1);
@@ -541,6 +559,10 @@ byte d;
 		case 'c':
 			valves.closeValve(c2);
 			auto_valve = true;
+			break;
+		case 'd':
+			if (c2 == '1') dflag = true;
+			else       dflag = false;
 			break;
 		case 'f':
 			switch(c2) 
@@ -704,8 +726,10 @@ void btRespondToRequest(void)
 	}
 	if ( is.length() > 0 )  {   // process the command
 		int value = 0;
-		if (is.length() > 2)
+		if (is.length() > 2) {
 			value = atoi(&is[2]);
+			if (value == 0) value = 1;
+		}
 		if (!cellstat_command(is[0], is[1], value)) {
 			Serial.println("er(" + is + ").");
 			Serial.println(EOT);
@@ -766,6 +790,8 @@ int i;
 	auto_valve = true; // Maintain Flow (check turbidity)
 	auto_mixer = true; // Maintain Mixer
 	auto_air = true;   // Maintain Aeration
+	dflag = false;
+	drate = 0;
 
 	pinMode(NUTRIENT, OUTPUT); digitalWrite(NUTRIENT, 0);
 	pinMode(INDUCE1,  OUTPUT); digitalWrite(INDUCE1,  0);
@@ -827,6 +853,7 @@ int i;
 	windowSize = 10000;
        	Setpoint = (double) target_temperature;
 	temppid.SetOutputLimits(0, windowSize);
+	temppid.SetControllerDirection(DIRECT);
 	temppid.SetMode(AUTOMATIC);
 }
 
@@ -843,6 +870,7 @@ int leakage = analogRead(ANALOG_LEAK);
 int cnt_light = 0;
 int cnt_mixer = 0;
 int looponce = 1;
+
 
 void loop()
 {
