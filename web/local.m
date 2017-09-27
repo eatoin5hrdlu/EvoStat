@@ -2,20 +2,20 @@ pkg load image
 hostcolor =  [0.00 0.00 1.00];  % Blue Devil Blue
 host2color = [0.00 0.75 0.00];  % Green
 host3color = [0.75 0.00 0.00];  % Red
-phagecolor = [0.4  0.6  0.85];  % Carolina Blue
+phagecolor = [0.00 0.40 0.80];  % Carolina Blue
 zcolor     = [0.75 0.00 0.75];  % Purple
 % colors = [hostcolor, host2color, host3color, phagecolor]
 
 global kg ad dur ec pp p0 fr h0 vol dur;
 
-% ad  = Adsorption Factor               1/hour
-% kg  = Ecoli Growth Factor             1/hour
+% ad  = Adsorption Factor               mL/min
+% kg  = Ecoli Growth Rate               doubling time in minutes
 % pp  = per host cell phage production  phage/cell-hour
-% fr  = Flow Rate                       volumes/hour    
+% fr  = Flow Rate                       volumes/hour 
 % vol = Total volume of culture in      mL
 % lsl = Linear or Semi-log graph 1=linear 0=semilog
 
-load web/ES_params.txt;  % Loads the global variables
+load ES_params.txt;  % Loads the global variables
 hours = dur;
 steps = hours*60;
 
@@ -49,7 +49,7 @@ o = x(middle,1)*0.2;
 lo = x(middle,1)*0.4;  % large offset
 
 pos1 = dur/2;
-pos2 = dur/6;
+pos2 = dur/5;
 % Y position is the data axis, so to get nice label offset from curves:
 % Multiply by powers of 10 for semilog, add/subtract fraction for linear.
 text(pos1,
@@ -64,5 +64,5 @@ text(pos2,
 text(pos1,
      offset(y(middle,4),lsl,x(middle,1)),
      'Phage',        'fontsize',32,'color',phagecolor);
-print(fhandle,'-dpng','-color','web/phagepop.png');
+print(fhandle,'-dpng','-color','phagepop.png');
 

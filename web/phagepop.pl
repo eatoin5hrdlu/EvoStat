@@ -37,14 +37,14 @@ parse_val(Name, [Name:Value|Ps]) -->
 parse_val(Name, Ps) --> [_], parse_val(Name,Ps).
 
 phage_var_label(ad)  --> [ 'Adsorption Rate : '].
-phage_var_label(ec)  --> [ 'Leaving Eclipse : '].
+phage_var_label(ec)  --> [ 'Eclipse Interval : '].
 phage_var_label(dur)  --> [ 'Simulation Length : '].
-phage_var_label(fr) --> [' Flow Rate : '].
+phage_var_label(fr) -->  [' Flow Rate : '].
 phage_var_label(vol) --> [' Lagoon Volume : '].
 phage_var_label(h0) --> [' Host Cell Concentration: '].
 phage_var_label(p0) --> [' Initial Phage Population: '].
 phage_var_label(pp) --> [' Phage Production: '].
-phage_var_label(kg) --> !, [' E. coli Growth Rate : '].
+phage_var_label(kg) --> !, [' E. coli Doubling Time : '].
 phage_var_label(moi) --> [' Multiplicity of Infection : '].
 phage_var_label(lsl) --> [' Linear=1, Semilog=0 : '].
 phage_var_label(K)  --> { concat_atom([k,X],K) }, [' Growth Factor ',X,' : '].
@@ -53,14 +53,14 @@ phage_var_label(K)  --> { concat_atom([k,X],K) }, [' Growth Factor ',X,' : '].
 % kXXX   is a growth constant
 % tmXXX  a temperature in deg C
 phage_var_units(ad) --> [ 'mL/min' ].
-phage_var_units(kg) --> [ 'hour', sup(-1) ].
+phage_var_units(kg) --> [ 'min' ].
 phage_var_units(dur) --> [ 'hours' ].
-phage_var_units(ec) --> [ 'hour', sup(-1) ].
+phage_var_units(ec) --> [ 'min' ].
 phage_var_units(fr) --> [ 'Volumes/hour' ].
 phage_var_units(vol) --> [ 'mL' ].
 phage_var_units(h0) --> [ 'Cells/mL' ].
 phage_var_units(p0) --> [ 'Virons/mL' ].
-phage_var_units(pp) --> [' Phage/Cell '].
+phage_var_units(pp) --> [' Phage/Cell-hour '].
 phage_var_units(moi) --> [' Phage/Cell '].
 phage_var_units(lsl) --> [' 1 or 0 '].
 phage_var_units(KX) --> { concat_atom([k,_],KX),! }, ['t',sup(-1)].
@@ -93,7 +93,7 @@ phagepop(_Req) :-
 	     [' ',br([],[]),
 	      center(a([href='/web/model.txt',style='color:white'],
 		    [font([size='+2'],'CLICK HERE TO SEE MODEL SOURCE')])),
-	      center(font([size='+2',style='color:white'],
+	      center(font([size='+2',style='color:#FDFDFD'],
 			  [' ',br([],[])])),
 	      form(action='./run_model.pl', Inputs)])).
 
