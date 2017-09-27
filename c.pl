@@ -1,4 +1,4 @@
-g% PROLOG FILES [c,gbutton,adjust,newpid,iface,dialin,prephtml,webspec,util].
+% PROLOG FILES [c,gbutton,adjust,newpid,iface,dialin,prephtml,webspec,util].
 %
 % Create configuration file <hostname>.pl from  template.pl
 % (or <evostatname>.pl if more than one on the same computer).
