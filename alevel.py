@@ -11,6 +11,7 @@ import cv2.cv as cv
 from shutil import copyfile
 
 debug = False
+image_count = 0
 ######## Critical Parameters
 # Contrast (iterations, mul, subtract) ( 1,  1.28,  -80 )
 # Threshold   (50%)                      127
@@ -54,7 +55,7 @@ bigkernal = np.ones((4,4),np.uint8)
 ############# UTILITIES
 
 def plog(str) :  
-    if (False): # make this True for debug output
+    if (debug): # make this True for debug output
         print("      --"+str, file=sys.stderr)
 
 def termIntList(f,l) :
@@ -107,8 +108,13 @@ def settings() :
 
 def get_previous() :
     plist = None
+    if 'growth' in sys.argv :
+        prevfile = './.gprevious'
+    else :
+        prevfile = './.previous'
+    plog("Using :" + prevfile)
     try :
-        plist = eval(open('./.previous','r').read())
+        plist = eval(open(prevfile, 'r').read())
     except(IOError):
         print("No previous level information")
     if (plist == None) :
@@ -158,6 +164,12 @@ def make_movie() :
     with suppress_stdout_stderr() :
         subprocess.call(cmd,cwd=frameLocation)
 
+def save_frames(name, num) :
+    for i in range(num) :
+        img = grab()
+        imgname = name + str(i) + ".jpg"
+        cv2.imwrite(imgname, cv2.resize(img,params['imageSize']))
+    
 def movie_file(name) :
     numstart = len(frameLocation)
     type = 'jpg'
@@ -207,7 +219,9 @@ def contrast(image, thresh, iter=1, scale=2.0, offset=-80) :
             plog("contrast loop: Image is None")
         else :
             showUser(image)
+        showdb(image,4000)
         image = cv2.add(cv2.multiply(image,scale),offset)
+        showdb(image,4000)
         if (image == None) :
             plog( "image(None) after add/mulitply in contrast!")
     showdb(image)
@@ -247,18 +261,25 @@ def amplify0(num, c=2, fraction=0.7) :
     the sum of the other colors."""
     img = grab()
     mono = img[:,:,c]
+    showdb(mono)
     mono = cv2.subtract(mono,
                         cv2.multiply(cv2.add( img[:,:,(c+1)%3],
                                           img[:,:,(c+2)%3]),fraction))
+    showdb(mono)
     for i in range(num) :
+        plog("amplify0: iteration "+str(i))
         img = grab()
         mono2 = img[:,:,c]
+        showdb(mono2)
         mono2 = cv2.subtract(mono2,
                     cv2.multiply(cv2.add( img[:,:,(c+1)%3],
                                           img[:,:,(c+2)%3]),fraction))
+        showdb(mono2)
         mono = cv2.add(mono,mono2)
+        showdb(mono)
     showdb(mono,1000)
     return mono
+
 
 def amplify(bbox, num, c=2, fraction=0.7) :
     """Return accumulated monochrome image minus a fraction of
@@ -272,7 +293,7 @@ def amplify(bbox, num, c=2, fraction=0.7) :
                                           img[:,:,(c+2)%3]),fraction))
     for i in range(num) :
         fullimg2 = grab()
-        img = fullimg[uly:lry,ulx:lrx,:]
+        img = fullimg2[uly:lry,ulx:lrx,:]
         mono2 = img[:,:,c]
         mono2 = cv2.subtract(mono2,
                     cv2.multiply(cv2.add( img[:,:,(c+1)%3],
@@ -366,31 +387,34 @@ def horiz_lines(img, minlen=12) :
     positions.sort(key=lambda l: l[1])  # Sort on Y value (top to bottom)
     return retLines
 
-def getReticules(c) :
+#  rp =  ('reticule', 0, 1.4, -80, 164, 1, 4, 3, 0.4)
+def getReticules(c, rp) :
     global referenceImage
+    plog("get reticule with " + str(rp))
+    (name, cit, scale, offset, thresh, eit, dit, amp, frac) = rp
     """Level value is a y position in the region"""
     lvls = []
     tries = 5
     bbox = ((0,referenceImage.shape[0]),(0,referenceImage.shape[1]))
     while(not len(lvls) == 4 and tries > 0):
-        mono = amplify0(2,c, fraction=0.8) # default is .7
+        mono = amplify0(amp, c, fraction=frac) # def fraction=.7, grab img
+        if (debug) :
+            print("reticule amplified image " + str(total(mono)))
         showdb(mono)
-        (ret,cimg) = cv2.threshold(mono, 220, 255, cv2.THRESH_BINARY)
+        (ret,cimg) = cv2.threshold(mono, thresh, 255, cv2.THRESH_BINARY)
         showdb(cimg)
-        cimg = cv2.erode(cimg,np.ones((2,2),np.uint8),1)
+        cimg = cv2.erode(cimg,np.ones((2,2),np.uint8),eit)
         showdb(cimg)
-        cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),4)
+        cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),dit)
         hls = hlines(cimg,minlen=8)
         lvls = condense(hls)
         tries = tries - 1
     if tries == 0 :
-        imageOut()
-        print("reticule(null).")
         exit(5)
     return lvls
 
 def grab():
-    global cam, params
+    global cam, params, image_count
     rval = None
     for ifile in sys.argv :
         if (ifile.endswith('.jpg')) :
@@ -398,6 +422,7 @@ def grab():
     tries = 5
     while (rval is None and tries > 0) :
         (rval,img) = cam.read()
+        image_count = image_count + 1
         tries = tries - 1
     if (tries == 0) :
         exit(12)
@@ -583,18 +608,27 @@ def processRegion2(image, bbox, function, params, n) :
 
 def save_plist(plist) :
     f = open('./.previous','w')
+    f.write('# (Vessel, oldPt, BBox,')
+    f.write('#     Contrast-iter, Contrast-mul, Contrast-off,')
+    f.write('#     Erode-iter, Dilate-iter, Amplify-iter, Amp-factor )')
+    f.write('#e.g. (host0, (x,y), ((uy,lx),(ly,rx)), 1, 1.2, -80, 2, 2, 3, 0.7)')
     f.write(str(plist))
     f.close()
+    g = open('./web/conlog.txt','a')
+    g.write( time.asctime(time.localtime()) )
+    g.write(str(plist))
+    g.close()
 
 def getALevel(color, threshold, p, reticule) :
     """Level value is a y position in the region"""
     lvl = None
     for varp in vary(p[3:]) :
         vp = tuple( [ p[0], p[1], p[2] ] + varp )
-        if (debug) :
-            print(" variation: " + str(vp),file=sys.stderr)
+        plog(" variation: " + str(vp)),
         (name, oldpt, bbox, it, sc, off, ei, di, ai, af) = vp
         mono = amplify(bbox, ai, color, fraction=af)
+        if (debug) :
+            print("Amplified region "+str(bbox)+" "+str(total(mono)))
         showdb(mono)
         mono = contrast(mono, threshold, iter=it, scale=sc, offset=off)
         showdb(mono)
@@ -631,18 +665,38 @@ def showVesselLevel(who, y) :
         print("unrecognized vessel " + who, file=sys.stderr)
     showLevels(referenceImage,[y],color,dir=-1)
 
+def total(image) :
+    return np.average( tuple(ord(i) for i in image.tostring()) )
+
+def get_camera() :
+    global cam
+    cam = None
+    for n in [0, 2, 1] :
+        camera = '/dev/video'+str(n)
+        if os.path.exists(camera) :
+            cam = cv2.VideoCapture(n)
+            break
+    if cam == None :
+        print("No camera? Check for one of /dev/video[0,1,2]")
+        exit(0)
+    camprofile = socket.gethostname()
+    if 'growth' in sys.argv :
+        camprofile += "g"
+    cmdstr =  "/usr/bin/uvcdynctrl -L "+ camprofile + ".gpfl --device="+camera
+    plog(cmdstr)
+    with suppress_stdout_stderr() :
+        os.system(cmdstr)
+#        os.system("./camreset quickcam")
+#        time.sleep(1)
+    camSettle(3)   # save_frames('sample',10) to create sample set
+
 if __name__ == "__main__" :
     global referenceImage
     global positions
-    with suppress_stdout_stderr() :
-        os.system("./camreset quickcam")
-        time.sleep(1)
-        os.system("/usr/bin/uvcdynctrl -L aristotle.gpfl --device=/dev/video0")
+    debug = 'show' in sys.argv
+    get_camera()
     plist = get_previous()
     params = settings()
-    debug = 'show' in sys.argv
-    cam = cv2.VideoCapture(params['camera'])
-    camSettle(3)
     referenceImage = None
     tries = 10
     while (referenceImage == None and tries > 0) :
@@ -659,15 +713,19 @@ if __name__ == "__main__" :
             else :
                 plog("Update OpenCV (can't find moveWindow)")
     i1 = grab()
+    if (debug) :
+        print("whole image " + str(total(i1)))
     showdb(i1)
-    reticules = getReticules(red)
+    rp = plist[0]
+    reticules = getReticules(red,rp)
     showLevels(referenceImage,reticules,paintColor(referenceImage,red),width=3)
-    newplist = []
+    newplist = [rp]
     retlist = []
     different = False
-    for i in range(len(plist)) :
+    vlist = plist[1:]
+    for i in range(len(vlist)) :
         ret = tuple( [ reticules[2*i] , reticules[2*i+1] ] )
-        n = getALevel(green, 127, plist[i], ret)
+        n = getALevel(green, 127, vlist[i], ret)
         y = n[2][0][0] + n[1][1]  # Points are (x,y) now
         print("level("+n[0]+","
               +str(y) +","
@@ -679,7 +737,7 @@ if __name__ == "__main__" :
         for j in range(len(plist[0]))[2:] :
             if (plist[i][j] != n[j]):
                 different = True
-    if (different) :
+    if (False) : # different) :
         save_plist(newplist)
     imageOut()
 
