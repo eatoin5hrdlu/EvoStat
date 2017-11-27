@@ -77,25 +77,20 @@ class VALVE
 
    void next_valve(void)
    {
-    boolean skip = true;
-    int looping = 10;
     valve_open[current] = 0;
-    while (skip)
+    do
     {
-      if (current == 0)
-      {
-	if (looping-- < 1) break; // Quit at neutral pos
-	else up = true;  // First half of sequence
-      }
+      if (current == 0) up = true;  // First half of sequence
       if (up && current == size-1) up = false; // Second half
       if (up) current = current + 1;
       else    current = current - 1;
-      if valve_time[current] > 1) skip = false;
-    }
+    } while(    current != 0       // LOOP IF WE'RE NOT STAYING
+	     && valve_time[current] < 2 ); // AT THIS POSITION
     swrite(valve_angle[current]);
     if (current != 0)
-      valve_open[current] = millis();
-   }
+      valve_open[current] = millis();  // Record opening time
+
+   } /* End of next_valve(void) */
 
 boolean checkValve(void) {
   int i;
@@ -103,8 +98,8 @@ boolean checkValve(void) {
   if (disabled)
     return false;
 
-  
-  if (current != 0 &&  (now > valve_open[current] + valve_time[current]) )
+  if ( current != 0 &&   // If we are in a cycle, and it is time to
+       (now > valve_open[current] + valve_time[current]) ) // move on
     {
       next_valve();
     }
@@ -112,7 +107,7 @@ boolean checkValve(void) {
   unsigned long x = lastcycle + cycletime - 300;
   if (now > lastcycle + cycletime - 300) // Time to start valve sequence
     {
-      digitalWrite(VALVEDISABLE,0);
+      digitalWrite(VALVEDISABLE,0);  // Power up the servo
       delay(300);
       lastcycle = millis();
       current = 0;

@@ -394,6 +394,9 @@ char vcmd[3];
 			     printTermInt("a", auto_valve);
 			}
 			break;
+	   	case 'b':
+		        printTermInt("a6", analogRead(A6));
+		        break;
 	   	case 'c':
 		     if ( c2 == 'l' ) return true; // Clearing backlog
 		     else if ( c2 == 'y' ) {
@@ -406,12 +409,15 @@ char vcmd[3];
 		     break;
 		     
 		case 'd':
-			vnum = (int)(c2 - '0');
-			if (value == 0)
-			   printTermInt(vcmd,valve.getAngle(vnum));
-			else
-			   valve.setAngle(vnum,value);
-			break;
+		     if (valveRange(c2)) {
+		         vnum = (int)(c2 - '0');
+			 if (value == 0)
+			     printTermInt(vcmd,valve.getAngle(vnum));
+			 else
+			     valve.setAngle(vnum,value);
+		     } else
+		         printTermInt("e",(int)c2);
+		     break;
 		case 'e':
 		        break;
 			if (d == 1) {
@@ -472,14 +478,14 @@ char vcmd[3];
 		case 'm':
 		        if (c2 == 's') {
 				if (value == 0)
-				   printTermInt("mixerspeed", mixerspeed);
+				   printTermInt("ms", mixerspeed);
 				else {
 				   mixerspeed = value;
 				   analogWrite(MIXER, mixerspeed );
 				}
 			}
 			else if (d == 9)
-			  printTermInt("mixer",auto_mixer);
+			  printTermInt("m",auto_mixer);
 			else
 			  mixer(d);
 			break;
@@ -493,7 +499,8 @@ char vcmd[3];
 			if (valveRange(c2)) {
 			       // auto_valve = false; dangerous?
 				valve.position(c2-'0');
-			}
+			} else
+			        printTermInt("e",(int)c2);
 			break;
 		case 'r':  
 			switch(c2) {
@@ -599,14 +606,15 @@ void setup()
 		target_temperature = 370;
 		mixerspeed = MIXERSPEED;
 		valve.setAngle(0,0);
-		valve.setAngle(1,50);
+		valve.setup_valve(0, 0);
+		valve.setAngle(1,45);
 		valve.setup_valve(1, 6000);
 		valve.setAngle(2,90);
 		valve.setup_valve(2, 3000);
-		valve.setAngle(3,120);
-		valve.setup_valve(3, 3000);
-		valve.setAngle(4,160);
-		valve.setup_valve(4, 1000);
+		valve.setAngle(3,139);
+		valve.setup_valve(3, 0);
+		valve.setAngle(4,180);
+		valve.setup_valve(4, 0);
 		valveCycleTime = DEFAULT_CYCLETIME;
 		saveRestore(SAVE);
 	}
