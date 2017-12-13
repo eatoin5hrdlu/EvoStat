@@ -45,13 +45,16 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
 	                      send(S2,converse,N2),
 			      get(S2,reply, Reply),
-	                      parse_reply_arg1(Reply, N2, V2),
-			      nonvar(N2),
-			      nonvar(V2),
-	                      send(S2, N2, V2),
-                              !,
-	                      S2 = @Npull, flog(pull(Npull,N2,V2,succeeded))
-			      ; S2 = @Npull,flog(pull(Npull,N2,failed))
+	                      ( parse_reply_arg1(Reply, N2, V2),
+			        nonvar(N2),
+			        nonvar(V2),
+	                        send(S2, N2, V2)
+			      -> S2 = @Npull,
+				 flog(pull(Npull,N2,V2,succeeded)),
+				 retractall(webValue(S2,N2,_)),
+				 assert(webValue(S2,N2,V2))
+			       ; S2 = @Npull,flog(pull(Npull,N2,failed))
+			      )
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::

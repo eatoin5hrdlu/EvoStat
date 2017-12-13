@@ -90,7 +90,7 @@ camera_reset :-
     evostat_directory(Dir),
     Cmd = '/usr/bin/uvcdynctrl',
     config_name(Config,_),    % Hostname or evostat argument
-    concat_atom([Config,'.gpfl'], Settings),
+    concat_atom([Config,'i.gpfl'], Settings),
     concat_atom(['--device=',Device],Option),
     Args = ['-L', Settings, Option],
     plog(resettingCamera(Dir, Cmd, Args)),
@@ -328,7 +328,7 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
-         setup_web_values,
+	 setup_web_values,
 	 initPID,                        % Start PID controllers
          send(@action?members, for_all,
 	      if(@arg1?value==pIDon,message(@arg1, active, @off))),

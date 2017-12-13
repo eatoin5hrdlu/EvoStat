@@ -11,7 +11,7 @@
 :- use_module(library(http/http_client)).
 
 :- dynamic motd/1.
-motd('Currently Running Flow Tests with Water').
+motd('Start Dec 11-14 Run S1030 + wt phage').
 
 :- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
 html_syntax --> {html_syntax}. % Also callable as a grammar rule

@@ -78,7 +78,7 @@ initialise(Self, Label:[name]) :->
 update(Self) :->
 	"Must copy image to new filename to avoid caching"::
       writeln(updating(snapshot)),
-      R is random(100),
+      R is random(10000),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
       new(I,image(NewFile)),
@@ -329,7 +329,8 @@ check_condition(leak) :-
 	( ( leak_type(Op,Type),
 	    N =\= 500,
 	    \+ reported(leak, Type, _, _) )
-	-> assert(reported(leak,Type,NowFloat,N)),
+	-> leak_type(Op,Type),
+	   assert(reported(leak,Type,NowFloat,N)),
 	   report,
 	   sending_text(0), % Immediate send
 	   plog(sent(text))

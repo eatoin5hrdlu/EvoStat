@@ -38,8 +38,9 @@ floatfmt(N,[A|T],T) :-
 % Internal temperatures integral tenths of degrees C.
 
 float_tenths(Obj,Thing) --> [Display],
-    { get(Obj,Thing,InTenths),
-
+      {
+      get(Obj,Thing,InTenths),
+      (Thing = tt -> plog(get(Obj,Thing,InTenths)) ; true),
       refresh(Obj,Thing,InTenths),
       DispTemp is float(InTenths)/10.0,
       format(atom(Display), '~4G', [DispTemp]) }.
