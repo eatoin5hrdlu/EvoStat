@@ -540,6 +540,8 @@ def imageOut():
     (he,wi,de) = referenceImage.shape
     cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/10,he/2),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,200),2)
+    cv2.putText(referenceImage,lasttemp(),(wi/10,4*he/7),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (250,210,255),2)
     cv2.imwrite(imageName,cv2.resize(referenceImage,params['imageSize']))
     movie_file(imageName)
 
@@ -690,6 +692,13 @@ def get_camera() :
 #        time.sleep(1)
     camSettle(3)   # save_frames('sample',10) to create sample set
 
+def lasttemp() :
+    cmd = ['/bin/bash', './lasttemps.sh']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    (result, err) = p.communicate('')
+    result.replace('88.8 C','No Data')
+    return result
+    
 if __name__ == "__main__" :
     global referenceImage
     global positions
