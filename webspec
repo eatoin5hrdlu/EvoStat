@@ -175,8 +175,9 @@ defaultHead(Title,
 
 nocacheHead(Title,
   [ title(Title),
-    meta(['http-equiv'('Cache-Control'),content('no-cache, no-store, must-revalidate')],[]),
+    meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=0, no-store, must-revalidate')],[]),
     meta(['http-equiv'('Pragma'),content('no-cache')],[]),
+    meta([name(robots),content(noarchive)],[]),
     meta(['http-equiv'('Expires'),content(0)],[]),
     script([ language(javascript) ],[])]).
 
