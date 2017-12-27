@@ -71,7 +71,8 @@ color("blue",0.4)
 }
 
 module polyvent() {
-	cylinder(h=2, d=100, $fn=24);
+	cylinder(h=8, d=100, $fn=24);
+	cylinder(h=14, d=70, $fn=24);
    translate([0,0,-30])
        hose_barb(total_t_length/2, main_t_diameter, main_t_barb_height, main_t_wall_thickness);
    translate([0,0,40])
@@ -82,12 +83,19 @@ translate([0,0,1])
     text("PolyVent",size=1.5);
 }
 
+module filter(offset) {
+ 
+  translate([-(offset+20),0,0]) rotate([0,90,0]) polyvent();
+   translate([-offset,0,0])    rotate([0,90,0]) tubing(offset-20);
+
+}
 
 tee();
 translate([0,0,400]) tee();
-translate([0,0,480]) tee();
+translate([0,0,520]) tee();
 translate([0,0,10])tubing(380);
-translate([0,0,410])tubing(80);
-
-translate([0,200,0]) polyvent();
-
+translate([0,0,410])tubing(100);
+translate([0,0,0]) filter(80);
+translate([0,0,400]) filter(80);
+translate([0,0,520]) filter(80);
+translate([0,0,-94])tubing(80);
