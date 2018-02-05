@@ -169,9 +169,8 @@ refreshHead(Title,
     meta(['http-equiv'(refresh),content(20)],[]),% refresh
     script([ language(javascript) ],[])]).
 
-defaultHead(Title,
-  [ title(Title),
-    script([ language(javascript) ],[])]).
+defaultHead(Title,[title(Title)]).
+%  script([ language(javascript)
 
 nocacheHead(Title,
   [ title(Title),
@@ -181,4 +180,22 @@ nocacheHead(Title,
     meta(['http-equiv'('Expires'),content(0)],[]),
     script([ language(javascript) ],[])]).
 
+% Javascript to toggle between two images in web/images
+
+toggle(script([language(javascript),type('text/javascript')],
+ [ Script ]), A, B) :-
+    Pre = 'var tggl = 1;
+    function toggleimage() {
+    var img = document.getElementById("timg");
+    if (tggl == 1) {
+      img.src = "/web/images/',
+    Mid = '";
+      tggl = 0;
+    } else {
+      img.src = "/web/images/',
+    Post = '";
+      tggl = 1;
+    }
+  }',
+    concat_atom([Pre,A,Mid,B,Post],Script).
 
