@@ -51,13 +51,6 @@ def paintColor(img,color) :
     else :
         return color
 
-# Contrast = (#Iterations, Multiplier, (negative) Offset)
-# E.g. (3, 1.35, -70)
-
-# Line recognition is tuned by contrast (<>.settings) and this kernal
-kernal = np.ones((2,2),np.uint8)
-bigkernal = np.ones((4,4),np.uint8)
-
 ############# UTILITIES
 
 def plog(str) :  
@@ -148,20 +141,6 @@ def showdb(img, delay=500) :
         if cv.WaitKey(delay) == 27:
             exit(0)
 
-def exportImage(image) :
-    global imageName
-    if (image != None ) :
-        (cy1,cx1,cy2,cx2) = params['cellstatRegion']
-        cv2.rectangle(image,(cx1,cy1),(cx2,cy2),(0,200,200),2)
-        (y1,x1,y2,x2) = params['lagoonRegion']
-        cv2.rectangle(image,(x1,y1),(x2,y2),(250,250,0),2)
-        for i in range(4):
-            ((lx1,ly1),(lx2,ly2)) = lagoon_level_bbox_thirds(i)
-            cv2.rectangle(image,(lx1,ly1),(lx2,ly2),
-                          (100, 255-i*60, i*60), 2)
-        cv2.imwrite("./web/tmp.jpg", cv2.resize(image,params['imageSize']))
-        os.rename("./web/tmp.jpg", imageName)
-        
 def make_movie() :
     out = '/home/peter/src/EvoStat/web/timelapse.avi'
     cmd=['ffmpeg','-y','-framerate','2','-i','%05dm.jpg','-codec','copy',out]
@@ -193,72 +172,6 @@ def release() :
     if (cam != None) :
         cam.release()
     cv2.destroyAllWindows()
-
-############### IMAGE ENHANCEMENTS
-def erodeDilate(img,iter=1,erode=1,dilate=1) :
-    for i in range(iter):
-        img = cv2.erode(img,kernal,iterations=erode)
-        img = cv2.dilate(img,kernal,iterations=dilate)
-    return img
-
-def erodeDilatek(img,k,iter=1,erode=1,dilate=1) :
-    for i in range(iter):
-        img = cv2.erode(img,k,iterations=erode)
-        img = cv2.dilate(img,k,iterations=dilate)
-    return img
-
-def dilateErode(img,iter=1, dilate=1, erode=1) :
-    kernal = np.ones((2,2),np.uint8)
-    for i in range(iter):
-        img = cv2.dilate(img,kernal,iterations=dilate)
-        img = cv2.erode(img,kernal,iterations=erode)
-    return img
-
-def contrast(image, thresh, iter=1, scale=2.0, offset=-80) :
-    if (image == None) :
-        plog("contrast called with null Image")
-    for i in range(iter) :
-        plog("Try contrast "+str((iter,scale,offset)))
-        if (image == None) :
-            plog("contrast loop: Image is None")
-        else :
-            showUser(image)
-        showdb(image,4000)
-        image = cv2.add(cv2.multiply(image,scale),offset)
-        showdb(image,4000)
-        if (image == None) :
-            plog( "image(None) after add/mulitply in contrast!")
-    showdb(image)
-    (ret,img) = cv2.threshold(image, thresh, 255, cv2.THRESH_BINARY)
-    showdb(img)
-    if (not ret) :
-        plog( "Thresholding failed?")
-        return None
-    if (img is None) :
-        plog( "img is None after binary threshold in contrast")
-    return img
-
-def contrastOnly(image, thresh, iter=1, scale=2.0, offset=-80) :
-    if (image == None) :
-        plog("contrast called with null Image")
-    for i in range(iter) :
-        plog("Try contrast "+str((iter,scale,offset)))
-        if (image == None) :
-            plog("contrast loop: Image is None")
-        else :
-            showUser(image)
-        image = cv2.add(cv2.multiply(image,scale),offset)
-        if (image == None) :
-            plog( "image(None) after add/mulitply in contrast!")
-    showdb(image)
-    (ret,img) = cv2.threshold(image, thresh, 255, cv2.THRESH_BINARY)
-    if (not ret) :
-        plog( "Thresholding failed?")
-        return None
-    if (img is None) :
-        plog( "img is None after binary threshold in contrast")
-    return img
-
 
 def amplify(num, c=2, fraction=0.7) :
     """Return accumulated monochrome image minus a fraction of
@@ -321,10 +234,10 @@ def showLevels(img, y, color, dir=1, width=2) :
     return(img)
 
 # Returns list of (x,y) (centroids of lines)
-def hlines(img, minlen=12) :
+def horizontal_lines(img, minlen=12) :
     """Return horizontal line levels"""
     positions = []
-    icheck(img,"hlines")
+    icheck(img,"horizontal_lines")
     (h,w) = img.shape
     edges = cv2.Canny(img, 90, 130)
     showdb(edges,2000)
@@ -339,34 +252,9 @@ def hlines(img, minlen=12) :
             if (l[1] == l[3]) : # Horizontal, not near top or bottom
                 if ( l[1] < h-3 and l[1] > 3 and l[1] < h-3) :
                     positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
-                    print("length is "+ str(l[2]-l[0]))
+                    print("length is "+ str(l[2]-l[0]) + " y = ", l[1])
     positions.sort(key= lambda l: l[1])
     return positions
-
-def horiz_lines(img, minlen=12) :
-    """Return horizontal line levels"""
-    global positions
-    positions = []
-    icheck(img,"hlines")
-    (h,w) = img.shape
-    retLines = []
-    edges = cv2.Canny(img, 90, 130)
-    showdb(edges,2000)
-    if (edges == None) :
-        plog("level: Bad Canny output. Not calling HoughLines")
-        return -1
-    alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
-    if (alllines == None) :
-        return retLines
-    for lines in alllines:
-        for l in lines : # Find min Y line (not on the edge)
-            if (l[1] == l[3]) : # Horizontal, not near top or bottom
-                if ( l[1] < h-5 and l[1] > 5 and l[1] < h-5) :
-                    retLines.append(tuple([(l[0]+l[2])/2, l[1] ]))
-                    positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
-    retLines.sort(key=lambda l: l[1])  # Sort on Y value (top to bottom)
-    positions.sort(key=lambda l: l[1])  # Sort on Y value (top to bottom)
-    return retLines
 
 #  rp =  ('reticule', 0, 1.4, -80, 164, 1, 4, 3, 0.4)
 def prepareImage(c, rp) :
@@ -377,12 +265,12 @@ def prepareImage(c, rp) :
 #    cimg = cv2.erode(cimg,np.ones((2,2),np.uint8),eit)
 #    cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),dit)
 
-def getPairs(cimg, minlen) :
+def getPairs(cimg, minlen, minspace) :
     global referenceImage
-    positions = hlines(cimg,minlen)
+    positions = horizontal_lines(cimg,minlen)
     showdb(cimg)
     if ( len(positions) > 1 ) :
-        positions = condense_positions(positions)
+        positions = condense_positions(positions, minspace)
     return positions
 
 def grab():
@@ -406,109 +294,21 @@ def grab():
             return img
     return None
 
-def lagoon_level_bbox_xy(lnum) :
-    global params
-    (y1,x1,y2,x2) = params['lagoonRegion']
-    w4 = int((x2-x1)/4)
-    w8 = w4/2
-    w16 = w8/2
-    left = x1 + w16 + 8
-    right = x1 + w16 + w8 - 8
-    return ((left+(lnum*w4), y1+8),(right+(lnum*w4),y2-8))
-
-def condense(lst) :
-    lst.sort()
-    extraneous = []
-    for i in range(len(lst)-2):
-        if abs(lst[i]-lst[i+2]) < 30 :
-            extraneous.append(lst[i+1])
-    return [num for num in lst if num not in extraneous]
-
-def condense_positions(positions) :
+def condense_positions(positions, minspace=5) :
     newpositions = [positions[0]]
     for i in range(len(positions)-1):
-        if abs(positions[i][1]-positions[i+1][1]) > 5 :
+        delt = abs(positions[i][1]-positions[i+1][1])
+        if delt > minspace :
             newpositions.append(positions[i+1])
+        if delt < minspace + 2 :
+            print(str(positions[i+1][1])+" barely qualified at delta="+str(delt))
     return newpositions
-
-def filter_levels(lst) : # (px,py,y1,y2)
-    if len(lst) > 1 :
-        return [ lst[0], lst[-1] ]
-    extraneous = []
-    for i in range(len(lst)-2):
-        if abs(lst[i]-lst[i+2]) < 50 :
-            extraneous.append(lst[i+1])
-    return [num for num in lst if num not in extraneous]
-
-def lagoon_level_bbox_thirds(lnum) :
-    global params
-    (y1,x1,y2,x2) = params['lagoonRegion']
-    w3 = int((x2-x1)/3)
-    w6 = w3/1.5
-    w12 = w6/3
-    left = x1 + w12 + 8
-    right = x1 + w12 + w6 - 8
-    return ( ( int(left+(lnum*w3)), int(y1+8) ),
-             ( int(right+(lnum*w3)), int(y2-8) ) )
-
-def get_positions(ylist) :
-    global positions
-    plist = []
-    for y in ylist:
-        for p in positions:
-            if (y == p[1]):
-                plist.append(p)
-    return plist
 
 def camSettle(n) :
     global cam
     """Initial frames can be split or underexposed"""
     for i in range(n) :
         cam.read()
-
-def xydeltay(reticules, xyLevels) :
-    dy = []
-    for (x,y) in xyLevels:
-        for i,j in zip(reticules[0::2],reticules[1::2]) :
-            avg = (i+j)/2
-            if abs(avg-y) < 64 : # Level must be near reticule
-                dy.append(tuple([x,y,y-avg]))
-    return dy
-
-def nearest(reticules, hlines) :
-    rlevels = []
-    for i,j in zip(reticules[0::2],reticules[1::2]) :
-        avg = (i+j)/2
-        hlines.sort(key=lambda l: abs(l[1]-avg))
-        levels = []
-        for h in hlines :
-            levels.append(tuple([h[0],h[1]]))
-        rlevels.append(tuple([i,j,levels]))
-    return rlevels
-
-def nearest_reticule(reticule, hlines) :
-    (i,j) = reticule
-    avg = (i+j)/2
-    hlines.sort(key=lambda l: abs(l[1]-avg))
-    return tuple([hlines[0][1], hlines[0][0]])
-
-def nearest_y(reticule, y, hlines) :
-    hlines.sort(key=lambda l: abs(l[1]-y))
-    return tuple([hlines[0][1], hlines[0][0]])
-
-def sortOutLevels(xydeltayLevels) :
-    allLevels = sorted(xydeltayLevels)  # Sorted by horizontal position
-    if (len(allLevels) == 0) :
-        print("nolevels.")
-        return
-    cellstat = (None,1000,None)
-    for (x,y,dy) in allLevels:     # Find least y (Host Cell Level)
-        if (y < cellstat[1]) :
-            cellstat = (x,y,dy)
-    allLevels.remove(cellstat)  # Remove it to get Lagoon list
-    print(termNumberList("host",[cellstat]))
-    allLevels.insert(0, tuple([4,5,10]))
-    print(termNumberList("lagoon", allLevels))
 
 def imageOut():
     """Adds a blue-grey timestamp to the current referenceImage
@@ -583,19 +383,6 @@ def showSpots(ptlist, bbox, color) :
         ty = uly + y
         cv2.rectangle(referenceImage,(tx-4,ty-1),(tx+4,ty+1),color,2)
     
-def showVesselLevel(who, y) :
-    color = paintColor(referenceImage,red)
-    if (who[:-1] == 'host') :
-        color = paintColor(referenceImage,blue)
-    elif (who[:-1] == 'lagoon') :
-        color = paintColor(referenceImage,green)
-    else :
-        print("unrecognized vessel " + who, file=sys.stderr)
-    showLevels(referenceImage,[y],color,dir=-1)
-
-def total(image) :
-    return np.average( tuple(ord(i) for i in image.tostring()) )
-
 def get_camera() :
     global cam
     cam = None
@@ -631,10 +418,10 @@ def crop(img, bbox) :
 
 # Apply function() to subimage transform output to original coordinates
 
-def processRegion(image, bbox, minlen, function) :
+def processRegion(image, bbox, minlen, minspace, function) :
     cropped = crop(image, bbox)
     showdb(cropped,10000)
-    features = function(cropped, minlen)
+    features = function(cropped, minlen, minspace)
 #   Translate to original coordinates (bbox pts are ( (y1,x1),(y2,x2) )
     return [ ( pt[0]+bbox[0][1], pt[1]+bbox[0][0] ) for pt in features ]
 
@@ -665,8 +452,8 @@ if __name__ == "__main__" :
             else :
                 plog("Update OpenCV (can't find moveWindow)")
     pimg = prepareImage(green, plist[0])
-    for (name, bbox, minlen) in plist[1:] :
-        features = processRegion(pimg, bbox, minlen, getPairs)
+    for (name, bbox, minlen, minspace) in plist[1:] :
+        features = processRegion(pimg, bbox, minlen, minspace, getPairs)
         cv2.rectangle(pimg,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),255,1)
         for (x,y) in features :
             boxat(pimg,x,y)
