@@ -8,7 +8,7 @@
 # lines must be further apart than two detected lines from each horiz feature
 #
 from __future__ import print_function
-import sys, os, time, socket, glob, subprocess
+import sys, os, time, socket, glob, subprocess, getopt
 # To get rid of spurious messages from openCV library
 from suppress_stdout_stderr import suppress_stdout_stderr
 import numpy as np
@@ -16,8 +16,8 @@ import cv2
 import cv2.cv as cv
 from shutil import copyfile
 
-debug = False
 image_count = 0
+
 ######## Critical Parameters
 # Contrast (iterations, mul, subtract) ( 1,  1.28,  -80 )
 # Threshold   (50%)                      127
@@ -252,7 +252,7 @@ def horizontal_lines(img, minlen=12) :
             if (l[1] == l[3]) : # Horizontal, not near top or bottom
                 if ( l[1] < h-3 and l[1] > 3 and l[1] < h-3) :
                     positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
-                    print("length is "+ str(l[2]-l[0]) + " y = ", l[1])
+#                    print("length is "+ str(l[2]-l[0]) + " y = ", l[1])
     positions.sort(key= lambda l: l[1])
     return positions
 
@@ -300,9 +300,10 @@ def condense_positions(positions, minspace=5) :
         delt = abs(positions[i][1]-positions[i+1][1])
         if delt > minspace :
             newpositions.append(positions[i+1])
-        if delt < minspace + 2 :
-            print(str(positions[i+1][1])+" barely qualified at delta="+str(delt))
     return newpositions
+
+#        if delt < minspace + 2 :
+#            print(str(positions[i+1][1])+" barely qualified at delta="+str(delt))
 
 def camSettle(n) :
     global cam
@@ -425,25 +426,66 @@ def processRegion(image, bbox, minlen, minspace, function) :
 #   Translate to original coordinates (bbox pts are ( (y1,x1),(y2,x2) )
     return [ ( pt[0]+bbox[0][1], pt[1]+bbox[0][0] ) for pt in features ]
 
-def boxat(img, x, y) :
+def boxat(pimg, x, y) :
     cv2.rectangle(pimg,(x-8,y-8),(x+8,y+8),255,1)
     cv2.putText(pimg,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255,1)
+
+def colorboxat(img, x, y) :
+    cv2.rectangle(img,(x-8,y-8),(x+8,y+8),(100,180,180),1)
+    cv2.putText(img,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100,200,200),1)
     
-if __name__ == "__main__" :
+laststate =  {'host0' : 'under', 'lagoon1' : 'under' }
+lastchange = {'host0' : 0,       'lagoon1' : 0 }
+    
+def monitor() :
     global referenceImage
-    global positions
-    debug = 'show' in sys.argv
-    get_camera()
-    plist = get_previous()
-    params = settings()
+    states = { 0:"under",  1 : "full", 2:"over", 3: "error3", 4:"error4"}
+    pimg = prepareImage(green, plist[0])
+    for (name, bbox, minlen, minspace) in plist[1:] :
+        features = processRegion(pimg, bbox, minlen, minspace, getPairs)
+        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(200,200,0),1)
+        cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(200,200,0),1)
+        for (x,y) in features :
+            colorboxat(referenceImage,x,y)
+        now  = int(time.time())
+        newstate = states[len(features)]
+        if not laststate[name] == newstate :
+            laststate[name] = newstate
+            elapsed = now - lastchange[name]
+            lastchange[name] = now
+            ts = str(elapsed)
+            print("vessel("+ name + "," + states[len(features)]+"," +ts+").")
+    imageOut()
+
+def newReferenceImage() :
+    global referenceImage
     referenceImage = None
     tries = 10
     while (referenceImage == None and tries > 0) :
-        time.sleep(0.1)
         referenceImage = grab()
         tries = tries - 1
+        if (referenceImage == None) :
+            time.sleep(0.2)
     if tries == 0 :
+        print("Failed to get image from camera")
         exit(10)
+    
+if __name__ == "__main__" :
+    global debug
+    debug = False
+    debug = 'show' in sys.argv
+    global cycletime
+    cycletime = 30  # Default
+    optlist, args = getopt.gnu_getopt(sys.argv, 'c:')
+    for o, a in optlist :
+        if (o == '-c'):
+            try :
+                cycletime = float(a)
+            except:
+                print("Argument to -c [cycletime] must be a number")
+    get_camera()
+    plist = get_previous()
+    params = settings()
     if (debug) :
         with suppress_stdout_stderr() :
             cv2.namedWindow("camera", cv2.CV_WINDOW_AUTOSIZE)
@@ -451,12 +493,11 @@ if __name__ == "__main__" :
                 cv2.moveWindow("camera", 100, 100)
             else :
                 plog("Update OpenCV (can't find moveWindow)")
-    pimg = prepareImage(green, plist[0])
-    for (name, bbox, minlen, minspace) in plist[1:] :
-        features = processRegion(pimg, bbox, minlen, minspace, getPairs)
-        cv2.rectangle(pimg,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),255,1)
-        for (x,y) in features :
-            boxat(pimg,x,y)
-        showdb(pimg,delay=10000)
-        print(name + str(features))
-
+    now = int(time.time())
+    lastchange = {'host0' : now, 'lagoon1' : now }
+    time.sleep(3)
+    while(1) :
+        newReferenceImage()
+        monitor()
+        time.sleep(cycletime)
+        
