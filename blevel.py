@@ -247,12 +247,21 @@ def horizontal_lines(img, minlen=12) :
     alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
     if (alllines == None) :
         return positions
+    maxvert = -1;
+    maxvertpos = 0;
     for lines in alllines:
         for l in lines : # Find min Y line (not on the edge)
             if (l[1] == l[3]) : # Horizontal, not near top or bottom
                 if ( l[1] < h-3 and l[1] > 3 and l[1] < h-3) :
                     positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
 #                    print("length is "+ str(l[2]-l[0]) + " y = ", l[1])
+            if (l[0] == l[2]) : # Vertical line
+                vlen = l[1]-l[3]
+                if (vlen > maxvert) :
+                    maxvert = vlen
+                    maxvertpos = l[0]
+    if (maxvert != -1) :
+        print("vline of length "+ str(maxvert) + " at "+str(maxvertpos))
     positions.sort(key= lambda l: l[1])
     return positions
 
@@ -261,9 +270,11 @@ def prepareImage(c, rp) :
     (name, cit, scale, offset, thresh, eit, dit, amp, frac) = rp
     mono = amplify(amp, c, fraction=frac)
     (ret,cimg) = cv2.threshold(mono, thresh, 255, cv2.THRESH_BINARY)
+    showdb(cimg)
+#    cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),1)
+    cimg = cv2.erode(cimg,np.ones((3,1),np.uint8),3)
+    showdb(cimg)
     return cimg
-#    cimg = cv2.erode(cimg,np.ones((2,2),np.uint8),eit)
-#    cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),dit)
 
 def getPairs(cimg, minlen, minspace) :
     global referenceImage
@@ -430,8 +441,8 @@ def boxat(pimg, x, y) :
     cv2.rectangle(pimg,(x-8,y-8),(x+8,y+8),255,1)
     cv2.putText(pimg,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255,1)
 
-def colorboxat(img, x, y) :
-    cv2.rectangle(img,(x-8,y-8),(x+8,y+8),(100,180,180),1)
+def colorboxat(img, x, y, minspace) :
+    cv2.rectangle(img,(x-8,y-minspace),(x+8,y+minspace),(100,180,180),1)
     cv2.putText(img,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100,200,200),1)
     
 laststate =  {'host0' : 'under', 'lagoon1' : 'under' }
@@ -446,7 +457,7 @@ def monitor() :
         cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(200,200,0),1)
         cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(200,200,0),1)
         for (x,y) in features :
-            colorboxat(referenceImage,x,y)
+            colorboxat(referenceImage,x,y,minspace)
         now  = int(time.time())
         newstate = states[len(features)]
         if not laststate[name] == newstate :
