@@ -346,7 +346,7 @@ def monitor() :
             elapsed = now - lastchange[name]
             lastchange[name] = now
             ts = str(elapsed)
-            print(name+"("+states[newstate]+"," +str(vlen)+").")
+            print(name+"("+states[newstate]+"," +str(vlen)+","+ts+").")
     imageOut()
 
 if __name__ == "__main__" :
