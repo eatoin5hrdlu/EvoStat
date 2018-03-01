@@ -1,12 +1,6 @@
 #!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
 
-# minlen for green horizontal lines changed from 6 to 10 to avoid reflection
-# minlen for reticules is still 8
-#
-# See condense_positions
-# lines must be further apart than two detected lines from each horiz feature
-#
 from __future__ import print_function
 import sys, os, time, socket, glob, subprocess, getopt
 # To get rid of spurious messages from openCV library
@@ -18,18 +12,38 @@ from shutil import copyfile
 
 image_count = 0
 
-######## Critical Parameters
-# Contrast (iterations, mul, subtract) ( 1,  1.28,  -80 )
-# Threshold   (50%)                      127
-# Symmetrical (2x2) erode iterations     3
-# Asymmetrical (2x4) dilation iterations 2
-defaultParams = [ (1,2),      # Contrast Iterations
-                  (1.2,1.5),  # Contrast Scale
-                  (-80.01,-60.01),  # Contrast Offset
-                  (120.01,144.01),  # Contrast Threshold
-                  (1,3),      # Erode Iterations
-                  (1,2)]      # Dilate Iterations
+# There is a bit of dense code ( nested list comprehensions )
+# The output of the Hough algorithm is a list of lists of bboxs
+# They are degenerate bboxes in the sense that they represent vertical
+# and horizontal lines so either b[0]==b[2] (vertical) or b[1]==b[3] (horizontal)
+#
+# I have loops to extract:
+#        ( length, x position) for each vertical line
+#  and   (height(y), length, x position(centroid)) for each horizontal line
 
+def comps( all ) :
+    """ all is output of HoughLinesP() """
+    for v in [( l[1]-l[3], l[0] ) for ls in all for l in ls if l[0]==l[2] ] :
+        print("vertical "+str(v))
+    for h in [(l[1], (l[0]+l[2])/2, l[2]-l[0] ) for ls in all for l in ls if l[1]==l[3] ] :
+        print("horizontal "+str(h))
+
+# External parameter in .maskspec file  (example)
+#[('reticule', 0,     1.4,  -80,  180,    0,   0,   3,  0.4),
+# ('host0',   ((110, 340), (170, 410)), 5, 6 ),
+# ('lagoon1', ((340, 110), (410,  210)), 7,  4 )]
+#
+def check_maskspec() :
+    global prevmoddate
+    global plist
+    mfile = './.maskspec'
+    moddate = os.stat(mfile)[8]
+    if moddate != prevmoddate :
+        prevmoddate = moddate
+        try :
+            plist = eval(open(mfile, 'r').read())
+        except(IOError):
+            print("No .maskspec file defined")
 
 ######## Data Structures
 # BB (bounding box) is ( (uly, ulx), (lry, lrx) )
@@ -42,45 +56,12 @@ defaultParams = [ (1,2),      # Contrast Iterations
 colors = ["blue", "green", "red"]
 imageName = "./web/phagestat.jpg"
 frameLocation = "/tmp/timelapse/"
-    
-def paintColor(img,color) :
-    if (len(img.shape) == 3) :
-        tricolor = [150,150,150]
-        tricolor[color] = 250
-        return (tuple(tricolor))
-    else :
-        return color
 
 ############# UTILITIES
 
 def plog(str) :  
     if (debug): # make this True for debug output
         print("      --"+str, file=sys.stderr)
-
-def termIntList(f,l) :
-    if (l == None ):
-        plog("Empty argument list: " + f)
-        return f+"."
-    return f+"("+", ".join([str(i) for i in l])+")."
-
-def termPairList(f,l) :
-    if (l == None ):
-        plog("Empty argument list: " + f)
-        return f+"."
-    return f+"("+", ".join([str(i[0])+":"+str(i[1]) for i in l])+")."
-
-def termTripleList(f,l) :
-    if (l == None ):
-        plog("Empty argument list: " + f)
-        return f+"."
-    return f+"("+", ".join([str(i[0])+":"+str(i[1])+":"+str(i[2]) for i in l])+")."
-
-def termNumberList(f,l) :
-    outstr = ""
-    for i in range(len(l)) :
-        outstr = outstr + "{0}({1},{2}).\n".format(f, i, l[i][2])
-    return outstr
-
 
 def icheck(image, who) :
     if (image == None) :
@@ -105,36 +86,19 @@ def settings() :
     plog("Expected  <hostname>.settings file")
     exit(0)
 
-def get_previous() :
-    plist = None
-    prevfile = './.maskspec'
-    plog("Using :" + prevfile)
-    try :
-        plist = eval(open(prevfile, 'r').read())
-    except(IOError):
-        print("No previous level information")
-    if (plist == None) :
-        print("creating PLIST")
-        (it, sc1, of1, ei, di, ai1, af) = ( 1, 1.85, -80, 2, 2, 4, 0.7 )
-        (sc2, of2, ai2) = (1.35, -80, 3)
-        pt1 = (35,200)
-        bb1 = ( (10,100), (100,400) )
-        pt2 = (375,200)
-        bb2 = ( (300,100), (400,300) )
-        plist = [('host0', pt1, bb1, it, sc1, of1, ei, di, ai1, af  ),
-                 ('lagoon1', pt2, bb2, it, sc2, of2, ei, di, ai2, af  )]
-        save_plist(plist)
-    return plist
-
-def showUser(img, label=(".",0,0),multiplier=1) :
-    if (params['debugpause'] > 10) :
-        (text, y, x) = label
-        cv2.putText(img,text, (y,x),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,0,255),1)
-        cv2.imshow("camera", img)
-        if cv.WaitKey(multiplier*params['debugpause']) == 27:
-            exit(0)
-
+def newReferenceImage() :
+    global referenceImage
+    referenceImage = None
+    tries = 10
+    while (referenceImage == None and tries > 0) :
+        referenceImage = grab()
+        tries = tries - 1
+        if (referenceImage == None) :
+            time.sleep(0.2)
+    if tries == 0 :
+        print("Failed to get image from camera")
+        exit(10)
+    
 def showdb(img, delay=500) :
     if (debug) :
         cv2.imshow("camera", img)
@@ -173,6 +137,10 @@ def release() :
         cam.release()
     cv2.destroyAllWindows()
 
+############# UTILITIES
+
+############# IMAGE PROCESSING
+
 def amplify(num, c=2, fraction=0.7) :
     """Return accumulated monochrome image minus a fraction of
     the sum of the other colors."""
@@ -200,89 +168,73 @@ def amplify(num, c=2, fraction=0.7) :
 
 def rotateImage(img, angle=90):
     """+-90 deg are fast and do not crop"""
-    if (angle == 0) :
-        return img
     if (angle == 90) :
         return(cv2.flip(cv2.transpose(img),flipCode=0))
     elif (angle == -90) :
         return(cv2.flip(cv2.transpose(img),flipCode=1))
-    else :
-        center = (img.shape[1]/2.0,img.shape[0]/2.0)
-        rotate = cv2.getRotationMatrix2D(center, angle, 1.0)
-        return cv2.warpAffine(img, rotate,
-                              (img.shape[1],img.shape[0]))
+    return img
 
-def showLevels(img, y, color, dir=1, width=2) :
-    if (len(img.shape) == 3):
-        (w,h,d) = img.shape
-    else :
-        (w,h) = img.shape
-    if (dir == 1):
-        off = 30
-    else :
-        off = -60
-    for i in range(len(y)):
-        cv2.line(img,(w/3,y[i]),(30+w/3,y[i]), color, width)
-        cv2.putText(img,str(y[i]),(off+w/3,y[i]),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color,2)
-        if (i>0) :
-            delta = abs(y[i-1]-y[i])
-            if (delta < 30):
-                cv2.putText(img,str(delta),(50+w/2,y[i]-delta/2),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color,2)
-                
-    return(img)
 
-# Returns list of (x,y) (centroids of lines)
-def horizontal_lines(img, minlen=12) :
-    """Return horizontal line levels"""
-    positions = []
-    icheck(img,"horizontal_lines")
+# MAIN ALGORITHM :
+# Find longest vertical line, x value is center
+# divide horizontal lines into left or right of center
+# take max y (lowest) from left and min y (highest) from right.
+#
+# Returns (state = { 0, 1, 2 }, vlength)
+def level_data(img, minlen=12) :
+    """Level Information"""
+    icheck(img,"level_data")
     (h,w) = img.shape
     edges = cv2.Canny(img, 90, 130)
     showdb(edges,2000)
     if (edges == None) :
-        plog("level: Bad Canny output. Not calling HoughLines")
-        return []
+        return (0, 0)
     alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
     if (alllines == None) :
-        return positions
-    maxvert = -1;
-    maxvertpos = 0;
-    for lines in alllines:
-        for l in lines : # Find min Y line (not on the edge)
-            if (l[1] == l[3]) : # Horizontal, not near top or bottom
-                if ( l[1] < h-3 and l[1] > 3 and l[1] < h-3) :
-                    positions.append(tuple( [ (l[0]+l[2])/2, l[1] ] ) )
-#                    print("length is "+ str(l[2]-l[0]) + " y = ", l[1])
-            if (l[0] == l[2]) : # Vertical line
-                vlen = l[1]-l[3]
-                if (vlen > maxvert) :
-                    maxvert = vlen
-                    maxvertpos = l[0]
-    if (maxvert != -1) :
-        print("vline of length "+ str(maxvert) + " at "+str(maxvertpos))
-    positions.sort(key= lambda l: l[1])
-    return positions
+        return (0,0)
+#    comps(alllines)
+    maxvert = 0
+    numbervert = 0
+    centerx = -1
+    for (vlen,x) in [( l[1]-l[3], l[0] ) for ls in alllines for l in ls if l[0]==l[2] ] :
+        numbervert = numbervert + 1
+        if (vlen > maxvert) :
+            centerx = x
+            maxvert = vlen
+    numberhoriz = 0
+    maxy = -1
+    miny = 1000
+    leftofcenter = None
+    rightofcenter = None
+    if (numbervert == 0) : # Check for one horizontal line
+        for (y,hcen,hlen) in [(l[1],(l[0]+l[2])/2, l[2]-l[0] ) for ls in alllines for l in ls if l[1]==l[3] ] :
+            numberhoriz = numberhoriz + 1
+            if ( y > maxy ) :
+                maxy = y
+                leftofcenter = ( hcen, y )
+    else :  # We saw the vertical, so their might be two horizontals
+        for (y,hcen,hlen) in [(l[1],(l[0]+l[2])/2, l[2]-l[0] ) for ls in alllines for l in ls if l[1]==l[3] ] :
+            numberhoriz = numberhoriz + 1
+            if ( (hcen < centerx) and y > maxy ) :
+                maxy = y
+                leftofcenter = ( hcen, y )
+            if ( (hcen > centerx) and y < miny ) :
+                miny = y
+                rightofcenter = ( hcen, y )
+    state = 0
+    if (leftofcenter is not None) :
+        state = 1
+    if ((numbervert > 0) and (rightofcenter is not None)) :
+        state = 2
+    return (state, maxvert)
 
 #  rp =  ('reticule', 0, 1.4, -80, 164, 1, 4, 3, 0.4)
 def prepareImage(c, rp) :
     (name, cit, scale, offset, thresh, eit, dit, amp, frac) = rp
     mono = amplify(amp, c, fraction=frac)
     (ret,cimg) = cv2.threshold(mono, thresh, 255, cv2.THRESH_BINARY)
-    showdb(cimg)
+    return cv2.erode(cimg,np.ones((3,1),np.uint8),3)
 #    cimg = cv2.dilate(cimg,np.ones((2,8),np.uint8),1)
-    cimg = cv2.erode(cimg,np.ones((3,1),np.uint8),3)
-    showdb(cimg)
-    return cimg
-
-def getPairs(cimg, minlen, minspace) :
-    global referenceImage
-    positions = horizontal_lines(cimg,minlen)
-    showdb(cimg)
-    if ( len(positions) > 1 ) :
-        positions = condense_positions(positions, minspace)
-    return positions
 
 def grab():
     global cam, params, image_count
@@ -298,23 +250,12 @@ def grab():
     if (tries == 0) :
         exit(12)
     if (rval):
-        showUser(img)
+        showdb(img)
         if (params['rotate']) :
             return rotateImage(img, params['rotate'])
         else :
             return img
     return None
-
-def condense_positions(positions, minspace=5) :
-    newpositions = [positions[0]]
-    for i in range(len(positions)-1):
-        delt = abs(positions[i][1]-positions[i+1][1])
-        if delt > minspace :
-            newpositions.append(positions[i+1])
-    return newpositions
-
-#        if delt < minspace + 2 :
-#            print(str(positions[i+1][1])+" barely qualified at delta="+str(delt))
 
 def camSettle(n) :
     global cam
@@ -336,65 +277,6 @@ def imageOut():
     os.rename("./web/tmp.jpg", imageName)
     movie_file(imageName)
 
-
-def hunt(low, high) :
-    if ( isinstance(high,float) and isinstance(low,float) ):
-        delta = (high-low)/2.0
-        center = (high+low)/2.0
-        lvals = [center]
-        if not delta == 0 :
-            for x in np.arange(0.0,delta,delta/5.0) :
-                lvals.append(center+x)
-                lvals.append(center-x)
-    else :
-        center = (high+low)/2
-        lvals = [center]
-        for x in range(low,high,1) :
-            lvals.append(center+x)
-            lvals.append(center-x)
-    return lvals
-
-def vary(params) :
-    vparams = []
-    for (p) in params:
-        if isinstance(p,float) :
-            low = p - p/2
-            high = p + p/2
-        else :
-            low = p - 1
-            high = p + 1
-        vparams.append(hunt(low,high))
-    start = [vparams[i][0] for i in range(len(vparams))]
-    yield start
-    for i in range(len(vparams)-1) :
-        column = vparams[i+1]
-        for j in range(len(column)-1) :
-            yield start[0:i+1] + [column[j+1]] + start[i+2:]
-
-def save_plist(plist) :
-    f = open('./.newmask','w')
-    f.write('# (Vessel, oldPt, BBox,')
-    f.write('#     Contrast-iter, Contrast-mul, Contrast-off,')
-    f.write('#     Erode-iter, Dilate-iter, Amplify-iter, Amp-factor )')
-    f.write('#e.g. (host0, (x,y), ((uy,lx),(ly,rx)), 1, 1.2, -80, 2, 2, 3, 0.7)')
-    f.write(str(plist))
-    f.close()
-    g = open('./web/conlog.txt','a')
-    g.write( time.asctime(time.localtime()) )
-    g.write(str(plist))
-    g.close()
-
-def showBBox(params, color) :
-    ( (yul,xul), (ylr,xlr) ) = params[2]
-    cv2.rectangle(referenceImage,(xul,ylr),(xlr,yul),color,2)
-
-def showSpots(ptlist, bbox, color) :
-    for (x,y) in ptlist :
-        ( (uly,ulx), (lry, lrx) ) = bbox
-        tx = ulx + x
-        ty = uly + y
-        cv2.rectangle(referenceImage,(tx-4,ty-1),(tx+4,ty+1),color,2)
-    
 def get_camera() :
     global cam
     cam = None
@@ -430,12 +312,9 @@ def crop(img, bbox) :
 
 # Apply function() to subimage transform output to original coordinates
 
-def processRegion(image, bbox, minlen, minspace, function) :
+def processRegion(image, bbox, minlen, name) :
     cropped = crop(image, bbox)
-    showdb(cropped,10000)
-    features = function(cropped, minlen, minspace)
-#   Translate to original coordinates (bbox pts are ( (y1,x1),(y2,x2) )
-    return [ ( pt[0]+bbox[0][1], pt[1]+bbox[0][0] ) for pt in features ]
+    return level_data(cropped, minlen)
 
 def boxat(pimg, x, y) :
     cv2.rectangle(pimg,(x-8,y-8),(x+8,y+8),255,1)
@@ -447,56 +326,49 @@ def colorboxat(img, x, y, minspace) :
     
 laststate =  {'host0' : 'under', 'lagoon1' : 'under' }
 lastchange = {'host0' : 0,       'lagoon1' : 0 }
-    
+
+# Monitor prints out new level readings only
+# when they differ from the previous reading
 def monitor() :
     global referenceImage
+    global plist
+    global lastvlen
     states = { 0:"under",  1 : "full", 2:"over", 3: "error3", 4:"error4"}
     pimg = prepareImage(green, plist[0])
     for (name, bbox, minlen, minspace) in plist[1:] :
-        features = processRegion(pimg, bbox, minlen, minspace, getPairs)
+        (newstate, vlen) = processRegion(pimg, bbox, minlen, name)
         cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(200,200,0),1)
         cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(200,200,0),1)
-        for (x,y) in features :
-            colorboxat(referenceImage,x,y,minspace)
         now  = int(time.time())
-        newstate = states[len(features)]
-        if not laststate[name] == newstate :
+        if (((abs(vlen-lastvlen)>2) and newstate < 2) or (laststate[name] != newstate)) :
+            lastvlen = vlen
             laststate[name] = newstate
             elapsed = now - lastchange[name]
             lastchange[name] = now
             ts = str(elapsed)
-            print("vessel("+ name + "," + states[len(features)]+"," +ts+").")
+            print(name+"("+states[newstate]+"," +str(vlen)+").")
     imageOut()
 
-def newReferenceImage() :
-    global referenceImage
-    referenceImage = None
-    tries = 10
-    while (referenceImage == None and tries > 0) :
-        referenceImage = grab()
-        tries = tries - 1
-        if (referenceImage == None) :
-            time.sleep(0.2)
-    if tries == 0 :
-        print("Failed to get image from camera")
-        exit(10)
-    
 if __name__ == "__main__" :
     global debug
+    global plist
+    global prevmoddate
+    global lastvlen
+    prevmoddate = 0
     debug = False
     debug = 'show' in sys.argv
     global cycletime
-    cycletime = 30  # Default
+    cycletime = 90  # Default
     optlist, args = getopt.gnu_getopt(sys.argv, 'c:')
     for o, a in optlist :
         if (o == '-c'):
             try :
                 cycletime = float(a)
             except:
-                print("Argument to -c [cycletime] must be a number")
+                print("N must be a number in cycletime option -cN")
     get_camera()
-    plist = get_previous()
-    params = settings()
+    check_maskspec()     # Loads plist
+    params = settings()  # Optional image rotation and movie frame size from old settings
     if (debug) :
         with suppress_stdout_stderr() :
             cv2.namedWindow("camera", cv2.CV_WINDOW_AUTOSIZE)
@@ -507,8 +379,9 @@ if __name__ == "__main__" :
     now = int(time.time())
     lastchange = {'host0' : now, 'lagoon1' : now }
     time.sleep(3)
+    lastvlen = 0
     while(1) :
         newReferenceImage()
+        check_maskspec()    # Reloads plist if .maskspec changed
         monitor()
         time.sleep(cycletime)
-        
