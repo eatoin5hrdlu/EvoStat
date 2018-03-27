@@ -9,10 +9,10 @@ import cv2.cv as cv
 from shutil import copyfile
 
 def auto_canny(image, sigma=0.33):
-	v = np.median(image)
-	lower = int(max(0, (1.0 - sigma) * v))
-	upper = int(min(255, (1.0 + sigma) * v))
-	return cv2.Canny(image, lower, upper)
+    v = np.median(image)
+    lower = int(max(0, (1.0 - sigma) * v))
+    upper = int(min(255, (1.0 + sigma) * v))
+    return cv2.Canny(image, lower, upper)
 
 
 def pmcan(image) :
@@ -23,18 +23,7 @@ def pmcan(image) :
     cv2.imshow("Edges", auto)
     cv2.waitKey(0)
 
-
-def standalone(image, minlen=8) :
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-    sigma=0.33
-    v = np.median(blurred)
-    lower = int(max(0, (1.0 - sigma) * v))
-    upper = int(min(255, (1.0 + sigma) * v))
-    edges = cv2.Canny(image, lower, upper)
-    alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
-    if (alllines == None) :
-        return (0,0)
+def maxVertical(all) :
     maxvert = 0
     numbervert = 0
     centerx = -1
@@ -43,26 +32,47 @@ def standalone(image, minlen=8) :
         if (vlen > maxvert) :
             centerx = x
             maxvert = vlen
-    numberhoriz = 0
-    maxy = -1
-    miny = 1000
+    return (numbervert, maxvert, centerx)
+
+def contrastDiff(image) :
+    (h,w) = image.shape
+    dx = min(w,h/3)
+    triple = []
+    for i in range(3) :
+        triple.append(np.median(img[i*dx:(i+1)*dx,0:dx]))
+    return [triple[1]-triple[0], triple[2]-triple[1]]
+
+def standalone(image, minlen=8) :
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    sigma=0.33
+    v = np.median(blurred)
+    lower = int(max(0, (1.0 - sigma) * v))
+    upper = int(min(255, (1.0 + sigma) * v))
+    edges = cv2.Canny(blurred, lower, upper)
+    alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
+    if (alllines == None) :
+        return (0,0)
+    # Extract/sort ( length, horizontal position) of each vertical
+    vlist = sorted([( l[1]-l[3], l[0] ) for ls in alllines for l in ls if l[0]==l[2] ])
+    # Extract/sort (length, height, x center) of each horizontal
+    hlist = sorted([(l[2]-l[0], l[1],(l[0]+l[2])/2) for ls in alllines for l in ls if l[1]==l[3]])
     leftofcenter = None
     rightofcenter = None
-    if (numbervert == 0) : # Check for one horizontal line
-        for (y,hcen,hlen) in [(l[1],(l[0]+l[2])/2, l[2]-l[0] ) for ls in alllines for l in ls if l[1]==l[3] ] :
-            numberhoriz = numberhoriz + 1
-            if ( y > maxy ) :
-                maxy = y
-                leftofcenter = ( hcen, y )
-    else :  # We saw the vertical, so their might be two horizontals
-        for (y,hcen,hlen) in [(l[1],(l[0]+l[2])/2, l[2]-l[0] ) for ls in alllines for l in ls if l[1]==l[3] ] :
-            numberhoriz = numberhoriz + 1
-            if ( (hcen < centerx) and y > maxy ) :
-                maxy = y
-                leftofcenter = ( hcen, y )
-            if ( (hcen > centerx) and y < miny ) :
-                miny = y
-                rightofcenter = ( hcen, y )
+    maxvert = 0
+    if (len(vlist) == 0 and len(hlist) > 0) : # On (long) horizontal line
+        (hlen, maxy, hcen) = sorted(hlist)[-1] :
+        leftofcenter = (hcen, maxy)
+    else :
+        (maxvert, centerx) = sorted(vlist)[-1]
+        lefth = [(yp,lt,cx) for (lt,yp,cx) in hlist if (cx < centerx)]
+        if (len(lefth) > 0 ):
+            (y1,l1,c1) = sorted(lefth)[-1]  # maximum y (lowest)
+            leftofcenter = (c1, y1)
+        righth= [(yp,lt,cx) for (lt,yp,cx) in hlist if (cx > centerx)]
+        if (len(righth) > 0 ):
+            (y1,l1,c1) = sorted(lefth)[0]  # minimum y (highest)
+            rightofcenter = (c1, y1)
     state = 0
     if (leftofcenter is not None) :
         state = 1
@@ -76,29 +86,10 @@ if __name__ == "__main__" :
     (state, vlen) = standalone(img)
 
 
-    #!/usr/bin/python -u
-#!C:/cygwin/Python27/python -u
-
-from __future__ import print_function
-import sys, os, time, socket, glob, subprocess, getopt
-# To get rid of spurious messages from openCV library
-from suppress_stdout_stderr import suppress_stdout_stderr
-import numpy as np
-import cv2
-import cv2.cv as cv
-from shutil import copyfile
-
-image_count = 0
-
-# There is a bit of dense code ( nested list comprehensions )
-# The output of the Hough algorithm is a list of lists of bboxs
-# They are degenerate bboxes in the sense that they represent vertical
-# and horizontal lines so either b[0]==b[2] (vertical) or b[1]==b[3] (horizontal)
 #
-# I have loops to extract:
-#        ( length, x position) for each vertical line
-#  and   (height(y), length, x position(centroid)) for each horizontal line
-
+#
+#
+#
 def comps( all ) :
     """ all is output of HoughLinesP() """
     for v in [( l[1]-l[3], l[0] ) for ls in all for l in ls if l[0]==l[2] ] :
