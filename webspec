@@ -24,11 +24,25 @@ user:head(_, Head) -->       % CSS: Add to every page
     		rel('stylesheet'),
 		href('/web/css/content.css') ])|Head])).
 
-running   :- catch(thread_httpd:http_workers(21847,N),_,fail), N>0.
+
+
+evostat_port(aristotle,21847).
+evostat_port(buffon,   21848).
+evostat_port(cuvier,   21846).
+evostat_port(darwin,   21847).
+evostat_port(erasmus,  21847).
+evostat_port(wallace,  21847).
+
+evostat_port(Port) :- hostname_root(H), evostat_port(H,Port).
+
+
+running   :- evostat_port(Port),
+             catch(thread_httpd:http_workers(Port,N),_,fail), N>0.
 
 reload    :- stop_http, reconsult(webspec), start_http.
 
-stop_http  :- catch(http_stop_server(21847,[]),_,true).
+stop_http  :- evostat_port(Port),
+              catch(http_stop_server(Port,[]),_,true).
 
 start_http :-
     ( running -> true
@@ -40,7 +54,8 @@ start_http :-
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
      process_files('web/images/*', [] ),
-     http_server( http_dispatch, [ port(21847) ])
+     evostat_port(Port),
+     http_server( http_dispatch, [ port(Port) ])
 %             ssl([ certificate_file('etc/server/server-cert.pem'),
 %                   key_file('etc/server/server-key.pem'),
 %                   password("apenoot1")
