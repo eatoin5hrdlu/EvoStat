@@ -154,18 +154,25 @@ load_newest(File) :-
 
 % Run python progam and consult its output
 % Consult (e.g. reconsult) replaces predicates unless multifile/1 declared
-
-consult_python(Program, Options) :-
+% Retry (involves resetting camera) when image too dark (exit(5))
+    
+consult_python(Program, Options, ReTry) :-
     python(Python),
     evostat_directory(Dir),
     process_create(Python,[Program|Options],
-		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
-    load_files(Program,[stream(Out)]),
+		   [stdout(pipe(Out)), stderr(std), cwd(Dir),process(PID)]),
+    process_wait(PID, Exit, [timeout(10)]),
+    ( Exit = exit(0)
+      -> load_files(Program,[stream(Out)])
+      ;  true
+    ),
     close(Out),
-    !.
-
-consult_python(Program,Options) :-
-    plog(failed(python(Program,Options))).
+    ( Exit = exit(5), ReTry > 0
+      -> Next is ReTry - 1,
+         plog(retry(consult_python(Program,Options,Exit,ReTry))),
+	 consult_python(Program, Options, Next)
+      ;  plog(failed(consult_python(Program,Options,Exit,ReTry)))
+    ).
 
 count(ErrorType, Who) :-
     Prev =.. [ErrorType, _When, HowMany],
@@ -253,3 +260,8 @@ constrain(>, _,    _, Max, Max).
 constrain(<, _,  Min,   _, Min).
 constrain(=,Val,  _,    _, Val).
 
+upperName(Out) :-
+    hostname_root(Hostname),
+    atom_codes(Hostname,[H|T]),
+    to_upper(H,UH),
+    atom_codes(Out,[UH|T]).
