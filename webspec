@@ -47,8 +47,8 @@ stop_http  :- evostat_port(Port),
 start_http :-
     ( running -> true
      ;
-%     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
-     process_files('web/*',       [] ),  % No authentication
+     process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
+%     process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
      process_files('web/*.pdf',   [] ),
      process_files('web/css/*',    [] ),
