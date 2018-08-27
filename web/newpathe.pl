@@ -2,13 +2,6 @@
 :- dynamic wdbcount/2.
 :- assert(wdbcount(0,0)).
 
-dblog(A) :-
-    retract(wdbcount(N,Start)),
-    (Start == 0 -> open(weblog,write,Stream) ; Start = Stream),
-    NN is N + 1,
-    format(Stream, '~q:~q~n',[N,A]),
-    flush_output(Stream),
-    assert(wdbcount(NN,Stream)).
 
 newpathe(_Req) :-                    % The web page generator
     gethostname(Fullname),
