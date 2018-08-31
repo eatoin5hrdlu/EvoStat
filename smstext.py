@@ -6,8 +6,16 @@ from email.mime.text       import MIMEText
 COMMASPACE = ', '
 
 import subprocess
+
+# We need actual IP to send EvoStat URLs to our correspondents
+# The old way, retained for quaintness
 wgetip = "bash -c \"ipconfig | grep -Eo 'IPv4.*: ?([0-9]*\.){3}[0-9]*' | sed -E \\\"s/IPv4[^0-9]*(([0-9]+\.){3}[0-9]*).*/\\\\1/\\\""
-getip = ['hostname','-I']
+
+machineip    = ['hostname','-I']
+
+# The following usually necessary, and imply that we have
+# port forwarding: EvoStats use ports 12846, 12847 (default), 21848...
+curlip       = ['curl','http://canhazip.com']
 getoutsideip = ['dig','+short','myip.opendns.com','@resolver1.opendns.com']
 
 proc = subprocess.Popen(getoutsideip, stdout=subprocess.PIPE)
