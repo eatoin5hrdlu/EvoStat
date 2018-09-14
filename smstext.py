@@ -6,17 +6,25 @@ from email.mime.text       import MIMEText
 COMMASPACE = ', '
 
 import subprocess
+
+# We need actual IP to send EvoStat URLs to our correspondents
+# The old way, retained for quaintness
 wgetip = "bash -c \"ipconfig | grep -Eo 'IPv4.*: ?([0-9]*\.){3}[0-9]*' | sed -E \\\"s/IPv4[^0-9]*(([0-9]+\.){3}[0-9]*).*/\\\\1/\\\""
-getip = ['hostname','-I']
 
+machineip    = ['hostname','-I']
 
-proc = subprocess.Popen(getip, stdout=subprocess.PIPE)
+# The following usually necessary, and imply that we have
+# port forwarding: EvoStats use ports 12846, 12847 (default), 21848...
+curlip       = ['curl','http://canhazip.com']
+getoutsideip = ['dig','+short','myip.opendns.com','@resolver1.opendns.com']
+
+proc = subprocess.Popen(getoutsideip, stdout=subprocess.PIPE)
 myip = proc.stdout.read().strip().split()[0]
 print "[", myip, "]"
+
 url="http://"+myip+":21847/web/pathe.pl"
 print "URL["+url+"]"
 secrets = eval(open('secrets.py').read())
-print str(secrets)
 
 # fake it
 # secrets = { 'login':'8wan5hrdlu', 'password': '<passwd>' }
@@ -43,15 +51,24 @@ carriers = { 'a' : '@mms.att.net',
 
 car = 'vp'
 num = '9194525098'
-mess = url +"\n" + os.popen('tail -9 /home/peter/src/EvoStat/evostat.report').read()
-             
+onion = 'http://innatrixuqtlyuxk.onion/web/pathe.pl'
+mess = onion + "\n" + url +"\n" + os.popen('tail -9 /home/peter/src/EvoStat/evostat.report').read()
+
+htmlmess = """\
+<html>
+<a href="http://innatrixuqtlyuxk.onion/web/pathe.pl">Aristotle</a>
+<pre>
+""" + "\n" + mess + "</pre>\n</html>"
+
 if (len(sys.argv) < 2) :
     print 'smstext [atvs] NNNNNNNNNN "message"';
     print 'e.g. for [v]erizon use:   smstext v 9194525098'
 #    exit()
-else :
+elif (len(sys.argv) == 3) :
     car = sys.argv[1]
     num = sys.argv[2]
+else :
+    num = sys.argv[1]
 
 # SMTP Port 25?
 server = smtplib.SMTP( "smtp.gmail.com", 587 )
@@ -60,15 +77,24 @@ server.login( secrets['login'], secrets['password'] )
 
 # Create the container (outer) email message.
 if (car == 'vp' or car == 'a') :
-    msg = MIMEMultipart()   #   MIMEText(mess, 'plain')
-    msg.attach(MIMEImage(open("opencvlevel.jpg", 'rb').read()))
-    msg.attach(MIMEText(mess,'plain'))
+    if (len(sys.argv) == 2) :
+        msg = MIMEMultipart('alternative')
+    else :
+        msg = MIMEMultipart()
+    msg.attach(MIMEImage(open("web/phagestat.jpg", 'rb').read()))
+    if (len(sys.argv) == 2) :
+        msg.attach(MIMEText(htmlmess,'html'))
+    else :
+        msg.attach(MIMEText(mess,'plain'))
 else :
     msg = MIMEText(mess,'plain')
     
 msg['Subject'] = 'PhageStatus'
 msg['From'] = 'phagestat@gmail.com'
-msg['To'] = num + carriers[car]
+if (len(sys.argv) == 2) :
+    msg['To'] = num
+else :
+    msg['To'] = num + carriers[car]
 
 # Careful, this debug print prints the whole uuencoded picture
 # print "server.sendmail( 'phagestat@gmail.com', "+num+carriers[car]+", "+msg.as_string()+" )"

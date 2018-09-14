@@ -1,5 +1,6 @@
 pathe(_Req) :-
-    defaultHead('Pathe Control Panel', Head),
+    upperName(EvoStatName),
+    defaultHead(EvoStatName, Head),
     pathebody(Body),
     reply_html_page(Head,Body),
     !. % det only necessary for interactive debugging
@@ -17,16 +18,24 @@ pathebody(body([background(NamePlate)],
     form([class=mod,
           action='./controlpathe.pl'],
           input([type=submit,name=submit,value=change])),
-    center(a([href('./plot.pl')],plotlink)),
-    center(a([href('./flog.txt')],flowlog)),
-    center(a([href('./datalog.txt')],datalog)),
-    center(a([href('./timelapse.avi')],timelapse))
+    font([size='+2'],
+	 [ a([href('./phagepop.pl')],'PHAGE POPULATION MODEL'),br([],[]),
+	   a([href('./flog.txt')],'Flow Log'),br([],[]),
+	   a([href('./datalog.txt')],'Data Log'),br([],[]),
+	   a([href('./alevel.pdf')],'OpenCV Level Sensing Paper'),br([],[]),
+	   hr([],[]),
+	   a([href('./ani.pl')],'Landscape Animations'),br([],[]),
+	   a([href('./bani.pl')],'Animations with Black Background'),br([],[]),
+	   a([href('./landscape.pdf')],'Fitness Landscape Animation Documentation'),br([],[]),
+	   hr([],[]),
+	   a([href('./timelapse.avi')],'Current Timelapse'),br([],[]),
+	   a([href('./timelapse1417.avi')],'Previous Timelapse, Dec 12-17')])
   ]
   ) %body
   ) :- %pathebody
     backgroundImage(NamePlate),
     motd(MText),
-    Message = [center(font([size='+5'],MText))],
+    Message = [center(font([size='+5'],a([href('./protocol.pdf')],MText)))],
     prepped(Supplies, Cellstat, Lagoons, Sampler).
 
     

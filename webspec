@@ -2,6 +2,7 @@
 
 :- set_prolog_flag(double_quotes,codes).
 :- use_module(library(http/thread_httpd)).   % Server loop
+:- use_module(library(http/http_ssl_plugin)).
 :- use_module(library(http/http_dispatch)).  % dispatch table
 :- use_module(library(http/http_header)).    % Terms -> HTML
 :- use_module(library(http/html_write)).     % Terms -> HTML
@@ -11,7 +12,7 @@
 :- use_module(library(http/http_client)).
 
 :- dynamic motd/1.
-motd('Start Dec 11-14 Run S1030 + wt phage').
+motd('Idle since Feb 5, 2018').
 
 :- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
 html_syntax --> {html_syntax}. % Also callable as a grammar rule
@@ -23,24 +24,51 @@ user:head(_, Head) -->       % CSS: Add to every page
     		rel('stylesheet'),
 		href('/web/css/content.css') ])|Head])).
 
-running   :- catch(thread_httpd:http_workers(21847,N),_,fail), N>0.
+
+
+evostat_port(aristotle,21847).
+evostat_port(buffon,   21848).
+evostat_port(cuvier,   21846).
+evostat_port(darwin,   21847).
+evostat_port(erasmus,  21847).
+evostat_port(wallace,  21847).
+
+evostat_port(Port) :- hostname_root(H), evostat_port(H,Port).
+
+
+running   :- evostat_port(Port),
+             catch(thread_httpd:http_workers(Port,N),_,fail), N>0.
 
 reload    :- stop_http, reconsult(webspec), start_http.
 
-stop_http  :- catch(http_stop_server(21847,[]),_,true).
+stop_http  :- evostat_port(Port),
+              catch(http_stop_server(Port,[]),_,true).
 
 start_http :-
     ( running -> true
      ;
      process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
-%    process_files('web/*',       [] ),  % No authentication
+%     process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
      process_files('web/*.pdf',   [] ),
      process_files('web/css/*',    [] ),
      process_files('web/js/*',     [] ),
      process_files('web/images/*', [] ),
-     http_server( http_dispatch, [ port(21847) ] )
+     evostat_port(Port),
+     http_server( http_dispatch, [ port(Port) ])
+%             ssl([ certificate_file('etc/server/server-cert.pem'),
+%                   key_file('etc/server/server-key.pem'),
+%                   password("apenoot1")
+%             ])
+%      ] )
     ).
+
+
+
+
+
+
+
 
 process_files(WildCard, Security) :-
 	expand_file_name(WildCard, Files),
@@ -166,14 +194,16 @@ evostatName(_,Name) :- config_name(Name,_).
 
 refreshHead(Title,
   [ title(Title),
+    link([rel(icon),href('./images/favicon.png')],[]),
     meta(['http-equiv'(refresh),content(20)],[]),% refresh
     script([ language(javascript) ],[])]).
 
-defaultHead(Title,[title(Title)]).
-%  script([ language(javascript)
+defaultHead(Title,[title(Title),
+		   link([rel(icon),href('./images/favicon.png')],[]) ]).
 
 nocacheHead(Title,
   [ title(Title),
+    link([rel(icon),href('./images/favicon.png')],[]),
     meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=0, no-store, must-revalidate')],[]),
     meta(['http-equiv'('Pragma'),content('no-cache')],[]),
     meta([name(robots),content(noarchive)],[]),
