@@ -69,10 +69,12 @@ def icheck(image, who) :
         exit(13)
     if (len(image.shape) == 2) :
         (h,w) = image.shape
+        plog("2D image: " + str(image.shape))
     else :
         (h,w,d) = image.shape
+        plog("3D image: " + str(image.shape))
     if (h == 0 or w == 0) :
-        plog(who + ": Image shape is degenerate: " + str(img.shape))
+        plog(who + ": Image shape is degenerate: " + str(image.shape))
         exit(14)
 
 def settings() :
@@ -185,7 +187,7 @@ def rotateImage(img, angle=90):
 #
 # Returns (state = { 0, 1, 2 }, vlength)
 def level_data(img, minlen=12) :
-    """Level Information"""
+    """Level Information: Canny(i,lowthresh,highthresh,kernel)"""
     icheck(img,"level_data")
     (h,w) = img.shape
     edges = cv2.Canny(img, 100, 180, apertureSize=5)
@@ -206,6 +208,8 @@ def level_data(img, minlen=12) :
         if (vlen > maxvert) :
             centerx = x
             maxvert = vlen
+    if (numbervert > 0) :
+        plog("longest vertical is "+str(vlen))
     numberhoriz = 0
     maxy = -1
     miny = 1000
@@ -276,9 +280,9 @@ def imageOut():
     global imageName
     (he,wi,de) = referenceImage.shape
     cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/16,he/2),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,200),2)
+                cv2.FONT_HERSHEY_SIMPLEX, 3, (255,210,200),4)
     cv2.putText(referenceImage,lasttemp(),(wi/11,4*he/7),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (250,210,255),2)
+                cv2.FONT_HERSHEY_SIMPLEX, 2, (250,210,255),4)
 
     tmpimg = cv2.resize(referenceImage,params['imageSize'])
     if not os.path.exists(frameLocation) :
@@ -346,6 +350,7 @@ def crop(img, bbox) :
 # Apply function() to subimage transform output to original coordinates
 
 def processRegion(image, bbox, minlen, name) :
+    plog("processRegion " + str(bbox))
     cropped = crop(image, bbox)
     return level_data(cropped, minlen)
 
@@ -425,6 +430,7 @@ if __name__ == "__main__" :
         exit(0)
     lastvlen = 0
     while(1) :
+        print("-")
         newReferenceImage()
         check_maskspec()    # Reloads plist if .maskspec changed
         monitor()
