@@ -64,7 +64,7 @@ def plog(str) :
         print("      --"+str, file=sys.stderr)
 
 def icheck(image, who) :
-    if (image == None) :
+    if (image is None) :
         plog("Image equal to None in " + who)
         exit(13)
     if (len(image.shape) == 2) :
@@ -90,16 +90,19 @@ def newReferenceImage() :
     global referenceImage
     referenceImage = None
     tries = 10
-    while (referenceImage == None and tries > 0) :
+    while (referenceImage is None and tries > 0) :
         referenceImage = grab()
         tries = tries - 1
-        if (referenceImage == None) :
+        if (referenceImage is None) :
             time.sleep(0.2)
+        else :
+            if (debug) :
+                cv2.imwrite("s_"+str(image_count)+".jpg",referenceImage)
     if tries == 0 :
         print("Failed to get image from camera")
         exit(10)
     
-def showdb(img, delay=500) :
+def showdb(img, delay=200) :
     if (debug) :
         cv2.imshow("camera", img)
         if cv.WaitKey(delay) == 27:
@@ -116,7 +119,7 @@ def save_frames(name, num) :
         img = grab()
         imgname = name + str(i) + ".jpg"
         cv2.imwrite(imgname, cv2.resize(img,params['imageSize']))
-    
+
 def movie_file(name) :
     numstart = len(frameLocation)
     type = 'jpg'
@@ -162,15 +165,15 @@ def amplify(num, c=2, fraction=0.7) :
         showdb(mono2)
         mono = cv2.add(mono,mono2)
         showdb(mono)
-    showdb(mono,1000)
+    showdb(mono,200)
     return mono
 
 
 def rotateImage(img, angle=90):
     """+-90 deg are fast and do not crop"""
-    if (angle == 90) :
+    if (angle == -90) :
         return(cv2.flip(cv2.transpose(img),flipCode=0))
-    elif (angle == -90) :
+    elif (angle == 90) :
         return(cv2.flip(cv2.transpose(img),flipCode=1))
     return img
 
@@ -185,14 +188,16 @@ def level_data(img, minlen=12) :
     """Level Information"""
     icheck(img,"level_data")
     (h,w) = img.shape
-    edges = cv2.Canny(img, 90, 130)
-    showdb(edges,2000)
-    if (edges == None) :
+    edges = cv2.Canny(img, 100, 180, apertureSize=5)
+    plog("EDGES")
+    showdb(edges,delay=4000)
+    if (edges is None) :
         return (0, 0)
-    alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
-    if (alllines == None) :
+    alllines = cv2.HoughLinesP(edges,rho = 1,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 4)
+    if (alllines is None) :
         return (0,0)
-#    comps(alllines)
+    if (debug) :
+        comps(alllines)
     maxvert = 0
     numbervert = 0
     centerx = -1
@@ -218,9 +223,10 @@ def level_data(img, minlen=12) :
             if ( (hcen < centerx) and y > maxy ) :
                 maxy = y
                 leftofcenter = ( hcen, y )
-            if ( (hcen > centerx) and y < miny ) :
+            if ( (hcen > (centerx-2) ) and y < miny ) :
                 miny = y
                 rightofcenter = ( hcen, y )
+# 0:"under",  1 : "full",  2:"over",  3: "error3", 4:"error4"
     state = 0
     if (leftofcenter is not None) :
         state = 1
@@ -269,18 +275,35 @@ def imageOut():
        and periodically (every 10 frames), makes a movie"""
     global imageName
     (he,wi,de) = referenceImage.shape
-    cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/10,he/2),
+    cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/16,he/2),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,200),2)
-    cv2.putText(referenceImage,lasttemp(),(wi/10,4*he/7),
+    cv2.putText(referenceImage,lasttemp(),(wi/11,4*he/7),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (250,210,255),2)
+
+    tmpimg = cv2.resize(referenceImage,params['imageSize'])
+    if not os.path.exists(frameLocation) :
+        os.mkdir(frameLocation)
+    plog("before showdb")
+    showdb(tmpimg, delay=10000)
+    plog("after showdb")
     cv2.imwrite("./web/tmp.jpg", cv2.resize(referenceImage,params['imageSize']))
     os.rename("./web/tmp.jpg", imageName)
     movie_file(imageName)
 
+def nocam() :
+    for ifile in sys.argv :
+        if (ifile.endswith('.jpg')) :
+            return True
+    return False
+
 def get_camera() :
     global cam
     cam = None
-    for n in [0, 2, 1] :
+    if (nocam()) :
+        plog("no camera")
+        return
+    plog("nocam returned False")
+    for n in [1, 0, 2] :
         camera = '/dev/video'+str(n)
         if os.path.exists(camera) :
             cam = cv2.VideoCapture(n)
@@ -288,9 +311,19 @@ def get_camera() :
     if cam == None :
         print("No camera? Check for one of /dev/video[0,1,2]")
         exit(0)
+    plog("cam not None")
     camprofile = socket.gethostname()
+    plog(str(cam.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)))
+    plog(str(cam.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)))
+    cam.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH,1920)
+    cam.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT,1080)
+    plog(str(cam.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)))
+    plog(str(cam.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)))
     if 'growth' in sys.argv :
         camprofile += "g"
+    for opt in sys.argv :
+        if opt.startswith('od') :
+            camprofile = 'normal'
     cmdstr =  "/usr/bin/uvcdynctrl -L "+ camprofile + ".gpfl --device="+camera
     plog(cmdstr)
     with suppress_stdout_stderr() :
@@ -335,10 +368,13 @@ def monitor() :
     global lastvlen
     states = { 0:"under",  1 : "full", 2:"over", 3: "error3", 4:"error4"}
     pimg = prepareImage(green, plist[0])
+    plog(str(referenceImage.shape))
+    plog("monitor")
+    plog(str(plist[1:]))
     for (name, bbox, minlen, minspace) in plist[1:] :
         (newstate, vlen) = processRegion(pimg, bbox, minlen, name)
-        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(200,200,0),1)
-        cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(200,200,0),1)
+        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(255,255,255),2)
+        cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(255,255,255),2)
         now  = int(time.time())
         if (((abs(vlen-lastvlen)>2) and newstate < 2) or (laststate[name] != newstate)) :
             lastvlen = vlen
@@ -372,16 +408,34 @@ if __name__ == "__main__" :
     if (debug) :
         with suppress_stdout_stderr() :
             cv2.namedWindow("camera", cv2.CV_WINDOW_AUTOSIZE)
-            if cv2.__dict__['moveWindow'] != None :
+            if cv2.__dict__['moveWindow'] is not None :
                 cv2.moveWindow("camera", 100, 100)
             else :
                 plog("Update OpenCV (can't find moveWindow)")
     now = int(time.time())
     lastchange = {'host0' : now, 'lagoon1' : now }
     time.sleep(3)
+    for opt in sys.argv:
+        if opt.startswith('od') :
+            cv2.imwrite('./web/' + opt + '.jpg', grab())
+            exit(0)
+    if 'snap' in sys.argv :
+        one = grab()
+        cv2.imwrite("./temp.jpg", cv2.resize(one,params['imageSize']))
+        exit(0)
     lastvlen = 0
     while(1) :
         newReferenceImage()
         check_maskspec()    # Reloads plist if .maskspec changed
         monitor()
         time.sleep(cycletime)
+
+# OLD
+# cellstatRegion(130,190,360,220),
+#       lagoonRegion(600,200,638,300),
+# NEW
+# (name,    cit, scale, offset, thresh, eit, dit, amp, frac) = rp
+#[('reticule', 0,     1.4,  -80,  180,    0,   0,   3,  0.4),
+#    for (name, bbox, minlen, minspace) in plist[1:] :
+# ('host0',   ((110, 340), (170, 410)), 5, 6 ),
+# ('lagoon1', ((340, 110), (410,  210)), 5,  4 )]
