@@ -12,7 +12,8 @@
 :- use_module(library(http/http_client)).
 
 :- dynamic motd/1.
-motd('Idle since Feb 5, 2018').
+:- multifile motd/1.
+
 
 :- dynamic html_syntax/0.      % Assert for HTML dialect(EOL etc.)
 html_syntax --> {html_syntax}. % Also callable as a grammar rule
@@ -47,6 +48,9 @@ stop_http  :- evostat_port(Port),
 start_http :-
     ( running -> true
      ;
+     plog(processing(http,files)),
+     touch('./web/timelapse.mp4'), % Files that must exist during startup
+     touch('./web/phagepop.png'),
      process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
 %     process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
@@ -84,6 +88,7 @@ suffix_mime( jpg, [image/jpg] ).
 suffix_mime(jpeg, [image/jpg] ).
 suffix_mime( mkv, [video/webm] ).
 suffix_mime( avi, [video/x-msvideo] ).
+suffix_mime( mp4, [video/mp4] ).
 suffix_mime( pdf, [application/pdf] ).
 suffix_mime(html, [] ).
 

@@ -39,11 +39,12 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     config/1,       % FILES  config info
 	     file_modtime/2, % Loaded file modification time
 	     logfile/1,      %
+	     motd/1,
 
              leak/1,       % Reporting
 	     textCycle/1,
 	     bt_device/2,
-	     watcher/2,
+	     watcher/3,
 	     err/2,
 
 	     webok/0,  % Assert when Web info is available
@@ -57,6 +58,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     changeRequest/1, % HTML form values
 	     changed/3,       % push (Obj,Var) to Arduino
 	     toggle_auto/0 ].
+:- multifile motd/1.
 
 % List of temporary files for cleanup
 temp_file('mypic1.jpg').
@@ -300,7 +302,8 @@ initialise(W, Label:[name]) :->
 	   -> DBOK = []
             ; DBOK = [menu_item(ok,message(W, ok))] % Back to ?- prompt
 	  ),
-	  send_list(File, append,[menu_item(quit,message(W, quit))|DBOK] ),
+	  send_list(File, append,[menu_item(reload,message(W,reload)),
+				  menu_item(quit,message(W, quit))|DBOK] ),
 	  send(MB, append, new(@action, popup(action))),
 	  send_list(@action, append,[ menu_item('Drain Lagoons',
 					message(W, drain, lagoons)),
@@ -315,7 +318,7 @@ initialise(W, Label:[name]) :->
 				    menu_item('no pid',
 					      message(W, stopPID)),
 				    menu_item(texting,
-					      message(W, sendText)),
+					      message(W, texting)),
 				    menu_item('no texting',
 					      message(W, stopText))
 				  ]),
@@ -328,6 +331,10 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
+	 get_time(TimeStamp),
+	 format_time(atom(Now), '%A, %d %b %Y %T', TimeStamp, posix),
+	 concat_atom(['Running since ',Now], Message),
+	 new_value(motd=Message),
 	 setup_web_values,
 	 initPID,                        % Start PID controllers
          send(@action?members, for_all,
@@ -360,6 +367,8 @@ started(_W) :->
        control_timer(update, start),
        send(@fastUpdatetimer,start),   % Restart GUI updates
        plog('        Re-starting AUTO Update/Level Detection timer').
+
+reload(_W) :-> stop_http, reconsult(webspec), start_http.
 
 stopPID(_W)  :-> pidstop,  ghost_state(pid,stop).
 startPID(_W) :-> pidstart, ghost_state(pid, start).
@@ -470,15 +479,12 @@ new_snapshot(Self) :->
     plog(update(snapShot)).
 
 mixon(Self) :->
-    plog('Updating ebuttons'),
     send_to_type(Self?graphicals, ebutton, [update]),
-    plog('Updating snapshot'),
     send_to_type(Self?graphicals, snapshot, [update]),
     plog('Turning noisy stuff back on'),
     send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
-    component(_,cellstat,CellStat),
-    send(CellStat,converse,'m1'),
-    send(CellStat,converse,'o2'),
+    send_to_type( Self?graphicals, cellstat, [converse,m1] ), % Mixers ON
+    send_to_type( Self?graphicals, cellstat, [converse,'o2'] ), % Air ON
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
@@ -507,7 +513,7 @@ fastUpdate(Self) :->
     prep,
     check_web_files.
 
-sendText(Self) :->
+texting(Self) :->
     send(Self, sendTexts), % Send first text message
     control_timer(texting, start).
 
@@ -521,6 +527,7 @@ sendTexts(_Self) :->
     findall(_,sending_text(Now),_).
 
 sending_text(Now) :-
+    online,
     watcher(_Who, Where, When),
     0 is Now mod When,
     evostat_directory(Dir),
@@ -788,8 +795,8 @@ datalog :-
     get_time(NowFloat),
     format_time(atom(TS),'%T',NowFloat),
     Now is integer(NowFloat),
-    DataSet = [ cellstat:[t:temperature,l:level,v0:valve,b:turbidity],
-		lagoon:  [t:temperature,l:level,v1:valve],
+    DataSet = [ cellstat:[t:temperature,l:level,v1:valve,b:turbidity],
+		lagoon:  [t:temperature,l:level,v1:valve,b:turbidity],
 		sampler:  [v0:hostValve,v1:lagoonValve]],
     header([dynamic, multifile,discontiguous],DataSet,3,Header),
     log_file(F, 'web/datalog.txt', Header),

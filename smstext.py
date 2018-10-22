@@ -29,7 +29,8 @@ secrets = eval(open('secrets.py').read())
 # fake it
 # secrets = { 'login':'8wan5hrdlu', 'password': '<passwd>' }
 
-carriers = { 'a' : '@mms.att.net',
+carriers = { 'a' : '@messages.att.net',
+             'g' : '@gmail.com',
              't' : '@tmomail.net',
              'v' : '@vtext.com',
              'vt': '@vtext.com',  #text

@@ -19,10 +19,19 @@ message(F,L) :- format(user_error, F, L).
            leak/1,
 	   cycle/1,
            bt_device/2,    %
-           watcher/2,      %
            webok/0.
 
 cleanup :- findall(F,(temp_file(F),exists_file(F),delete_file(F)),_).
+
+touch(File) :- open(File,append,Stream),close(Stream).
+
+offline :-  % Does the word OFFLINE appear in the Message of the Day?
+    motd(MOTD),
+    string_lower(MOTD,Motd),
+    sub_string(Motd,_,_,_,offline),
+    plog(offline).
+
+online :- \+ offline, plog(online).
 
 %%%%% TIME STUFF
 

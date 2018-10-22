@@ -6,6 +6,18 @@
 % dur
 % vol
 % lsl
+% bl
+%
+% To add user-settable variable to the model:
+% You will be editing three files:
+% The text file ES_params.txt, 
+% the Prolog file phagepop.pl, and
+% the Octave/Matlab model in modrun.m (and local.m for testing)
+%
+% Steps:
+% 1) Add the new variable to ES_params.txt
+% 2) Add rules for phage_var_label//1 and phage_var_units//1 in phagepop.pl
+% 3) Add code to use variable in modrun.m (and local.m for testing)
 
 % Get values from the current ES_param file
 %
@@ -37,6 +49,7 @@ parse_val(Name, [Name:Value|Ps]) -->
 parse_val(Name, Ps) --> [_], parse_val(Name,Ps).
 
 phage_var_label(ad)  --> [ 'Adsorption Rate : '].
+phage_var_label(bl)  --> [ 'Baseline for Y axis : '].
 phage_var_label(ec)  --> [ 'Eclipse Interval : '].
 phage_var_label(dur)  --> [ 'Simulation Length : '].
 phage_var_label(fr) -->  [' Flow Rate : '].
@@ -53,6 +66,7 @@ phage_var_label(K)  --> { concat_atom([k,X],K) }, [' Growth Factor ',X,' : '].
 % kXXX   is a growth constant
 % tmXXX  a temperature in deg C
 phage_var_units(ad) --> [ 'mL/min' ].
+phage_var_units(bl) --> [ 'Population' ].
 phage_var_units(kg) --> [ 'min' ].
 phage_var_units(dur) --> [ 'hours' ].
 phage_var_units(ec) --> [ 'min' ].
@@ -75,7 +89,7 @@ phage_space(_) --> [].
 modelItems([]) --> [].
 modelItems([Var:Val|Ps]) -->
     phage_var_label(Var),
-    [ input([type=text,name=Var,value=Val,style='width:30%']) ],
+    [ input([type(text),name(Var),value(Val),style('width:30%')]) ],
     phage_var_units(Var), [br([],[])], phage_space(4),
     modelItems(Ps).
 
@@ -84,18 +98,26 @@ phagepop(_Req) :-
     assert(html_syntax),
     modelItems(Ps,Fields,[]),
     retract(html_syntax),
-    flatten([ Fields, input([type=submit,name=submit,value='Submit']),
-	input([ type=button,name='Cancel',value='Cancel',
-        onClick='window.location="/web/pathe.pl"'])],Inputs),
+    flatten([ Fields,
+	input([type=submit,name=submit,value='Submit']),
+	input([type=button,name=cancel,value='Cancel',
+               onClick='window.location="/web/pathe.pl"']),
+	br([],[]),
+	pre([],[' ']),
+	br([],[]),
+	font([size('-2')],
+	['Be patient, E.g. 300 hour simulation requires more than 1 minute'])],
+        Inputs),
     defaultHead('Pathe Population Model',Head),
     reply_html_page(Head,
-	body(background('/web/images/brushed.jpg'),
+	    body([background('/web/images/brushed.jpg'),
+		  style('background-size: 100% 130%')],
 	     [' ',br([],[]),
-	      center(a([href='/web/model.txt',style='color:white'],
-		    [font([size='+2'],'CLICK HERE TO SEE MODEL SOURCE')])),
-	      center(font([size='+2',style='color:#FDFDFD'],
+	      center(a([href('/web/model.txt'),style('color:white')],
+		    [font([size('+2')],'CLICK HERE TO SEE MODEL SOURCE')])),
+	      center(font([size('+2'),style('color:#FDFDFD')],
 			  [' ',br([],[])])),
-	      form(action='./run_model.pl', Inputs)])).
+	      form([action='./run_model.pl'], Inputs)])).
 
 phagepop(Request) :-
     errorPage(Request, 'There was a problem generating the model').

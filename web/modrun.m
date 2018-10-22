@@ -2,11 +2,11 @@ pkg load image
 hostcolor =  [0.00 0.00 1.00];  % Blue Devil Blue
 host2color = [0.00 0.75 0.00];  % Green
 host3color = [0.75 0.00 0.00];  % Red
-phagecolor = [0.00 0.40 0.80];  % Carolina Blue
+phagecolor = [0.00 0.80 0.90];  % Carolina Blue
 zcolor     = [0.75 0.00 0.75];  % Purple
 % colors = [hostcolor, host2color, host3color, phagecolor]
 
-global kg ad dur ec pp p0 fr h0 vol dur;
+global kg ad dur ec pp p0 fr h0 vol dur bl;
 
 % ad  = Adsorption Factor               mL/min
 % kg  = Ecoli Growth Rate               doubling time in minutes
@@ -14,7 +14,8 @@ global kg ad dur ec pp p0 fr h0 vol dur;
 % fr  = Flow Rate                       volumes/hour 
 % vol = Total volume of culture in      mL
 % lsl = Linear or Semi-log graph 1=linear 0=semilog
-
+% bl = Baseline for Y axis: Interesting population numbers are above 10^5
+  
 load web/ES_params.txt;  % Loads the global variables
 hours = dur;
 steps = hours*60;
@@ -35,6 +36,7 @@ else
   hold on;
   semilogy(t,y);
 endif
+axis([ 0, hours, bl, inf])
 
 [fh,msg] = jpfill(t,x(:,1), y(:,1),hostcolor);
 [fh,msg] = jpfill(t,x(:,2), y(:,2),host2color);
