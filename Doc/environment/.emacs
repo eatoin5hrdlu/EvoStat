@@ -1,3 +1,6 @@
+(add-to-list 'load-path "/usr/local/bin/sclang")
+(require 'sclang)
+
 (when window-system (set-frame-size (selected-frame) 120 20))
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -14,4 +17,4 @@
 (when window-system (set-frame-size (selected-frame) 120 32))
 
 (setq initial-frame-alist '((left . 100) (top . 50)))
-
+(add-to-list 'auto-mode-alist '("\\.\\(pl\\|pro\\|lgt\\)" . prolog-mode))
