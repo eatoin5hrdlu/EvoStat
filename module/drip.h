@@ -12,11 +12,12 @@ void reportDRIP(void)
   Serial.print("dd([");
   for(int i=0; i<2; i++)
     {
-      for(int n=0; i<DD_cnt; i++)
+      for(int n=0; n<DD_cnt; n++)
 	{
 	  Serial.print(DRIP_DATA[i][n]);
-	  if (i<1 || n<(DD_cnt-2)) Serial.print(",");
+	  if (n<(DD_cnt-1)) Serial.print(",");
 	}
+      if (i == 0) Serial.print("],[");
     }
   Serial.println("]).");
 }
@@ -65,7 +66,8 @@ long now = millis();
 	   DRIP_count[i] = 0;
 	 }
        interrupts();              // Fast enough so we don't miss a drop
-       if (DD_cnt < 5) DD_cnt++;
+       DD_cnt++;
+       if (DD_cnt > 4) DD_cnt = 0;
        DROP_timer = now;
      }
 return flow_rate[ch];
