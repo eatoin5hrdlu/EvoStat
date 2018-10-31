@@ -11,10 +11,10 @@
 #define NUM_VALVES      4
 
 #define DRIP            2     // Interrupt Drip Beam
-#define MIXER           3     // PWM for 5V motor
+#define DRIP2           3     // Aux Interrupt Drip
 #define TBOOST          4     // Extra Heat (hair dryer)
 #define WASTE           5     // Output to Waste (12V Solenoid Valve)
-#define DRIP2           6     // Aux Interrupt Drip
+#define MIXER           6     // PWM for 5V motor
 #define JARLIGHT        7     // Meniscus light
 #define VALVEPIN        8    // Control of valve servo
 #define VALVEDISABLE    9    // Power to valve servo 
