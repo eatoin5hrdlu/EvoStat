@@ -1,0 +1,8 @@
+git config --global user.email "8wan5hrdlu@gmail.com"
+git config --global user.name "Peter Reintjes"
+sudo apt-get install bluez bluez-tools libbluetooth-dev
+sudo apt-get install emacs
+git clone git@github.com:eatoin5hrdlu/brewhaha.git
+sudo apt-get install imagemagick
+cd ~/src/EvoStat/web/images
+./emboss <hostname>
