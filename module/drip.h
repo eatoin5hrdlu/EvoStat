@@ -12,10 +12,10 @@ void reportDRIP(void)
   Serial.print("dd([");
   for(int i=0; i<2; i++)
     {
-      for(int n=0; n<DD_cnt; n++)
+      for(int n=0; n<5; n++)
 	{
 	  Serial.print(DRIP_DATA[i][n]);
-	  if (n<(DD_cnt-1)) Serial.print(",");
+	  if (n<4) Serial.print(",");
 	}
       if (i == 0) Serial.print("],[");
     }
