@@ -15,6 +15,7 @@
 //                            close valves after their "open time" 
 // void openValve(int v)    - Open the valve for its "open time" duration
 //
+
 #include "Arduino.h"
 //#include "param.h"
 
@@ -25,11 +26,7 @@ class VALVE
     int i;
     size = n;
     disabled = false;
-    //  Angles are stored in EEPROM and can now be changed and remembered
-    //    for(i=0;i<size;i++)   {
-    //      int angle = i*(180/(size-1));  // Angles are 0, 45, 90, 135, 180
-    //      valve_angle[i] =  angle;
-    //    }
+    cycleCount = 0L;
     cycletime = DEFAULT_CYCLETIME*1000; // Cycle in seconds, store as ms
     lastcycle = millis();
   }
@@ -80,16 +77,19 @@ class VALVE
     valve_open[current] = 0;
     do
     {
-      if (current == 0) up = true;  // First half of sequence
-      if (up && current == size-1) up = false; // Second half
+      if      (current == 0) up = true;  // First half of sequence
+      else if (up && current == size-1) up = false; // Second half
       if (up) current = current + 1;
       else    current = current - 1;
-    } while(    current != 0       // LOOP IF WE'RE NOT STAYING
-	     && valve_time[current] < 2 ); // AT THIS POSITION
-    swrite(valve_angle[current]);
-    if (current != 0)
-      valve_open[current] = millis();  // Record opening time
-
+    } while(    current != 0  // LOOP IF NOT STAYING AT THIS POSITION
+	     && valve_time[current] < 2 ); // 0 or 1 = zero time
+    if (cycleCount % valve_range[current] == 0) { // Activating Valve
+      swrite(valve_angle[current]);
+      if (current != 0)
+	valve_open[current] = millis();  // Record opening time
+    } else { // Reverse when reaching the first valve not activated this cycle
+      if (up) up = false;
+    }
    } /* End of next_valve(void) */
 
 boolean checkValve(void) {
@@ -108,9 +108,10 @@ boolean checkValve(void) {
   if (now > lastcycle + cycletime - 300) // Time to start valve sequence
     {
       digitalWrite(VALVEDISABLE,0);  // Power up the servo
+      cycleCount++;
+      current = 0;
       delay(300);
       lastcycle = millis();
-      current = 0;
       next_valve();
     }
 
@@ -121,28 +122,32 @@ boolean checkValve(void) {
   }
   return true;
 }
-/* getTimesbp() returns the start of the whole array for EEPROM storage */
-  byte *getTimesbp()        { return (byte *)&valve_time[0]; }
-/* getTimes() returns pointer to the first valve position time */
+  /* getTimes() returns pointer to the first valve position time */
+  byte *getTimesbp()        { return (byte *)&valve_time[1]; }
   int  *getTimes()          { return         &valve_time[1]; }
 
   int getTime(int v)        {
     if (v == size-1) return valve_time[v];
     else             return 2*valve_time[v];
   }
-  int setTime(int v, int t){ valve_time[v] = t; }
+  int setTime(int v, int t)  { valve_time[v] = t; }
 
   byte *getAngles()          { return &valve_angle[0];   }
+  byte *getRanges()          { return &valve_range[1];   }
   int setAngle(int v, int a) { valve_angle[v] = a;       }
+  int setRange(int v, int a) { valve_range[v] = a;       }
   int getAngle(int v)        { return(valve_angle[v]);   }
+  int getRange(int v)        { return(valve_range[v]);   }
   void setCycleTime(int t)   { cycletime = t * 1000L;    }
 
  private:
   int size;                         // Number of positions
   int current;                      // Current position
+  long int cycleCount;
   boolean up;
   boolean disabled;
   byte     flow;
+  byte     valve_range[NUM_VALVES+1]; // Valve cycle modulo (only increases with valve num)
   int      valve_time[NUM_VALVES+1];
   byte     valve_angle[NUM_VALVES+1];
   long int valve_open[NUM_VALVES+1];  // When was the valve opened

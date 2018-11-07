@@ -11,7 +11,11 @@
 //   void setup()
 //   void loop()
 //
-
+//  If DOWNLOADING this program fails:
+//
+//  1) Disconnect Bluetooth (it competes with USB cable for RX/TX)
+//  2) Disconnect RESET wire (without Bluetooth module, Reset held low)
+//  3) Check Tools->Processor for Bootloader compatibility
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>   // Arduino: Manage Libraries
@@ -334,6 +338,7 @@ void soutln(const char *str) {	Serial.println(str); }
  *  m0 :    Mixing motor off
  *  m1 :    Mixing motor on
  *  pN :    Go to Valve position N, auto_valve mode off
+ *  rNM :   Set cycleModulo (Range) for valve V to M (< 256 - it is a byte)
  *  r  :    Restore settings from EEPROM
  *  s  :    Save settings in EEPROM
  *  tNNN:   Set target temperature in tenths of degrees  371 = 37.1C
@@ -346,7 +351,8 @@ void printHelp(void)
 {
 int i;
 byte *bp = valve.getAngles();
-int      *ip = valve.getTimes();     // PINCH
+byte *rp = valve.getRanges();
+int  *ip = valve.getTimes();          // PINCH
 uint16_t  *times = valves.getTimes(); // SOLENOID
 
 	Serial.println(F("cmd(a,[0,1],'auto modes off/on')."));
@@ -371,6 +377,13 @@ uint16_t  *times = valves.getTimes(); // SOLENOID
 	Serial.println(F("],'get/set mixer speed')."));
 	Serial.println(F("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)')."));
 	Serial.println("cmd(p,[1],[0,1,2,3,4],'set valve to position N, auto off').");
+	
+	Serial.print(F("cmd(r,[1,2,3,4],["));
+	 for(i=1;i<NUM_VALVES+1;i++) {
+	   Serial.print(*rp++); if(i<NUM_VALVES) Serial.print(","); 
+	   }
+        Serial.println(F("],'Valve Cycle Modulo')."));
+		
 	Serial.println(F("cmd(r,'Restore settings from EEPROM')."));
 	Serial.println(F("cmd(s,'Save settings in EEPROM')."));
 	Serial.print(F("cmd(t,["));Serial.print(get_temperature());
@@ -379,8 +392,8 @@ uint16_t  *times = valves.getTimes(); // SOLENOID
 	Serial.println(F("],'Get/Set target temp in tenth degrees C')."));
 	Serial.print(F("cmd(tf,[")); Serial.print(target_flowrate);
 	Serial.println(F("],'Get/Set target flow rate ml/hr')."));
-	Serial.print(F("cmd(v,[0,1,2,3,4,5],[rest,"));
-	 for(i=0;i<NUM_VALVES;i++) {
+	Serial.print(F("cmd(v,[1,2,3,4,5],["));
+	 for(i=1;i<NUM_VALVES+1;i++) {
 	   Serial.print(*ip++); Serial.print(","); }
 	Serial.print(valves.getTime(0));
         Serial.println(F("],'valve open mS')."));
@@ -455,8 +468,9 @@ const char *saveRestore(int op)
 	moveData(op, NUM_VALVES*sizeof(uint16_t), (byte *) valves.getTimes());
 
         // PINCH VALVE (SERVO)
-	moveData(op, (NUM_VALVES+1)*sizeof(int), valve.getTimesbp());
+	moveData(op, NUM_VALVES*sizeof(int),     valve.getTimesbp());
 	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getAngles());
+	moveData(op, NUM_VALVES*sizeof(byte),    valve.getRanges());
 	moveData(op, sizeof(int),   (byte *)&valveCycleTime);
 	
 	moveData(op, sizeof(int), (byte *) &target_turbidity);
@@ -581,7 +595,7 @@ void respondToRequest(void)
 	while (Serial.available() > 0)  // Read a line of input
 	{
 		int c  = Serial.read();
-		if ( c < 32 ) break;
+		if ( c < 33 ) break;
 		is += (char)c;
 		if (Serial.available() == 0) // It is possible we're too fast
 			delayMicroseconds(10000);
@@ -632,6 +646,12 @@ float stdev(int *arr, int size, float avg)
 	sumsq = sumsq - (avg - mx)*(avg - mx);
 	return sqrt(sumsq/(size-2));
 }
+void valveDefaults(int vnum, int Angle, int Time, int Modulo)
+{
+	valve.setAngle(vnum,     Angle);
+	valve.setup_valve(vnum,   Time);
+	valve.setRange(vnum,    Modulo);
+}
 
 /*
  * setup()	1) Initialize serial link
@@ -671,7 +691,7 @@ int i;
 
 	pinMode(WASTE,  OUTPUT);  // Solenoid Valve for Drain
 	digitalWrite(WASTE,   0);
-	valves.setup_valve(0, WASTE, 300, OUTFLOW);
+	valves.setup_valve(0, WASTE, 300, OUTFLOW); // SOLENOID SETUP
 
 	pinMode(HEATER, OUTPUT); digitalWrite(HEATER, 0);
 	pinMode(AIR, OUTPUT); digitalWrite(AIR, 0);
@@ -695,16 +715,11 @@ int i;
 		mixerspeed = MIXERSPEED;
 		gain_setting = 2;
 		timing_setting = 3;
-		valve.setAngle(0,0);
-		valve.setup_valve(0, 0);
-		valve.setAngle(1,45);
-		valve.setup_valve(1, 6000);
-		valve.setAngle(2,90);
-		valve.setup_valve(2, 3000);
-		valve.setAngle(3,139);
-		valve.setup_valve(3, 0);
-		valve.setAngle(4,180);
-		valve.setup_valve(4, 0);
+		valveDefaults(0,  0, 1000, 1);
+		valveDefaults(1, 45, 1000, 1);
+		valveDefaults(2, 90, 1000, 1);
+		valveDefaults(3,139, 1000, 4);
+		valveDefaults(4,180, 1000, 4);
 		valveCycleTime = DEFAULT_CYCLETIME;
 		valves.setTime(0,300); // Solenoid valve 0 -> 300mS
 		saveRestore(SAVE);
@@ -831,8 +846,8 @@ char vcmd[3];
 			     lux_set_timing(value);
 			     break;
 			case 'x':
-			     printTermUInt("fr",iflowRate(0));
-			     printTermUInt("fr",iflowRate(1));
+			     printTermUInt("f0",iflowRate(0));
+			     printTermUInt("f1",iflowRate(1));
 			     reportDRIP();
 			     break;
 			default:
@@ -923,12 +938,25 @@ char vcmd[3];
 			   printTermInt("e", (int)c2);
 			break;
 		case 'r':
+		        vnum = (int)(c2 - '0');
+		        if (valveRange(c2)) {
+			   if (value == 0)
+			     printTermInt(vcmd,valve.getRange(vnum));
+			   else
+			     valve.setRange(vnum, value);
+			} else
 		        switch(c2) {
 			 case 'v':
 			      valve.report(reply);
 			      break;
+			 case '5':
+			   printTermInt("e", (int)c2);
+			   break;
+			 case 0:
+			   saveRestore(RESTORE);
+			   break;
 			 default:
-			     saveRestore(RESTORE);
+			   printTermInt("e", 200);
 			}
 			break;
 		case 's':
@@ -965,24 +993,14 @@ char vcmd[3];
 			    vnum = (int)(c2 - '0');
 			    if (value > 0) 
 			        valve.setTime(vnum,value);
-			    else {
-			       char v[3];
-			       v[0] = 'v';
-			       v[1] = c2;
-			       v[2] = 0;
-			       printTermUInt(v,valve.getTime(vnum));
-			   }
+			    else
+			       printTermUInt(vcmd,valve.getTime(vnum));
 			   break;
-			} else if (c2 == '5') { // Only one extra valve for now
+			} else if (c2 == '5') { // Only one extra (SOLENOID) valve for now
 			    if (value > 0) 
 			        valves.setTime(0,value);
-			    else {
-			       char v[3];
-			       v[0] = 'v';
-			       v[1] = c2;
-			       v[2] = 0;
-			       printTermUInt(v,valves.getTime(0));
-			    }
+			    else
+			       printTermUInt(vcmd,valves.getTime(0));
 			} else
 			  printTermInt("e",(int)(c2-'0'));
 			break;
