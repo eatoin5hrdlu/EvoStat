@@ -48,7 +48,7 @@ echo "in" > /sys/class/gpio/gpio"$SHUTDOWN_PIN"/direction
 while ( true )
 do
     # check if the pin is connected to GND and, if so, halt the system
-    if [ $(</sys/class/gpio/gpio"$SHUTDOWN_PIN"/value) eq 0 ]
+    if [ $(</sys/class/gpio/gpio"$SHUTDOWN_PIN"/value) -eq 0 ]
     then
         echo "$SHUTDOWN_PIN" > /sys/class/gpio/unexport
         shutdown -h now "System halted by GPIO action"
