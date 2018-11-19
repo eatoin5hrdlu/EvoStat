@@ -1,0 +1,15 @@
+#!/bin/bash
+sleep 10
+for i in kal kal16 awb rms slt ; do
+ sip=`ip addr | grep "inet.*eth0" | sed -e 's/inet[^0-9]\+\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\).*/\1 dot \2 dot \3 dot \4/g'`
+ name=`hostname`
+ utter="wired I P address for $name is $sip"
+# echo $i ":" $utter
+ flite -voice $i -s duration_stretch=1.7 "$utter"
+ sip=`ip addr | grep "inet.*wlan0" | sed -e 's/inet[^0-9]\+\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\).*/\1 dot \2 dot \3 dot \4/g'`
+ utter="wireless I P address for $name is $sip"
+# echo $utter
+ flite -voice $i -s duration_stretch=1.7 "$utter"
+ sleep 2
+done
+
