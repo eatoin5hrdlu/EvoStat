@@ -450,7 +450,7 @@ update(Self) :->
     plog(calling(report)),
     report,
     send(@gui, started),
-    datalog,
+    catch( datalog, Ex, plog(exception(Ex))),
     plog(start(gui)).
 
 quiet(Self) :->
@@ -562,8 +562,9 @@ add_reset(Dialog,@Name) :-
      ).
 
 about_atom(About) :-
-        open('evostat.about', read, Handle),
-	read_pending_input(Handle,FileContent,[]),
+        open('evostat.about', read, Stream),
+	read_pending_input(Stream,FileContent,[]),
+	close(Stream),
 	atom_chars(About,FileContent).
 
 % Bluetooth interface, with error checking and fail messages
@@ -800,12 +801,17 @@ datalog :-
 		sampler:  [v0:hostValve,v1:lagoonValve]],
     header([dynamic, multifile,discontiguous],DataSet,3,Header),
     log_file(F, 'web/datalog.txt', Header),
-    write_term(F,timestamp(TS,Now),[fullstop(true),nl(true)]),
-    (  dataset(Now, DataSet, Term), % Generator
-       write_term(F,Term,[fullstop(true),nl(true)]),
-       fail
+    ( write_term(F,timestamp(TS,Now),[fullstop(true),nl(true)]),
+      dataset(Now, DataSet, Term), % Generator
+      write_term(F,Term,[fullstop(true),nl(true)]),
+      fail
      ; close(F)
     ).
+
+
+ostreams(Names) :-
+    setof(Name, S^stream_property(S, file_name(Name)), Names).
+    
 
 dataset(Time, Dataset, Term) :-
     member(Type:Data,Dataset),
