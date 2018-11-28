@@ -741,6 +741,7 @@ change_request :-
 
 check_restart :-
     (restart ->
+	 closeAll,
 	 plog('evostat getting restart!'),
 	 stop_http,
 	 plog('stopped http'),
@@ -751,6 +752,14 @@ check_restart :-
 	 exec(EvoStat),  % The rest is silence
 	 plog('after exec!!!')
      ; true
+    ).
+
+closeAll :-
+    ( component(Name,_T,Obj),
+      send(Obj,closesocket),
+      plog(closing(socket(Name))),
+      fail
+     ; plog(finished(close(sockets)))
     ).
 
 new_value(submit='Submit') :- !.

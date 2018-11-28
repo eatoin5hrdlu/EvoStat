@@ -71,7 +71,8 @@ initialise(Self, Label:[name]) :->
 	  "Initialise the image area"::
         send_super(Self, initialise(Label)),
         send_super(Self, alignment, center),
-	send(Self, size, size(580,440)),
+	param(imageSize(Ysize,Xsize)),
+	send(Self, size, size(Ysize,Xsize)),
 	new(I, image('./web/phagestat.jpg')),
 	send(Self, display, new(_, bitmap(I))).
 
@@ -86,6 +87,8 @@ update(Self) :->
       send(Self, display, new(_, bitmap(I))),
       delete_file(NewFile),
       write(user_error, updated(snapshot)), nl(user_error).
+
+closesocket(_Self) :-> true.
 
 :- pce_end_class.  % snapshot
 
@@ -187,6 +190,10 @@ good_socket(Self, Socket) :-
         check_socket(Self, S, Socket),
 	integer(Socket),
 	Socket >= 0.
+
+closesocket(Self) :->
+    get(Self, socket, Old),
+    (Old = @nil -> true ; bt_close(Old)).
 
 % This predicate implements error handling on Bluetooth communications
 % It sets choicepoints which must be CUT by calling predicate
@@ -380,6 +387,9 @@ resetColor(Self) :->
      send(Self, colour, colour(C)).
 
 update(_Self) :-> true.
+
+closesocket(_Self) :-> true.
+
 :- pce_end_class. % spacer
 
 :- pce_begin_class(hotbox, box).
@@ -389,6 +399,9 @@ initialise(Self, Color:[name]) :->
         send_super(Self, initialise(Width,Height)),
 	send(Self, colour, colour(black)),
         send(Self, fill_pattern, colour(Color)).
+	
+closesocket(_Self) :-> true.
+
 :- pce_end_class.  % hotbox
 
 % Arduino interface objects [cellstat,lagoon, etc.]

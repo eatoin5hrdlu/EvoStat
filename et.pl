@@ -76,6 +76,11 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	 component(MyName,Type,US),
 	 plog(update(MyName,failed))
        ),
+       ( closesocket(S8) :->
+	 (component(N8,_T8,S8)->true;plog(no_component(N8))),
+	 get(S8, socket, O8),
+	 (O8 = @nil -> true ; bt_close(O8) )
+       ),
        Methods,
        (:- pce_end_class)], List),
     maplist(format('~q.~n'),List).
@@ -116,3 +121,4 @@ offline(Obj) :-
 %    concat_atom([Name,'\nOFF LINE'], NewAtomicLabel),
 %    send(Obj, label, NewAtomicLabel).
     
+
