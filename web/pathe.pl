@@ -28,8 +28,13 @@ pathebody(body([background(NamePlate)],
 	   a([href('./bani.pl')],'Animations with Black Background'),br([],[]),
 	   a([href('./landscape.pdf')],'Fitness Landscape Animation Documentation'),br([],[]),
 	   hr([],[]),
-	   a([href('./timelapse.avi')],'Current Timelapse'),br([],[]),
-	   a([href('./timelapse1417.avi')],'Previous Timelapse, Dec 12-17')])
+	   a([href('./timelapse.mp4')],'Timelapse MP4 (for phones)'),br([],[]),
+	   a([href('./timelapse.avi')],'Timelapse AVI'),br([],[]),
+	   a([href('./timelapse1417.avi')],'Previous Timelapse, Dec 12-17'),br([],[]),
+	   a([href('./top.pl')],'System Memory Usage'),br([],[]),
+	   a([href('./restart.pl')],'Restart EvoStat (careful!)'),br([],[]),
+	   a([href('./streams.pl')],'List Streams'),br([],[]),
+	   a([href('./sample.jpg')],'Last Camera Image')])
   ]
   ) %body
   ) :- %pathebody

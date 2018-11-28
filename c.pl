@@ -46,6 +46,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     bt_device/2,
 	     watcher/3,
 	     err/2,
+	     restart/0,    % Control
 
 	     webok/0,  % Assert when Web info is available
 	     webValue/3,
@@ -503,6 +504,7 @@ readLevels(_) :->
 % the Next Update countdown in Sampler label.
 
 fastUpdate(Self) :->
+    check_restart,
     change_request,
     retract(next_update(Seconds)),
     Next is Seconds - 10,
@@ -533,6 +535,7 @@ sending_text(Now) :-
     evostat_directory(Dir),
     concat_atom(['/usr/bin/python ',Dir,'smstext.py ',Where], Cmd),
     shell(Cmd).
+
     
 :- pce_end_class.  % End of evostat
 
@@ -734,6 +737,20 @@ change_request :-
      -> maplist(new_value,List),
        retract(changeRequest(List))
     ; true
+    ).
+
+check_restart :-
+    (restart ->
+	 plog('evostat getting restart!'),
+	 stop_http,
+	 plog('stopped http'),
+	 sleep(1),
+	 plog('reading link, executing...'),
+	 read_link('/proc/self/exe',_,EvoStat),
+	 plog(EvoStat),
+	 exec(EvoStat),  % The rest is silence
+	 plog('after exec!!!')
+     ; true
     ).
 
 new_value(submit='Submit') :- !.

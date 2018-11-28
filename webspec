@@ -27,12 +27,10 @@ user:head(_, Head) -->       % CSS: Add to every page
 
 
 
-evostat_port(aristotle,21847).
-evostat_port(buffon,   21848).
-evostat_port(cuvier,   21846).
-evostat_port(darwin,   21847).
-evostat_port(erasmus,  21847).
-evostat_port(wallace,  21847).
+evostat_port(huxley,   21846) :- !.
+evostat_port(cuvier,   21846) :- !.
+evostat_port(buffon,   21848) :- !.
+evostat_port(      _,  21847).
 
 evostat_port(Port) :- hostname_root(H), evostat_port(H,Port).
 
@@ -205,6 +203,16 @@ refreshHead(Title,
 
 defaultHead(Title,[title(Title),
 		   link([rel(icon),href('./images/favicon.png')],[]) ]).
+
+nocacheRefreshHead(Title,
+  [ title(Title),
+    link([rel(icon),href('./images/favicon.png')],[]),
+    meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=0, no-store, must-revalidate')],[]),
+    meta(['http-equiv'('Pragma'),content('no-cache')],[]),
+    meta([name(robots),content(noarchive)],[]),
+    meta(['http-equiv'(refresh),content(20)],[]),% refresh
+    meta(['http-equiv'('Expires'),content(0)],[]),
+    script([ language(javascript) ],[])]).
 
 nocacheHead(Title,
   [ title(Title),
