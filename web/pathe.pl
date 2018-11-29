@@ -34,6 +34,7 @@ pathebody(body([background(NamePlate)],
 	   a([href('./top.pl')],'System Memory Usage'),br([],[]),
 	   a([href('./restart.pl')],'Restart EvoStat (careful!)'),br([],[]),
 	   a([href('./streams.pl')],'List Streams'),br([],[]),
+%	   a([href('./rex.pl')],'Restart X11'),br([],[]),
 	   a([href('./sample.jpg')],'Last Camera Image')])
   ]
   ) %body
