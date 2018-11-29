@@ -46,7 +46,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     bt_device/2,
 	     watcher/3,
 	     err/2,
-	     restart/0,    % Control
+	     web_control/1,    % Control: Restart evostat,X11,etc.
 
 	     webok/0,  % Assert when Web info is available
 	     webValue/3,
@@ -504,8 +504,7 @@ readLevels(_) :->
 % the Next Update countdown in Sampler label.
 
 fastUpdate(Self) :->
-    check_restart,
-    change_request,
+    check_web_control,
     retract(next_update(Seconds)),
     Next is Seconds - 10,
     assert(next_update(Next)),
@@ -730,29 +729,33 @@ main(_Argv) :-
     writePythonParams(Root),
     c(Root).
 
+% Clear and Execute all Web Controls
+% Web Controls are functions that cannot be executed by the HTTP server
+% System functions, such as evostat or X11 restart and
+% XPCE Messaging such as changing parameters in microcontrollers.
+
+check_web_control :-
+    retract(web_control(P)),
+    ( call(P) -> plog(succeed(P)) ; plog(failed(P)) ),
+    fail.
+check_web_control.
+
 % From Web Form submission:  Attr=Value =>  <name>_<var>=<value>
 % Results in sending <var><value> to object with <name>
-change_request :-
-    ( changeRequest(List)
-     -> maplist(new_value,List),
-       retract(changeRequest(List))
-    ; true
-    ).
+changeRequest(List) :-  maplist(new_value,List).
 
-check_restart :-
-    (restart ->
-	 closeAll,
-	 plog('evostat getting restart!'),
-	 stop_http,
-	 plog('stopped http'),
-	 sleep(1),
-	 plog('reading link, executing...'),
-	 read_link('/proc/self/exe',_,EvoStat),
-	 plog(EvoStat),
-	 exec(EvoStat),  % The rest is silence
-	 plog('after exec!!!')
-     ; true
-    ).
+restart :-
+    closeAll,
+    plog('evostat getting restart!'),
+    stop_http,
+    plog('stopped http'),
+    sleep(1),
+    plog('reading link, executing...'),
+    read_link('/proc/self/exe',_,EvoStat),
+    plog(EvoStat),
+    exec(EvoStat).  % The rest is silence
+
+rex :- process_create('/etc/init.d/lightdm', [restart],[]).
 
 closeAll :-
     ( component(Name,_T,Obj),
