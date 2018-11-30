@@ -489,6 +489,7 @@ mixon(Self) :->
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
+    ( true -> true ;			
     catch( consult_python('./alevel.py', [], 2),
 	   Caught,
 	   plog(exception(consult_python/2, Caught)) ),
@@ -496,7 +497,8 @@ readLevels(_) :->
     plog(levels(Levels)),
     findall(Who:Level, propagate_level(Who,Level),Props),
     plog(propagated(Props)),
-    flow_report(Levels).
+    flow_report(Levels)
+    ).
     
 % readLevels(_) :-> get_level(alllevels).
 

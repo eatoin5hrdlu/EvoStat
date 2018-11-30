@@ -2,7 +2,7 @@
 #!C:/cygwin/Python27/python -u
 
 from __future__ import print_function
-import sys, os, time, socket, glob, subprocess, getopt
+import  sys, os, time, socket, glob, subprocess, getopt
 # To get rid of spurious messages from openCV library
 from suppress_stdout_stderr import suppress_stdout_stderr
 import numpy as np
@@ -98,8 +98,7 @@ def newReferenceImage() :
         if (referenceImage is None) :
             time.sleep(0.2)
         else :
-            if (debug) :
-                cv2.imwrite("s_"+str(image_count)+".jpg",referenceImage)
+            cv2.imwrite("./web/sample.jpg",referenceImage)
     if tries == 0 :
         print("Failed to get image from camera")
         exit(10)
@@ -111,10 +110,12 @@ def showdb(img, delay=200) :
             exit(0)
 
 def make_movie() :
-    out = '/home/peter/src/EvoStat/web/timelapse.avi'
-    cmd=['ffmpeg','-y','-framerate','2','-i','%05dm.jpg','-codec','copy',out]
-    with suppress_stdout_stderr() :
-        subprocess.call(cmd,cwd=frameLocation)
+    for format in ['.mp4','.avi'] :
+        out = os.path.abspath('~/src/EvoStat/web/timelapse'+format)
+        cmd=['ffmpeg','-y','-framerate','2','-pattern_type','glob','-i','*.jpg','-vcodec','mpeg4',out]
+        print(cmd)
+        with suppress_stdout_stderr() :
+            subprocess.call(cmd,cwd=frameLocation)
 
 def save_frames(name, num) :
     for i in range(num) :
@@ -131,7 +132,8 @@ def movie_file(name) :
     if (len(imfiles)>0) :
         last_file = max(imfiles, key=os.path.getctime)
         seq = int(last_file[numstart:numend]) + 1
-        if (seq%10 == 0) :
+        if ((seq%10 == 0) or ('-m' in sys.argv)) :
+            print("make movie "+str(seq))
             make_movie()
         next_file =  last_file[:-10]+"{0:0>5}".format(seq)+"m."+type
     copyfile(name, next_file)
@@ -323,12 +325,14 @@ def get_camera() :
     cam.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT,1080)
     plog(str(cam.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)))
     plog(str(cam.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)))
+    camprofile += "w"
     if 'growth' in sys.argv :
         camprofile += "g"
     for opt in sys.argv :
         if opt.startswith('od') :
             camprofile = 'normal'
     cmdstr =  "/usr/bin/uvcdynctrl -L "+ camprofile + ".gpfl --device="+camera
+    print(cmdstr)
     plog(cmdstr)
     with suppress_stdout_stderr() :
         os.system(cmdstr)
@@ -355,7 +359,7 @@ def processRegion(image, bbox, minlen, name) :
     return level_data(cropped, minlen)
 
 def boxat(pimg, x, y) :
-    cv2.rectangle(pimg,(x-8,y-8),(x+8,y+8),255,1)
+    cv2.rectangle(pimg,(x-8,y-8),(x+8,y+8),255,2)
     cv2.putText(pimg,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255,1)
 
 def colorboxat(img, x, y, minspace) :
@@ -378,8 +382,8 @@ def monitor() :
     plog(str(plist[1:]))
     for (name, bbox, minlen, minspace) in plist[1:] :
         (newstate, vlen) = processRegion(pimg, bbox, minlen, name)
-        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(255,255,255),2)
-        cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(255,255,255),2)
+        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(255,200,255),2)
+        cv2.rectangle(referenceImage,bbox[0][::-1],bbox[1][::-1],(255,200,255),4)
         now  = int(time.time())
         if (((abs(vlen-lastvlen)>2) and newstate < 2) or (laststate[name] != newstate)) :
             lastvlen = vlen
@@ -400,7 +404,7 @@ if __name__ == "__main__" :
     debug = 'show' in sys.argv
     global cycletime
     cycletime = 90  # Default
-    optlist, args = getopt.gnu_getopt(sys.argv, 'c:')
+    optlist, args = getopt.gnu_getopt(sys.argv, 'c:m')
     for o, a in optlist :
         if (o == '-c'):
             try :

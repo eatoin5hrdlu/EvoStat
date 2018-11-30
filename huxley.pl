@@ -23,7 +23,7 @@ config( [
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
 	 camera(0),
-	 rotate(0),
+	 rotate(90),
 	 screen(52,86,point(110,40)),
 	 layout([
 		 supply( nutrient, below,  [Supply,levelUnits('L'),v(10)]),

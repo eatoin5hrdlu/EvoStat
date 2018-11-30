@@ -56,6 +56,9 @@ do
 #   then
 #       dhclient eth0
     fi
-    
+#    SDFILE='/tmp/restart_me'
+#    if [ -f $SDFILE ]; then
+#	( rm $SDFILE && shutdown -r now "System restarted by signal file" )
+#    fi
     sleep 60
 done
