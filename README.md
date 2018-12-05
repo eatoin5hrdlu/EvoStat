@@ -2,11 +2,11 @@ EvoStat:  A PhageStat to support PACE and PATHE Experiments
 ====
 Software and Hardware for an automated platform for PACE and PATHE experiments.
 
-PATHE (Phage-Assisted Three-Hybrid Evolution) is an enhancement to PACE (Phage Assisted Continuous Evolution) described by Kevin M. Esvelt, Jacob C. Carlson, and David R. Liu in http://www.ncbi.nlm.nih.gov/pubmed/21478873
+PATHE (Phage-Assisted Three-Hybrid Evolution) is our enhancement to PACE (Phage Assisted Continuous Evolution) which was described by Kevin M. Esvelt, Jacob C. Carlson, and David R. Liu in http://www.ncbi.nlm.nih.gov/pubmed/21478873
 
 This project contains Arduino code for a Host CellStat (Turbidostat), Sample Collector, and Lagoons
 as well as the server software to provide an on-screen interface to Temperature, Turbidity, Flowrate,
-and Sample Collector control and Web interface.
+and Sample Collector control and Web interface.  The goal is a remote access, fully automated system with a build cost less than $1000.00. 
 
 SWI-Prolog based web server, GUI, and Turbidostat control software written mostly in Prolog/Xpce with some Python (e.g. pySerial, for a 
 portable serial interface to Arduino) and HTML. Bluetooth interface added as foreign function library to SWI-Prolog currently eliminates the need for pySerial. See github.com/eatoin5hrdlu/plblue 
