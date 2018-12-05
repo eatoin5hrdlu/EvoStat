@@ -11,7 +11,7 @@ and Sample Collector control and Web interface.  The goal is a remote access, fu
 SWI-Prolog based web server, GUI, and Turbidostat control software written mostly in Prolog/Xpce with some Python (e.g. pySerial, for a 
 portable serial interface to Arduino) and HTML. Bluetooth interface added as foreign function library to SWI-Prolog currently eliminates the need for pySerial. See github.com/eatoin5hrdlu/plblue 
 
-Running EvoStat on a Linux or Windows machine provides an interface for multiple phageStats with using Bluetooth connected Arduino running host.ino for the Host Cellstat, multiple Bluetooth connected Arduinos for Lagoons (lagoon.ino), and a sample collector: Bluetooth connected Arduino running collector.ino. (Using a WiFi camera and bluetooth modules has reduced apparatus wiring by 90%)
+Running EvoStat on a Linux or Windows machine provides an interface for multiple phageStats with Bluetooth connected Arduinos running module.ino (then software defined as Host or Lagoon controller) and a sample collector: Bluetooth connected Arduino running collector.ino. (Using a WiFi camera and bluetooth modules has reduced apparatus wiring by 90%)
 
 A web interface provides a similar interface via the URL:  
 
@@ -21,7 +21,7 @@ A web interface provides a similar interface via the URL:
 Prerequisite Software
 ====
 - Python2.7
-- OpenCV (plus: "apt-get install python-opencv")
+- OpenCV (on Linux add "apt-get install python-opencv")
 - SWI-Prolog with Xpce
 - Arduino IDE (Processing)
 -
@@ -41,9 +41,11 @@ A python program (ipcam.py) uses OpenCV to read the liquid levels of the vessels
 Windows and linux versions of #! in ipcam.py appear at the top of the file
 It may be necessary to move the correct one to the top. Or call python:
 
-$ python ipcam.py lagoon (read the lagoon liquid levels)
-$ python ipcam.py cellstat (cellstat level)
-$ python ipcam.py locate  (show image and write bbox from mouse area selection)
+$ python level.py 
+$ python level.py show -c 30 sample.jpg
+OPTIONS: -c N repeat in N seconds (default 90)
+         show   (produce debugging output, including processed images)
+         <filename>.jpg    (Read the image file instead of the camera /dev/video{0,1,2} )
 
 ------------------
 Create stand-alone executable "evostat" (Prolog saved-state)
@@ -51,25 +53,26 @@ $ swipl (linux) or swipl-win
 :- [c].
 :- save_evostat.
 
-Or to do debugging, start the program by typing:
+Or to maintain terminal access for debugging, start with:
 
 $ swipl(-win)
 :- [c].
 :- c.
 
-Then when the interface comes up, you can:
-turn off the automatic level sensing with Action->Stop
-turn off the PID volume/flow controllers  Action->PIDstop
+When the interface comes up, you can:
+turn off the automatic level sensing with Action -> Stop
+turn off the PID volume/flow controllers  Action -> PIDstop
+Get back to the Prolog prompt with File -> OK
 
 View the Web Interface with the URL  http://localhost:21847/web/pathe.pl
 
-The unusual port number is from the NetSpeak (WebPhone) Connection Server (no longer in use).
-Change it in c.pl to 80 or 8080 for normal web service.
+The unusual port numbers are from the ca. 1995 NetSpeak (WebPhone). My legacy, no longer in use.
+Change it in c.pl to 80 or 8080 to appear as a normal web server
 
 --------------
-Changing the Icon on a Prolog saved-state:
+To changing the Icon on a Prolog saved-state on Windows:
 
-             chicon.exe saved.exe myapp.ico myapp.exe
+    chicon.exe saved.exe myapp.ico myapp.exe
 
 
 ###########################
