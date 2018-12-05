@@ -131,12 +131,10 @@ def showdb(img, delay=200) :
 
 def make_movie() :
     for format in ['.mp4','.avi'] :
-        out = os.path.abspath('~/src/EvoStat/web/timelapse'+format)
+        out = os.path.abspath('web/timelapse'+format)
         cmd=['ffmpeg','-y','-framerate','2','-pattern_type','glob','-i','*.jpg','-vcodec','mpeg4',out]
-        print(cmd)
-        subprocess.call(cmd,cwd=frameLocation)
-        print("made "+format)
-#       with suppress_stdout_stderr() :
+        with suppress_stdout_stderr() :
+            subprocess.call(cmd,cwd=frameLocation)
 
 def save_frames(name, num) :
     for i in range(num) :
@@ -218,7 +216,6 @@ def rotateImage(img, angle=90):
 def delta_list(list, threshold) :
     if (len(list) < 2) :
         return len(list)  # No data = 0 lines, one item = 1
-    print(list)
     delta = []
     for i in range(1,len(list)) :  # More than one line, group by gaps
         delta.append(list[i][0]-list[i-1][0])
@@ -404,7 +401,7 @@ def get_camera() :
         if opt.startswith('od') :
             camprofile = 'normal'
     cmdstr =  "/usr/bin/uvcdynctrl -L "+ camprofile + ".gpfl --device="+camera
-    print(cmdstr)
+#    print(cmdstr)
     plog(cmdstr)
     with suppress_stdout_stderr() :
         os.system(cmdstr)
