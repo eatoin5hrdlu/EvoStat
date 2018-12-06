@@ -1,9 +1,12 @@
+:- dynamic web_control/1.
+:- multifile web_control/1.
+
 change(Req) :-
     backgroundImage(BackPlate),
     memberchk(search(S),Req),
     memberchk(submit=_, S),
-    retractall(changeRequest(_)),
-    assert(changeRequest(S)),
+    retractall(web_control(changeRequest(_))),
+    assert(web_control(changeRequest(S))),
     plog(asserted(changeRequest)),
     reply_html_page(
 	title(changes),
