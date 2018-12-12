@@ -129,8 +129,8 @@ deadzone(t,1).  % Temperature closer than level
 % l = level
 % t = temperature    
 pid_controllers([
-   pid(   host0, 1.0, 0.0, 0.1, l, 32, 10, 100, 120),
-   pid( lagoon2, 1.0, 0.0, 0.1, l, 29, 10, 100, 120)]).
+   pid(   host0, 1.0, 0.0, 0.1, l, 50, 10, 100, 120),
+   pid( lagoon2, 1.0, 0.0, 0.1, l, 30, 10, 100, 120)]).
 
 % control(Component, Param, Pos-Ctrl, Alt Component, Neg-Ctrl)
 % For example:    

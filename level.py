@@ -21,7 +21,8 @@
 #
 
 from __future__ import print_function
-import  sys, os, time, socket, glob, subprocess, getopt
+import  sys, os, psutil, time, socket, glob, subprocess, getopt
+import fileinput
 # To get rid of spurious messages from openCV library
 from suppress_stdout_stderr import suppress_stdout_stderr
 import numpy as np
@@ -31,6 +32,7 @@ from shutil import copyfile
 
 referenceImage = None
 image_count = 0
+
 
 # There is a bit of dense code ( nested list comprehensions )
 # The output of the Hough algorithm is a list of lists of bboxs
@@ -51,7 +53,7 @@ def comps( all ) :
 # External parameter in .maskspec file  (example)
 #[('reticule', 0,     1.4,  -80,  180,    0,   0,   3,  0.4),
 # ('host0',   ((110, 340), (170, 410)), 5, 6 ),
-# ('lagoon1', ((340, 110), (410,  210)), 7,  4 )]
+# ('lagoon2', ((340, 110), (410,  210)), 7,  4 )]
 #
 def check_maskspec() :
     global prevmoddate
@@ -61,7 +63,9 @@ def check_maskspec() :
     if moddate != prevmoddate :
         prevmoddate = moddate
         try :
-            plist = eval(open(mfile, 'r').read())
+            fh = open(mfile, 'r')
+            plist = eval(fh.read())
+            fh.close()
         except(IOError):
             print("No .maskspec file defined")
 
@@ -83,6 +87,12 @@ def plog(str) :
     if (debug): # make this True for debug output
         print("      --"+str, file=sys.stderr)
 
+def memuse():
+    process = psutil.Process(os.getpid())
+    memMB = ( process.memory_info()[0] / 1000000 )
+    plog("MEMORY USED : "+str(memMB)+"MB")
+    plog("FILES : "+str(process.open_files()))
+
 def icheck(image, who) :
     if (image is None) :
         plog("Image equal to None in " + who)
@@ -101,10 +111,16 @@ def settings() :
     for root in sys.argv:  # Argument specifies .setting file
         file = root + ".settings"
         if os.path.isfile(file) :
-            return(eval(open(file,'r').read()))
+            fh = open(file,'r')
+            data = eval(fh.read())
+            fh.close()
+            return(data)
     file = socket.gethostname() + ".settings"
     if os.path.isfile(file) :
-        return(eval(open(file, 'r').read()))
+        fh = open(file,'r')
+        data = eval(fh.read())
+        fh.close()
+        return(data)
     plog("Expected  <hostname>.settings file")
     exit(0)
 
@@ -152,9 +168,7 @@ def movie_file(name) :
         last_file = max(imfiles, key=os.path.getctime)
         seq = int(last_file[numstart:numend]) + 1
         if ((seq%10 == 0) or ('-m' in sys.argv)) :
-            print("make movie "+str(seq))
             make_movie()
-            print("made movie(s)")
         next_file =  last_file[:-10]+"{0:0>5}".format(seq)+"m."+type
     copyfile(name, next_file)
 
@@ -232,6 +246,32 @@ def delta_list(list, threshold) :
 def visible( all, threshold) :
     """ Takes output of HoughLinesP and counts major horizontal lines  """
     return delta_list(sorted([(l[1],(l[0]+l[2])/2,l[2]-l[0]) for ls in all for l in ls if l[1]==l[3]]), threshold)
+
+def printTerm(functor,arg) :
+    print(functor+"("+str(arg)+").")
+
+def top_average(values) :
+    '''Average of largest values to avoid small outliers'''
+    n = len(values)
+    if (n < 4) :
+        return values[0]
+    else :
+        return np.mean(values[0:n-2])
+    
+def blob_count(img) :
+    """Assume each line is also a blob"""
+    icheck(img,"blob_count")
+    contours,h = cv2.findContours(img,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_NONE)
+    areas = [cv2.contourArea(c) for c in contours]
+    printTerm("areas",areas)
+    brects = [cv2.boundingRect(c) for c in contours]  # (x,y,w,h)
+    printTerm("brects",brects)
+    lengths = [r[2] for r in brects]
+    lengths.sort(reverse=True)
+    average = top_average(lengths)
+    printTerm("lengths",lengths)
+    blobs = [length for length in lengths if (length > average/2) ]
+    return(len(blobs))
 
 def level_count(img, delta_threshold=7, minlen=12) :
     """Level Information: Canny(i,lowthresh,highthresh,kernel)"""
@@ -414,6 +454,8 @@ def lasttemp() :
         return "No temperature information"
     cmd = ['/bin/bash', './lasttemps.sh']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    plog("myPID: "+str(os.getpid()))
+    plog("TFILES : "+str(psutil.Process(os.getpid()).open_files()))
     (result, err) = p.communicate('')
     result.replace('88.8 C','No Data')
     return result
@@ -422,12 +464,18 @@ def crop(img, bbox) :
     ((y1,x1),(y2,x2)) = bbox
     return img[y1:y2,x1:x2]
 
+def overcrop(img, bbox, featurelen) :
+    ((y1,x1),(y2,x2)) = bbox
+    margin = ((x2-x1)-(3*featurelen))/2
+    return img[y1:y2,x1+margin:x2-margin]
+
 # Apply function() to subimage transform output to original coordinates
 
 def processRegion(image, bbox, mlen, delta_thresh, name) :
     plog("processRegion " + str(bbox) +  "shape: "+ str(image.shape))
     cropped = crop(image, bbox)
-    return level_count(cropped, delta_threshold=delta_thresh, minlen=mlen)
+    return blob_count(cropped)
+#    return level_count(cropped, delta_threshold=delta_thresh, minlen=mlen)
 
 def boxat(pimg, x, y) :
     cv2.rectangle(pimg,(x-8,y-8),(x+8,y+8),255,2)
@@ -437,8 +485,8 @@ def colorboxat(img, x, y, minspace) :
     cv2.rectangle(img,(x-8,y-minspace),(x+8,y+minspace),(100,180,180),1)
     cv2.putText(img,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100,200,200),1)
     
-laststate =  {'host0' : 'under', 'lagoon1' : 'under' }
-lastchange = {'host0' : 0,       'lagoon1' : 0 }
+laststate =  {'host0' : 'under', 'lagoon2' : 'under' }
+lastchange = {'host0' : 0,       'lagoon2' : 0 }
 
 # Overall light level tells us if the EvoStat is open or closed(dark)
 def evostat_light() :
@@ -462,9 +510,13 @@ def monitor() :
         now  = int(time.time())
         elapsed = now - lastchange[name]
         lastchange[name] = now
-        print(name+"("+str(line_count)+","+str(elapsed)+").")
+        print("level("+name+","+str(line_count)+","+str(elapsed)+").")
     imageOut()
-
+    
+def getlines():
+    while True:
+        yield raw_input()
+    
 if __name__ == "__main__" :
     global debug
     global plist
@@ -475,6 +527,7 @@ if __name__ == "__main__" :
     debug = 'show' in sys.argv
     global cycletime
     cycletime = 90  # Default
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
     optlist, args = getopt.gnu_getopt(sys.argv, 'c:m')
     for o, a in optlist :
         if (o == '-c'):
@@ -493,7 +546,7 @@ if __name__ == "__main__" :
             else :
                 plog("Update OpenCV (can't find moveWindow)")
     now = int(time.time())
-    lastchange = {'host0' : now, 'lagoon1' : now }
+    lastchange = {'host0' : now, 'lagoon2' : now }
     time.sleep(3)
     for opt in sys.argv:
         if opt.startswith('od') :
@@ -504,7 +557,8 @@ if __name__ == "__main__" :
         cv2.imwrite("./temp.jpg", cv2.resize(one,params['imageSize']))
         exit(0)
     lastvlen = 0
-    while(1) :
+    plog("listening for orders")
+    while(raw_input()) :
         newReferenceImage()           # Take a picture
         if ( evostat_light() > 127 ): # EvoStat is open, don't bother image processing
             plog("  TOO MUCH LIGHT....sleeping")
@@ -512,7 +566,8 @@ if __name__ == "__main__" :
             continue
         check_maskspec()              # Reload plist if .maskspec changed
         monitor()                     # Image Processing
-        time.sleep(cycletime)
+        memuse()                      # Check for leaks
+        print("end_of_data.")
 
 # OLD
 # cellstatRegion(130,190,360,220),
@@ -522,8 +577,11 @@ if __name__ == "__main__" :
 #[('reticule', 0,     1.4,  -80,  180,    0,   0,   3,  0.4),
 #    for (name, bbox, minlen, delta_threshold, minspace) in plist[1:] :
 # ('host0',   ((110, 340), (170, 410)), 16, 6, 6 ),
-# ('lagoon1', ((340, 110), (410,  210)),16, 8, 4 )]
+# ('lagoon2', ((340, 110), (410,  210)),16, 8, 4 )]
 #!/usr/bin/python -u
 
 
     
+###CHANGES
+#    for (name, bbox, minlen, deltath, minspace) in plist[1:] :
+#    for (name, bbox, minlen, delta_threshold, minspace) in plist[1:] :

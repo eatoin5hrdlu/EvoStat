@@ -52,7 +52,8 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     webValue/3,
 	     screen/5,
 	     levelStream/2,
-	     level/4,
+	     childProcess/4,
+	     level/3,
 	     air/0,
 	     mix/0,
 	     simulator/0,
@@ -250,7 +251,44 @@ check_error(camera(IP))    :- writeln(error(camera(IP))),!,fail.
 check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
 check_error(_).               % Everything else is not an error
 
-get_level(Type) :-
+% Launch level
+launch(Program) :-
+    (childProcess(Program,PPID,PIn,_POut) ->
+	 nl(PIn),
+	 flush_output(PIn),
+	 process_wait(PPID, Return),
+	 plog(process(Program, Return))
+     ; true
+    ),
+    python(Python),
+    evostat_directory(Dir),
+    concat_atom([Dir,Program,'.py'],LEVELS),
+    CmdLine = [LEVELS],
+    process_create(Python, CmdLine,
+		   [stdout(pipe(Out)), stdin(pipe(In)), stderr(std),
+		    cwd(Dir),
+		    process(PID)
+		   ]),
+    assert(childProcess(Program,PID,In,Out)).
+
+%    plog(launched),
+
+get_level(Program) :-
+    ( childProcess(Program,_PID, In, Out)
+     ->	  writeln(In,go(1)),
+	  flush_output(In),
+	  repeat,
+	      read(Out, Term),
+	      functor(Term, F, A),
+	      abolish(F/A),
+	      assert(Term),
+	      propagate(Term),
+	  Term == end_of_data
+     ;    plog(failed(levelUpdate(Program)))
+    ),
+    !.
+
+old_get_level(Type) :-
     python(Python),
     evostat_directory(Dir),
     concat_atom([Dir,'nextlevel.py'],LEVELS),
@@ -271,8 +309,6 @@ get_level(Type) :-
 %    plog(launched),
     !.
 
-get_level(Type) :- 
-    plog(failed(levelUpdate(Type))).
 
 
 newFlux(end_of_file,_) :- !.
@@ -345,6 +381,7 @@ initialise(W, Label:[name]) :->
 
          send(W,started),
          send_super(W, open, Location),
+	 launch(level),
 	 plog(finished(evostat)).
 
 
@@ -489,16 +526,17 @@ mixon(Self) :->
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
-    ( true -> true ;			
-    catch( consult_python('./alevel.py', [], 2),
-	   Caught,
-	   plog(exception(consult_python/2, Caught)) ),
-    findall(level(A,B,C,D),level(A,B,C,D),Levels),
-    plog(levels(Levels)),
-    findall(Who:Level, propagate_level(Who,Level),Props),
-    plog(propagated(Props)),
-    flow_report(Levels)
-    ).
+    get_level(level).
+
+%    catch( consult_python('./alevel.py', [], 2),
+%	   Caught,
+%	   plog(exception(consult_python/2, Caught)) ),
+%    findall(level(A,B,C,D),level(A,B,C,D),Levels),
+%    plog(levels(Levels)),
+%    findall(Who:Level, propagate_level(Who,Level),Props),
+%    plog(propagated(Props)),
+%    flow_report(Levels)
+%    ).
     
 % readLevels(_) :-> get_level(alllevels).
 
@@ -782,17 +820,21 @@ new_value(Attr=Value) :-
       assert(changed(Obj,Var,EValue))
   ).
 
-propagate_level(Name,VolumePC) :-
-    level(Name,Level,R1,R2),
+bars_ml(Bars, ML) :-
+    nonvar(Bars),
+    !,
+    ML is 20 + Bars*20.
+bars_ml(Bars, ML) :-
+    ML > 20,
+    Bars = integer((ML-20)/20).
+
+propagate(end_of_data).
+propagate(level(Name,Bars,_Elapsed)) :-
+    bars_ml(Bars,ML),
     component(Name,_,Obj),
-    Delta is R2-R1,
     get(Obj,tl,TargetLevel),
-    Zero is ( (R1+R2)/2 ) + ( (TargetLevel*Delta) / 10 ),
-    plog(settingZero(Name,Zero,Level)),
-    VolumeScreen is Zero - Level, % Zero > Level
-    VolumePC is (VolumeScreen * 10)/Delta,
-    plog(settingLevel(VolumePC)),
-    send(Obj,l,VolumePC).
+    plog(newlevel(Name,TargetLevel,ML)),
+    send(Obj,l,ML).
 
 backgroundImage(ImageFile) :-
     config_name(Name,_),

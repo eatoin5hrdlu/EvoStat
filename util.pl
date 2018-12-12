@@ -274,3 +274,6 @@ upperName(Out) :-
     atom_codes(Hostname,[H|T]),
     to_upper(H,UH),
     atom_codes(Out,[UH|T]).
+
+htmlspace(0,[]).
+htmlspace(N,[&(nbsp)|T]) :- N > 0, NN is N-1, htmlspace(NN,T).
