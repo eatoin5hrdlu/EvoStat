@@ -251,15 +251,21 @@ check_error(camera(IP))    :- writeln(error(camera(IP))),!,fail.
 check_error(othererror(D)) :- writeln(error(othererror(D))),!,fail.
 check_error(_).               % Everything else is not an error
 
+% Same as set_prolog_flag(unknown, fail), but safer (abolish does this!)
+safe_childProcess(A,B,C,D) :-
+    catch( childProcess(A,B,C,D), _Ex, fail).
+
 % Launch level
 launch(Program) :-
-    (childProcess(Program,PPID,PIn,_POut) ->
+    trace,
+    (safe_childProcess(Program,PPID,PIn,_POut) ->
 	 nl(PIn),
 	 flush_output(PIn),
 	 process_wait(PPID, Return),
 	 plog(process(Program, Return))
      ; true
     ),
+    retractall(childProcess(_,_,_,_)),
     python(Python),
     evostat_directory(Dir),
     concat_atom([Dir,Program,'.py'],LEVELS),
@@ -271,22 +277,32 @@ launch(Program) :-
 		   ]),
     assert(childProcess(Program,PID,In,Out)).
 
-%    plog(launched),
+safe_get_level(Program) :-
+    catch( get_level(Program),
+	   Ex,
+	   (flog(relaunching(Program,Ex)),
+	    retractall(childProcess(_,_,_,_)),
+	    launch(level))).
 
 get_level(Program) :-
-    ( childProcess(Program,_PID, In, Out)
+    trace,
+    ( safe_childProcess(Program,_PID, In, Out)
      ->	  writeln(In,go(1)),
 	  flush_output(In),
 	  repeat,
-	      read(Out, Term),
-	      functor(Term, F, A),
-	      abolish(F/A),
-	      assert(Term),
-	      propagate(Term),
-	  Term == end_of_data
-     ;    plog(failed(levelUpdate(Program)))
-    ),
-    !.
+	      set_stream(Out,timeout(20)),
+	      catch( read(Out, Term), _, (close(In),
+					  close(Out))),
+	      ( Term = end_of_data -> true
+		; functor(Term, F, A),
+		  abolish(F/A),
+		  assert(Term),
+		  propagate(Term),
+		  fail
+	      ),
+	      !
+     ; plog(failed(levelUpdate(Program)))
+     ).
 
 old_get_level(Type) :-
     python(Python),
@@ -526,7 +542,7 @@ mixon(Self) :->
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
-    get_level(level).
+    safe_get_level(level).
 
 %    catch( consult_python('./alevel.py', [], 2),
 %	   Caught,
@@ -829,12 +845,13 @@ bars_ml(Bars, ML) :-
     Bars = integer((ML-20)/20).
 
 propagate(end_of_data).
-propagate(level(Name,Bars,_Elapsed)) :-
+propagate(level(Name,Bars,Elapsed)) :-
     bars_ml(Bars,ML),
     component(Name,_,Obj),
     get(Obj,tl,TargetLevel),
     plog(newlevel(Name,TargetLevel,ML)),
-    send(Obj,l,ML).
+    send(Obj,l,ML),
+    flog(volume(Name,ML,Elapsed)).
 
 backgroundImage(ImageFile) :-
     config_name(Name,_),
@@ -843,12 +860,6 @@ backgroundImage(ImageFile) :-
 backgroundSettings(ImageFile) :-
     config_name(Name,_),
     concat_atom(['./images/',Name,'_Settings.png'],ImageFile).
-
-flow_report([]).
-flow_report([level(Who,What,R1,R2)|Ls]) :-
-    Error is (R1+R2)/2 - What,
-    flog(adjustment(Who, Error)),
-    flow_report(Ls).
 
 log_file(F, Name, Header) :-
     ( exists_file(Name)
