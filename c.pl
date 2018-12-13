@@ -257,7 +257,6 @@ safe_childProcess(A,B,C,D) :-
 
 % Launch level
 launch(Program) :-
-    trace,
     (safe_childProcess(Program,PPID,PIn,_POut) ->
 	 nl(PIn),
 	 flush_output(PIn),
@@ -285,7 +284,6 @@ safe_get_level(Program) :-
 	    launch(level))).
 
 get_level(Program) :-
-    trace,
     ( safe_childProcess(Program,_PID, In, Out)
      ->	  writeln(In,go(1)),
 	  flush_output(In),
