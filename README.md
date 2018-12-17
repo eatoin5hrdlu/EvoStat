@@ -24,6 +24,7 @@ Prerequisite Software
 - OpenCV (on Linux add "apt-get install python-opencv")
 - SWI-Prolog with Xpce
 - Arduino IDE (Processing)
+- python-psutil, ffmpeg, octave, (some other stuff, watch this space).
 -
 - On Linux add : imagemagick (for conversion of image files)
 - apache2-utils: for Authentication (encrypted password) Files
