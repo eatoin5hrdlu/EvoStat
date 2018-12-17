@@ -303,29 +303,6 @@ get_level(Program) :-
      ; plog(failed(levelUpdate(Program)))
      ).
 
-old_get_level(Type) :-
-    python(Python),
-    evostat_directory(Dir),
-    concat_atom([Dir,'nextlevel.py'],LEVELS),
-    CmdLine = [LEVELS],
-    ( retract(levelStream(Type,Previous)) ->
-	catch( read(Previous, Info),
-	       Ex,
-	       (plog(caught(Ex,CmdLine)),sleep(1),fail)),
-        check_error(Info),
-	send_info(Info, Previous),
-	catch( close(Previous), ExC, plog(caught(ExC,closing(python))))
-     ; true
-    ),
-%    plog(launching(Python,CmdLine)),
-    process_create(Python,CmdLine,
-		   [stdout(pipe(Out)), stderr(std), cwd(Dir)]),
-    assert(levelStream(Type,Out)),
-%    plog(launched),
-    !.
-
-
-
 newFlux(end_of_file,_) :- !.
 newFlux(FluxTerm, Stream) :-
 	FluxTerm =.. [Lagoon,FluxValue],
@@ -663,7 +640,6 @@ c(Name) :-
     send(@gui?frame, icon, bitmap('./evo.xpm')),
     prep,     % Initial data for web pages
     assert(webok),
-    showFlowRateTable,
     start_http,
     % It might be a while before first sampler communication
     % So go ahead and try connecting Bluetooth(TM)
@@ -802,7 +778,8 @@ main(_Argv) :-
 %   xrestart and linuxrestart are handled in by crontab (system_actions.sh)
 %
 
-levelrestart :- launch(level). % Should clean up any old instance of process
+levelrestart :- launch(level), % Should clean up any old instance of process
+		plog(relaunched(level)).
 
 check_web_control :-
     retract(web_control(P)),
@@ -854,8 +831,7 @@ new_value(Attr=Value) :-
 bars_ml(Bars, ML) :-
     nonvar(Bars),
     !,
-    random(-3,3,R),
-    ML is 20 + R + Bars*20.
+    ML is 20 + Bars*20.
 bars_ml(Bars, ML) :-
     ML > 20,
     Bars = integer((ML-20)/20).

@@ -32,7 +32,7 @@ from shutil import copyfile
 
 referenceImage = None
 image_count = 0
-
+start = 0
 
 # There is a bit of dense code ( nested list comprehensions )
 # The output of the Hough algorithm is a list of lists of bboxs
@@ -485,9 +485,6 @@ def colorboxat(img, x, y, minspace) :
     cv2.rectangle(img,(x-8,y-minspace),(x+8,y+minspace),(100,180,180),1)
     cv2.putText(img,str(y),(x+20,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100,200,200),1)
     
-laststate =  {'host0' : 'under', 'lagoon2' : 'under' }
-lastchange = {'host0' : 0,       'lagoon2' : 0 }
-
 # Overall light level tells us if the EvoStat is open or closed(dark)
 def evostat_light() :
     return np.mean(cv2.cvtColor(referenceImage, cv2.COLOR_BGR2HLS)[2])
@@ -508,8 +505,7 @@ def monitor() :
                       (bbox[0][1]+minlen, bbox[0][0]-minlen/2),
                       (bbox[0][1]+2*minlen,bbox[0][0]-minlen/2),(255,255,0),3)
         now  = int(time.time())
-        elapsed = now - lastchange[name]
-        lastchange[name] = now
+        elapsed = now - start
         print("level("+name+","+str(line_count)+","+str(elapsed)+").")
     imageOut()
     
@@ -527,6 +523,7 @@ if __name__ == "__main__" :
     debug = 'show' in sys.argv
     global cycletime
     cycletime = 90  # Default
+    start = int(time.time())
     sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
     optlist, args = getopt.gnu_getopt(sys.argv, 'c:m')
     for o, a in optlist :
@@ -546,7 +543,6 @@ if __name__ == "__main__" :
             else :
                 plog("Update OpenCV (can't find moveWindow)")
     now = int(time.time())
-    lastchange = {'host0' : now, 'lagoon2' : now }
     time.sleep(3)
     for opt in sys.argv:
         if opt.startswith('od') :
