@@ -261,6 +261,7 @@ launch(Program) :-
 	 nl(PIn),
 	 flush_output(PIn),
 	 process_wait(PPID, Return),
+	 sleep(1), % Make sure camera is free
 	 plog(process(Program, Return))
      ; true
     ),
@@ -788,9 +789,29 @@ main(_Argv) :-
 % System functions, such as evostat or X11 restart and
 % XPCE Messaging such as changing parameters in microcontrollers.
 
+% The HTTP subsystem has no access to the file system or priveledged commands.
+% Therefore, it asserts web_control(Request)
+% If Request is either:
+%  A predicate to be called
+%  A filename which will be touched (brought into existence)
+% 
+% A priviledged process is watching for the presence of such 'signal' files
+% and will take the appropriate action.
+% From kmd.pl :
+% [ levelrestart/0, evostatrestart/0, Predicates called from here
+%   xrestart and linuxrestart are handled in by crontab (system_actions.sh)
+%
+
+levelrestart :- launch(level). % Should clean up any old instance of process
+
 check_web_control :-
     retract(web_control(P)),
-    ( call(P) -> plog(succeed(P)) ; plog(failed(P)) ),
+    ( catch(call(P), _Ex, fail)
+     -> plog(web_control(P, called))
+     ;  atomic_list_concat(['/usr/bin/touch ./web/',P],TCmd),
+	shell(TCmd,Status),
+	plog(touched(P,Status))
+    ),
     fail.
 check_web_control.
 
@@ -798,18 +819,14 @@ check_web_control.
 % Results in sending <var><value> to object with <name>
 changeRequest(List) :-  maplist(new_value,List).
 
-restart :-
-    closeAll,
+evostatrestart :-
+    closeAll, % Bluetooth sockets
     plog('evostat getting restart!'),
     stop_http,
-    plog('stopped http'),
     sleep(1),
-    plog('reading link, executing...'),
     read_link('/proc/self/exe',_,EvoStat),
-    plog(EvoStat),
+    plog(oldpid(EvoStat)),
     exec(EvoStat).  % The rest is silence
-
-rex :- process_create('/etc/init.d/lightdm', [restart],[]).
 
 closeAll :-
     ( component(Name,_T,Obj),
@@ -837,7 +854,8 @@ new_value(Attr=Value) :-
 bars_ml(Bars, ML) :-
     nonvar(Bars),
     !,
-    ML is 20 + Bars*20.
+    random(-3,3,R),
+    ML is 20 + R + Bars*20.
 bars_ml(Bars, ML) :-
     ML > 20,
     Bars = integer((ML-20)/20).
@@ -902,3 +920,4 @@ dataset(Time, Dataset, Term) :-
     member(Var:Functor,Data),
     get(Obj,Var,Value),
     Term =.. [ Functor, Name, Time, Value ].
+

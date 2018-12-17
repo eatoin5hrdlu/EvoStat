@@ -568,6 +568,7 @@ if __name__ == "__main__" :
         monitor()                     # Image Processing
         memuse()                      # Check for leaks
         print("end_of_data.")
+    release()
 
 # OLD
 # cellstatRegion(130,190,360,220),

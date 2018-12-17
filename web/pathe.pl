@@ -7,8 +7,9 @@ pathe(_Req) :-
 
 pathe(Request) :- errorPage(Request,'EvoStat page error').
 
-pathebody(body([background(NamePlate)],
-  [ center(a([id=logozone,href('./phagestat.pl')],i('web/phagestat.jpg'))),
+pathebody(body([background(NamePlate)],FlatBody)) :-
+RawBody = [
+    center(a([id=logozone,href('./phagestat.pl')],i('web/phagestat.jpg'))),
     div(class=supply,Supplies),
     div(class=motd, Message),
     div(class=cellstat, label([],Cellstat)),
@@ -31,17 +32,19 @@ pathebody(body([background(NamePlate)],
 	   a([href('./timelapse.mp4')],'Timelapse MP4 (for phones)'),br([],[]),
 	   a([href('./timelapse.avi')],'Timelapse AVI'),br([],[]),
 	   a([href('./timelapse1417.avi')],'Previous Timelapse, Dec 12-17'),br([],[]),
-	   a([href('./top.pl')],'System Memory Usage'),br([],[]),
-	   a([href('./restart.pl')],'Restart EvoStat (careful!)'),br([],[]),
+	   a([href('./top.pl')],'System Memory Usage'),
+	   &(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),
+	   &(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),
+	   &(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),
+	   &(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),&(nbsp),
+	   a([href('./kmd.pl')],'System Controls(careful!)'),br([],[]),
 	   a([href('./streams.pl')],'List Streams'),br([],[]),
-%	   a([href('./rex.pl')],'Restart X11'),br([],[]),
 	   a([href('./sample.jpg')],'Last Camera Image')])
-  ]
-  ) %body
-  ) :- %pathebody
-    backgroundImage(NamePlate),
-    motd(MText),
-    Message = [center(font([size='+5'],a([href('./protocol.pdf')],MText)))],
-    prepped(Supplies, Cellstat, Lagoons, Sampler).
+  ], % End of RawBody
+  backgroundImage(NamePlate),
+  motd(MText),
+  Message = [center(font([size='+5'],a([href('./protocol.pdf')],MText)))],
+  prepped(Supplies, Cellstat, Lagoons, Sampler),
+  flatten(RawBody,FlatBody).
 
     
