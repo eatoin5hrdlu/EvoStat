@@ -87,11 +87,15 @@ def plog(str) :
     if (debug): # make this True for debug output
         print("      --"+str, file=sys.stderr)
 
+def qlog(str) :  
+    if (True): # make this True for debug output
+        print("      --"+str, file=sys.stderr)
+
 def memuse():
     process = psutil.Process(os.getpid())
     memMB = ( process.memory_info()[0] / 1000000 )
-    plog("MEMORY USED : "+str(memMB)+"MB")
-    plog("FILES : "+str(process.open_files()))
+    qlog("MEMORY USED : "+str(memMB)+"MB")
+    qlog("FILES : "+str(process.open_files()))
 
 def icheck(image, who) :
     if (image is None) :
@@ -383,7 +387,7 @@ def camSettle(n) :
     for i in range(n) :
         cam.read()
 
-def imageOut():
+def imageOut(tempstring):
     """Adds a blue-grey timestamp to the current referenceImage
        saves it to the imageName (/tmp/timelapse/NNNNNm.jpg) file
        and periodically (every 10 frames), makes a movie"""
@@ -392,7 +396,7 @@ def imageOut():
     (he,wi,de) = referenceImage.shape
     cv2.putText(referenceImage,time.asctime(time.localtime()),(wi/16,he/2),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.8, (255,210,200),4)
-    cv2.putText(referenceImage,lasttemp(),(wi/11,4*he/7),
+    cv2.putText(referenceImage,tempstring,(wi/11,4*he/7),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.5, (250,210,255),4)
 
     tmpimg = cv2.resize(referenceImage,params['imageSize'])
@@ -453,10 +457,11 @@ def lasttemp() :
     if not os.path.exists('./lasttemps.sh') :
         return "No temperature information"
     cmd = ['/bin/bash', './lasttemps.sh']
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
     plog("myPID: "+str(os.getpid()))
     plog("TFILES : "+str(psutil.Process(os.getpid()).open_files()))
     (result, err) = p.communicate('')
+    p.wait()
     result.replace('88.8 C','No Data')
     return result
 
@@ -491,7 +496,7 @@ def evostat_light() :
 
 # Monitor prints out new level readings only
 # when they differ from the previous reading
-def monitor() :
+def monitor(tempstring) :
     global referenceImage
     global plist
     pimg = prepareImage(green, plist[0])
@@ -507,7 +512,7 @@ def monitor() :
         now  = int(time.time())
         elapsed = now - start
         print("level("+name+","+str(line_count)+","+str(elapsed)+").")
-    imageOut()
+    imageOut(tempstring)
     
 def getlines():
     while True:
@@ -524,7 +529,12 @@ if __name__ == "__main__" :
     global cycletime
     cycletime = 90  # Default
     start = int(time.time())
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+#    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # No buffering
+    os.close(sys.stderr.fileno())
+    sys.stderr = open('/tmp/level.log','a')
+    memuse()
+    print("Here I am at new stderr", file=sys.stderr)
+    memuse()
     optlist, args = getopt.gnu_getopt(sys.argv, 'c:m')
     for o, a in optlist :
         if (o == '-c'):
@@ -553,17 +563,25 @@ if __name__ == "__main__" :
         cv2.imwrite("./temp.jpg", cv2.resize(one,params['imageSize']))
         exit(0)
     lastvlen = 0
-    plog("listening for orders")
-    while(raw_input()) :
+    memuse()
+    qlog("just memuse")
+    memuse()
+    qlog("just memuse")
+    memuse()
+    qlog("listening for orders")
+    inp = raw_input()
+    while(inp) :
         newReferenceImage()           # Take a picture
         if ( evostat_light() > 127 ): # EvoStat is open, don't bother image processing
             plog("  TOO MUCH LIGHT....sleeping")
             time.sleep(cycletime)     # and no frames produced for timelapse movie (okay?)
             continue
         check_maskspec()              # Reload plist if .maskspec changed
-        monitor()                     # Image Processing
+        monitor(inp)                  # Image Processing (passing in temperature string)
         memuse()                      # Check for leaks
         print("end_of_data.")
+        sys.stdout.flush()
+        inp = raw_input()
     release()
 
 # OLD

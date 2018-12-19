@@ -219,17 +219,22 @@ send_info(flux(F),Stream) :- !, newFlux(flux(F),Stream).
 send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
     Levels =.. [levels|Ls],
     dblog(pid,Levels),
-    report_temperatures,
+    report_temperatures(_),
     send_levels(Ls,0).
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
 
-report_temperatures :-
-    component(_,cellstat,Co),
-    get(Co,t,CellstatTemp),
-    component(lagoon1,lagoon,Lo),
-    get(Lo,t,LagoonTemp),
-    dblog(pid,temps(CellstatTemp,LagoonTemp)).
+report_temperatures(TLine) :-
+    component(CName,cellstat,Co),
+    get(Co,t,CVal),
+    CHiC is integer(CVal/10), CLoC is integer(CVal) mod 10,
+    LName = lagoon2, % hack
+    component(LName,lagoon,Lo),
+    get(Lo,t,LVal),
+    LHiC is integer(LVal/10), LLoC is integer(LVal) mod 10,
+    dblog(pid,temps(CVal,LVal)),
+    format(atom(TLine), '~s ~d.~d C ~s ~d.~d C',
+	        [CName, CHiC, CLoC, LName, LHiC, LLoC ]).
     
 % Levels from OpenCV/python camera program
 % are stored in object l[evel] variable here.
@@ -271,7 +276,7 @@ launch(Program) :-
     concat_atom([Dir,Program,'.py'],LEVELS),
     CmdLine = [LEVELS],
     process_create(Python, CmdLine,
-		   [stdout(pipe(Out)), stdin(pipe(In)), stderr(std),
+		   [stdout(pipe(Out)), stdin(pipe(In)),
 		    cwd(Dir),
 		    process(PID)
 		   ]),
@@ -281,12 +286,12 @@ safe_get_level(Program) :-
     catch( get_level(Program),
 	   Ex,
 	   (flog(relaunching(Program,Ex)),
-	    retractall(childProcess(_,_,_,_)),
 	    launch(level))).
 
 get_level(Program) :-
     ( safe_childProcess(Program,_PID, In, Out)
-     ->	  writeln(In,go(1)),
+     -> ( report_temperatures(TempData);TempData='No Temperature Data'),
+	  writeln(In,TempData),
 	  flush_output(In),
 	  repeat,
 	      set_stream(Out,timeout(20)),
