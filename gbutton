@@ -67,6 +67,9 @@ wget( OtherFile,
 
 :- pce_begin_class(snapshot, window).
 
+variable(tmpimage,  any, both, "Image memory mgmt").
+variable(tmpbitmap, any, both, "Bitmap memory mgmt").
+
 initialise(Self, Label:[name]) :->
 	  "Initialise the image area"::
         send_super(Self, initialise(Label)),
@@ -74,7 +77,10 @@ initialise(Self, Label:[name]) :->
 	param(imageSize(Ysize,Xsize)),
 	send(Self, size, size(Ysize,Xsize)),
 	new(I, image('./web/phagestat.jpg')),
-	send(Self, display, new(_, bitmap(I))).
+	send(Self, slot, tmpimage, I),
+	new(B, bitmap(I)),
+	send(Self, slot, tmpbitmap, B),
+	send(Self, display, B).
 
 update(Self) :->
 	"Must copy image to new filename to avoid caching"::
@@ -82,9 +88,20 @@ update(Self) :->
       R is random(10000),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
-      new(I,image(NewFile)),
+      new(NI,image(NewFile)),
+      new(NB, bitmap(NI)),
+      plog(newbitmap),
+
+      get(Self, tmpbitmap, OB),
+      plog(got(bitmap)),
+      free(OB),  % Free the old bitmap (ordering?)
+      plog(free(bitmap)),
+
+      send(Self, slot, tmpimage, NI),           % Save the new image
+      send(Self, slot, tmpbitmap, NB),          % Save the new bitmap
+      plog(store(image, bitmap)),
       send(Self, clear),
-      send(Self, display, new(_, bitmap(I))),
+      send(Self, display, NB),
       delete_file(NewFile),
       write(user_error, updated(snapshot)), nl(user_error).
 

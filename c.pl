@@ -224,6 +224,12 @@ send_info(Levels,_) :-  % levels(Cellstat,Lagoon1,L2..)
 
 send_info(Msg,_) :- writeln(send_info(Msg)).
 
+component_temperature(Name,Type,Temp) :-
+    component(Name,Type,Obj),
+    get(Obj,t,Value),
+    High is integer(Value/10), Low is integer(Value) mod 10,
+    format(atom(Temp), '~s ~d.~d C',[Name, High, Low ]).
+
 report_temperatures(TLine) :-
     component(CName,cellstat,Co),
     get(Co,t,CVal),
@@ -258,16 +264,17 @@ check_error(_).               % Everything else is not an error
 
 % Same as set_prolog_flag(unknown, fail), but safer (abolish does this!)
 safe_childProcess(A,B,C,D) :-
-    catch( childProcess(A,B,C,D), _Ex, fail).
+    catch( childProcess(A,B,C,D), _Ex, (backtrace(20),fail)).
 
 % Launch level
 launch(Program) :-
+    plog(launch),
     (safe_childProcess(Program,PPID,PIn,_POut) ->
-	 nl(PIn),
-	 flush_output(PIn),
-	 process_wait(PPID, Return),
+	 catch(nl(PIn),Ex,(plog(launchEx(Ex)),backtrace(20))),
+	 catch(flush_output(PIn),_,true),
+	 catch(process_wait(PPID, Return),_,(Return=wait_failed,true)),
 	 sleep(1), % Make sure camera is free
-	 plog(process(Program, Return))
+	 plog(launch_preparation(Program, Return))
      ; true
     ),
     retractall(childProcess(_,_,_,_)),
@@ -286,11 +293,16 @@ safe_get_level(Program) :-
     catch( get_level(Program),
 	   Ex,
 	   (flog(relaunching(Program,Ex)),
+	    childProcess(Program,PID,In,Out),
+	    catch(close(In),InE,flog(close(InE))),
+	    catch(close(Out),OutE,flog(close(OutE))),
+	    catch(process_wait(PID,_),WaitE,flog(wait(WaitE))),
 	    launch(level))).
 
 get_level(Program) :-
     ( safe_childProcess(Program,_PID, In, Out)
      -> ( report_temperatures(TempData);TempData='No Temperature Data'),
+	  plog(TempData),
 	  writeln(In,TempData),
 	  flush_output(In),
 	  repeat,
@@ -541,6 +553,7 @@ readLevels(_) :->
 % the Next Update countdown in Sampler label.
 
 fastUpdate(Self) :->
+    plog(fastUpdate(check_web_control)),
     check_web_control,
     retract(next_update(Seconds)),
     Next is Seconds - 10,
@@ -790,9 +803,12 @@ check_web_control :-
     retract(web_control(P)),
     ( catch(call(P), _Ex, fail)
      -> plog(web_control(P, called))
-     ;  atomic_list_concat(['/usr/bin/touch ./web/',P],TCmd),
-	shell(TCmd,Status),
-	plog(touched(P,Status))
+     ;	plog(touching(P)),
+	atomic_list_concat(['./web/',P],File),  % Create signal file
+	open(File,write,S),
+	nl(S),
+	close(File),
+	plog(created(File))
     ),
     fail.
 check_web_control.
@@ -802,13 +818,15 @@ check_web_control.
 changeRequest(List) :-  maplist(new_value,List).
 
 evostatrestart :-
-    closeAll, % Bluetooth sockets
     plog('evostat getting restart!'),
+    closeAll, % Bluetooth sockets
+    plog('sockets closed'),
     stop_http,
+    plog('http stopped'),
     sleep(1),
     read_link('/proc/self/exe',_,EvoStat),
     plog(oldpid(EvoStat)),
-    exec(EvoStat).  % The rest is silence
+    catch(exec(EvoStat),Ex,(plog(execEx(Ex)),true)).  % The rest is silence
 
 closeAll :-
     ( component(Name,_T,Obj),
