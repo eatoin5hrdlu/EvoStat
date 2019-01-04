@@ -57,13 +57,12 @@ timer_reset :-
 plog(Term) :- write(user_error,Term),nl(user_error).
 
 :- dynamic flowStream/1.
-flog(Term) :- flowStream(S),
-	      !,
-	      write(S,Term),nl(S),flush_output(S).
-
-flog(Term) :- open('web/flog.txt',write,S,[]),
-	      assert(flowStream(S)),
-	      flog(Term).
+flog(Term) :- ( flowStream(S)
+	       -> write(S,Term),nl(S),flush_output(S)
+	       ; open('web/flog.txt',write,S,[]),
+		 assert(flowStream(S)),
+		 flog(Term)
+	      ).
 
 :- dynamic dbStream/2.
 
@@ -121,7 +120,9 @@ send_to(Recv, List) :-
 
 send_to_type(Recv,Type,List) :-
     MSG =.. [message,@arg1|List],
-    send(Recv, for_all, if(message(@arg1,instance_of,Type), MSG)).
+    statistics(h),
+    send(Recv, for_all, if(message(@arg1,instance_of,Type), MSG)),
+    statistics(i).
 
 % E.g. control_timer(texting,  {start,stop} ).
 %      control_timer(    pid,  {start,stop} ).

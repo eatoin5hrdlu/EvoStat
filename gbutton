@@ -67,7 +67,6 @@ wget( OtherFile,
 
 :- pce_begin_class(snapshot, window).
 
-variable(tmpimage,  any, both, "Image memory mgmt").
 variable(tmpbitmap, any, both, "Bitmap memory mgmt").
 
 initialise(Self, Label:[name]) :->
@@ -76,32 +75,27 @@ initialise(Self, Label:[name]) :->
         send_super(Self, alignment, center),
 	param(imageSize(Ysize,Xsize)),
 	send(Self, size, size(Ysize,Xsize)),
-	new(I, image('./web/phagestat.jpg')),
-	send(Self, slot, tmpimage, I),
-	new(B, bitmap(I)),
+	new(B, bitmap('./web/phagestat.jpg')),
 	send(Self, slot, tmpbitmap, B),
 	send(Self, display, B).
 
 update(Self) :->
 	"Must copy image to new filename to avoid caching"::
+      statistics(snap1),
       writeln(updating(snapshot)),
       R is random(10000),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
-      new(NI,image(NewFile)),
-      new(NB, bitmap(NI)),
+      new(NB, bitmap(NewFile)),
       plog(newbitmap),
-
       get(Self, tmpbitmap, OB),
-      plog(got(bitmap)),
       free(OB),  % Free the old bitmap (ordering?)
-      plog(free(bitmap)),
-
-      send(Self, slot, tmpimage, NI),           % Save the new image
+      plog(freed(bitmap)),
+      statistics(snap2),
       send(Self, slot, tmpbitmap, NB),          % Save the new bitmap
-      plog(store(image, bitmap)),
       send(Self, clear),
       send(Self, display, NB),
+      statistics(snap3),
       delete_file(NewFile),
       write(user_error, updated(snapshot)), nl(user_error).
 
@@ -140,7 +134,8 @@ initialise(Self, Label:[name]) :->
 
 	send(Self, recogniser, click_gesture(right,'',single,Code)).
 
-update(_Self) :-> true. % Anything that all buttons do
+update(_Self) :-> % true. % Anything that all buttons do
+      statistics(ebutton0).
 	
 show_conversation(@Name) :->
         get(@Name, socket, Socket),
@@ -241,7 +236,9 @@ converse(Self, Cmd) :-> "Bluetooth Serial Communication"::
 	bluetalk(Socket, Cmd, Reply),  % det if succeeds
 	plog(bluetalk_returned(Socket,Cmd,Reply)),
 	replyok(Reply),
-	send(Self,reply,Reply),
+	statistics(converse1),
+	send(Self,slot,reply,Reply),
+	statistics(converse2),
 	!.   % check_socket/2 created a choice point for reconnect/reset
 
 converse(Self, Cmd) :-> "Bluetooth Serial Communication"::

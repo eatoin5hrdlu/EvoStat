@@ -478,6 +478,13 @@ prompt(W, Value:name) :<-
 % 4) Restart the auto update timer (new timer value from settings NYI)
 % 5) Make a fast_update version for the GUI
 
+statistics(ID) :-
+    get(class(object), no_created, @on, Created),
+    get(class(object), no_freed, @on, Freed),
+    Current is Created - Freed,
+    plog('__________________objects'(Created, Freed, ID, Current)).
+
+    
 update(Self) :->
     get(Self,name,ClassName),
     plog(update(ClassName)),
@@ -488,9 +495,10 @@ update(Self) :->
     send(Self,readLevels), plog(sent(readlevels)),
     % COMPONENT UPDATES IN MIXON
     plog(updatingall),
-    send(Self,mixon),      plog(sent(mixon)),  % Send update
-    plog(updated),
-    prep,              % refreshes assert with Web page data
+    statistics(1),
+    send(Self,mixon),
+    statistics(2),
+    prep,              % refreshes assert with Web page data 
     param(updateCycle(Seconds)),
     retractall(next_update(_)), % Reset the count-down
     assert(next_update(Seconds)),
@@ -509,26 +517,31 @@ quiet(Self) :->
     get(Self,name,ClassName),
     plog(quiet(ClassName,failed)).
 
-new_snapshot(Self) :->
-    param(layout(Components)),
-    memberchk(snapshot(Name, Position, Data), Components),
-    new_component(@Name, snapshot, Data),
-    send(@Name, slot, above, @x2),
-    send(@Name, slot, below, @x1),
-    send(@Name, slot, displayed, @on),
-    send(@Name, slot, device, @gui),
-    new(Graphicals,chain),
-    send(Self?graphicals, for_all,
-	 if( message(@arg1,instance_of,snapshot),
-	     message(Graphicals,append,@Name,Position),
-	     message(Graphicals,append,@arg1))),
-    send(Self, slot, graphicals, Graphicals),
-    plog(update(snapShot)).
+new_snapshot(_Self) :->
+	    plog('Calling new_snapshot: should not happen').
+%    param(layout(Components)),
+%    memberchk(snapshot(Name, Position, Data), Components),
+%    new_component(@Name, snapshot, Data),
+%    send(@Name, slot, above, @x2),
+%    send(@Name, slot, below, @x1),
+%    send(@Name, slot, displayed, @on),
+%    send(@Name, slot, device, @gui),
+%    new(Graphicals,chain),
+%    send(Self?graphicals, for_all,
+%	 if( message(@arg1,instance_of,snapshot),
+%	     message(Graphicals,append,@Name,Position),
+%	     message(Graphicals,append,@arg1))),
+%    free(Self?graphicals),
+%    send(Self, slot, graphicals, Graphicals),
+%    plog(update(snapShot)).
 
 mixon(Self) :->
+    statistics(a),
     send_to_type(Self?graphicals, ebutton, [update]),
+    statistics(b),
     send_to_type(Self?graphicals, snapshot, [update]),
     plog('Turning noisy stuff back on'),
+    statistics(c),
     send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON
     send_to_type( Self?graphicals, cellstat, [converse,m1] ), % Mixers ON
     send_to_type( Self?graphicals, cellstat, [converse,'o2'] ), % Air ON
@@ -553,7 +566,6 @@ readLevels(_) :->
 % the Next Update countdown in Sampler label.
 
 fastUpdate(Self) :->
-    plog(fastUpdate(check_web_control)),
     check_web_control,
     retract(next_update(Seconds)),
     Next is Seconds - 10,
@@ -799,6 +811,7 @@ main(_Argv) :-
 levelrestart :- launch(level), % Should clean up any old instance of process
 		plog(relaunched(level)).
 
+% findall, maplist vs. repeat,fail,true
 check_web_control :-
     retract(web_control(P)),
     ( catch(call(P), _Ex, fail)
@@ -812,6 +825,17 @@ check_web_control :-
     ),
     fail.
 check_web_control.
+% findall, maplist vs. repeat,fail,true
+% findall(P,web_control(P),Ps),
+% maplist(ex_web_control, Ps)
+%
+% ex_web_control(P) :-
+%       catch(call(P),_,fail).
+% ex_web_control(P) :-
+%	atomic_list_concat(['./web/',P],File),  % Create signal file
+%	open(File,write,S),
+%	close(File).
+% 
 
 % From Web Form submission:  Attr=Value =>  <name>_<var>=<value>
 % Results in sending <var><value> to object with <name>

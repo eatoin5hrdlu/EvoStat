@@ -36,19 +36,23 @@ term_expansion(iface(Type,PType,Vars), []) :-
                               get(S1,N1,V1),
 	                      concat_atom([N1,V1],Cmd),
 	                      S1 = @Npush,
+			      statistics(push1),
 	                      (send(S1,converse,Cmd)
                                -> PushStatus = succeeded
 			       ;  PushStatus = failed
 			      ),
+			      statistics(push2),
 	                      flog(push(Npush,N1,V1,PushStatus))
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
+	                      statistics(pull1),
 	                      send(S2,converse,N2),
+	                      statistics(pull2),
 			      get(S2,reply, Reply),
 	                      ( parse_reply_arg1(Reply, N2, V2),
 			        nonvar(N2),
 			        nonvar(V2),
-	                        send(S2, N2, V2)
+	                        send(S2, slot, N2, V2)
 			      -> S2 = @Npull,
 				 flog(pull(Npull,N2,V2,succeeded)),
 				 retractall(webValue(S2,N2,_)),
@@ -65,11 +69,13 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	    findall(P,retract(changed(US,P,_)),Ps),
 	    maplist( send(US,pull), ReadOnly),
             maplist( send(US,push), Ps),
-	    ( Ps = [] -> true; send(US,converse, s) )
+	    ( Ps = [] -> true; send(US,converse, s) ),
+	    statistics(updatez)
 	  %  send(US,check_level)   % PID will obviate this ?
 	 ),
 	 send(US,relabel),
-	 plog(updated(MyName))
+	 plog(updated(MyName)),
+	 !
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::
