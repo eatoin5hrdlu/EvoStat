@@ -75,15 +75,16 @@ return flow_rate[ch];
 
 void clear_flow_count(int i)
 {
-  DRIP_count[i] = 0;
+  noInterrupts();
+       DRIP_count[i] = 0;
+  interrupts();
 }
 
 int cflowRate(int ch)   // Cumulative drip count
 {
 int dps;
-       noInterrupts();
+  noInterrupts();
        dps = DRIP_count[ch];
-       interrupts();
+  interrupts();
 return dps;
 }
-

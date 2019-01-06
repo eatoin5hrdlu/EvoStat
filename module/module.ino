@@ -367,8 +367,11 @@ uint16_t  *times = valves.getTimes(); // SOLENOID
 	 for(i=0;i<5;i++) { Serial.print(*bp++); if (i != 4) Serial.print(","); }
         Serial.println("],'servo angle:(0-180) for Nth valve position').");
 	Serial.println(F("cmd(e,[0,1],'enable inputs vs. flow calibration')."));
-	Serial.print(F("cmd(fr,[")); Serial.print(flowRate(0));
-	Serial.println(F("],'Get flow rate ml/hr')."));
+	Serial.println(F("cmd(f,[0,1,z],'get drip count(s) or zero counters')."));
+
+//	Serial.print(F("cmd(fr,[")); Serial.print(flowRate(0));
+//	Serial.println(F("],'Get flow rate ml/hr')."));
+	
 	Serial.println(F("cmd(h,[0,1],'heater off/on auto_temp off')."));
 	Serial.println(F("cmd(l,[0,1],'light off/on')."));
 	Serial.println(F("cmd(m,[0,1],'mixer off/on')."));
@@ -859,6 +862,10 @@ char vcmd[3];
 			     printTermUInt("f0",cflowRate(0));
 			     printTermUInt("f1",cflowRate(1));
 			     reportDRIP();
+			     break;
+			case 'z':
+			     clear_flow_count(0);
+			     clear_flow_count(1);
 			     break;
 			default:
 			     printTermUInt("f",luxRaw());
