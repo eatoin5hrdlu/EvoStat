@@ -470,7 +470,7 @@ const char *saveRestore(int op)
         // PINCH VALVE (SERVO)
 	moveData(op, NUM_VALVES*sizeof(int),     valve.getTimesbp());
 	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getAngles());
-	moveData(op, NUM_VALVES*sizeof(byte),    valve.getRanges());
+	moveData(op, (NUM_VALVES+1)*sizeof(byte),valve.getRanges());
 	moveData(op, sizeof(int),   (byte *)&valveCycleTime);
 	
 	moveData(op, sizeof(int), (byte *) &target_turbidity);
@@ -836,6 +836,16 @@ char vcmd[3];
 		case 'f':
 			switch(c2) 
 			{
+			case '0':
+			     printTermUInt("f0",cflowRate(0));
+			     break;
+			case '1':
+			     printTermUInt("f1",cflowRate(1));
+			     break;
+			case 'c':
+			     clear_flow_count(0);
+			     clear_flow_count(1);
+			     break;
 			case 'g':
 			     lux_set_gain(value);
 			     break;
@@ -846,8 +856,8 @@ char vcmd[3];
 			     lux_set_timing(value);
 			     break;
 			case 'x':
-			     printTermUInt("f0",iflowRate(0));
-			     printTermUInt("f1",iflowRate(1));
+			     printTermUInt("f0",cflowRate(0));
+			     printTermUInt("f1",cflowRate(1));
 			     reportDRIP();
 			     break;
 			default:
@@ -1033,7 +1043,6 @@ void loop()
 {
 int tb_thresh;
 int t;
-	flowRate(0);
         respondToRequest();     // Check for command
 	delayMicroseconds(5000);
 	if (auto_temp)		// Check and update heater(s)
@@ -1046,16 +1055,13 @@ int t;
 	   mixer(0);
 	   for (t=0;t<40;t++) {
 	   	if (auto_valve) valve.checkValve();
-		flowRate(0); // Keep flowRate up to date
 		delay(50);
 	   }
 	   mixer(1);
 	}
 	else if (auto_valve) valve.checkValve();
-	flowRate(0);
 	delayMicroseconds(5000);
 	if (auto_temp)	checkTemperature();
-	flowRate(0);
 	tb_thresh = checkTurbidity();
 }
 

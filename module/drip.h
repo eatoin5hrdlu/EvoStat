@@ -73,7 +73,12 @@ long now = millis();
 return flow_rate[ch];
 }
 
-int iflowRate(int ch)   // Instantaneous
+void clear_flow_count(int i)
+{
+  DRIP_count[i] = 0;
+}
+
+int cflowRate(int ch)   // Cumulative drip count
 {
 int dps;
        noInterrupts();
