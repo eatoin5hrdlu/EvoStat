@@ -1,3 +1,12 @@
-[('reticule', 0,     1.4,  -80,  180,    0,   0,   3,  0.4),
- ('host0',   ((300, 670), (500, 820)), 5, 4 ),
- ('lagoon1', ((1650, 470), (1830,  640)), 7,  4 )]
+# Parameters for Image processing, contrast, amplify, etc.
+# Name, BBox, minlen for each vessel
+#
+# (Vessel, BBox,Contrast-iter, Contrast-mul, Contrast-off,')
+#               Erode-iter, Dilate-iter, Amplify-iter, Amp-factor')
+#
+#          | CONTRAST PARAMS |
+# (name,    cit, scale, offset, thresh, eit, dit, amp, frac) = rp
+# (name, BBox, minlen, delta_threshold, minspace)
+[('reticule', 0,     1.4,  -80,  180,    4,   2,   1,  0.1),
+ ('host0',   ((40, 340), (200, 460)),    16, 6, 6 ),
+ ('lagoon1', ((800, 160), (1000,  290)), 16, 6, 4 )]
