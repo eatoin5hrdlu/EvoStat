@@ -56,10 +56,6 @@ class VALVE
     else             valve_time[v] = tm/2;/* intermediates - half time */
   }
 
-  int getSize(void)           { return size;  }
-  int getCycletime(void)      { return cycletime/1000;  }
-  void setCycletime(int secs) { cycletime = secs*1000; }
-
   // report() takes a pointer to a buffer 
    void report(char *reply) {
      char *cp = reply;
@@ -104,7 +100,6 @@ boolean checkValve(void) {
       next_valve();
     }
 
-  unsigned long x = lastcycle + cycletime - 300;
   if (now > lastcycle + cycletime - 300) // Time to start valve sequence
     {
       digitalWrite(VALVEDISABLE,0);  // Power up the servo
@@ -133,12 +128,14 @@ boolean checkValve(void) {
   int setTime(int v, int t)  { valve_time[v] = t; }
 
   byte *getAngles()          { return &valve_angle[0];   }
-  byte *getRanges()          { return &valve_range[1];   }
+  byte *getRanges()          { return &valve_range[0];   }
   int setAngle(int v, int a) { valve_angle[v] = a;       }
   int setRange(int v, int a) { valve_range[v] = a;       }
   int getAngle(int v)        { return(valve_angle[v]);   }
   int getRange(int v)        { return(valve_range[v]);   }
-  void setCycleTime(int t)   { cycletime = t * 1000L;    }
+  int getSize(void)           { return size;  }
+  int getCycleTime(void)      { return cycletime/1000L;   }
+  void setCycleTime(int secs) { cycletime = secs * 1000L;}
 
  private:
   int size;                         // Number of positions

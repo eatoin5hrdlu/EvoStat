@@ -18,7 +18,7 @@
 //
 
 //#include "Arduino.h"
-//#include "param.h"
+//#include "param.h" // No need since this file is included
 #define INFLOW  1
 #define OUTFLOW 2
 #define ALLFLOW (INFLOW|OUTFLOW)
@@ -51,8 +51,8 @@ class VALVES
   void disable_inflow(void)  { flow &= ~INFLOW;  }
 
   int getSize(void)           { return size;  }
-  int getCycleTime(void)      { return cycletime/1000;  }
-  void setCycleTime(int secs) { cycletime = secs*1000; }
+  int getCycleTime(void)      { return cycletime/1000L;  }
+  void setCycleTime(int secs) { cycletime = secs*1000L; }
 
   boolean setValve(int pin, uint16_t time) {
     int i;

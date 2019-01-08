@@ -182,10 +182,15 @@ void swrite(int val) {
      myservo.write(val);
 }
 
-#include "valve.h"   // change constants in param.h
-int valveCycleTime = DEFAULT_CYCLETIME;
+int valveCycleTime = DEFAULT_CYCLETIME; // constants in param.h
+
+#include "valve.h"   // MULTI-POSITION PINCH VALVE  (inflow)
 
 VALVE    valve = VALVE(NUM_VALVES+1, VALVEPIN); // 5-position valve on pin 8
+
+#include "valves.h" // SOLENOID VALVES    (outflow, generally)
+
+VALVES valves = VALVES(NUM_VALVES);
 
 #ifndef INTERNAL // Mega has two references, but no default
 #define INTERNAL INTERNAL2V56
@@ -210,9 +215,6 @@ const char iface[] PROGMEM = {
         rw(wv, int:=1000, \"Waste Valve Timing\"),\n\
       ])." };
       
-
-#include "valves.h" // SOLENOID VALVE INTERFACE
-VALVES valves = VALVES(NUM_VALVES);
 
 #define EOT "end_of_data."
 
@@ -292,6 +294,12 @@ void printTerm2Int(const char *f,int a,int b)
   sprintf(reply, "%s(%d,%d).",f,a,b);
   soutln(reply);
 }
+
+void printTerm3Int(const char *f,int a,int b,int c)
+{
+  sprintf(reply, "%s(%d,%d,%d).",f,a,b,c);
+  soutln(reply);
+}
 	
 void printTermFloat(char *f,double a)
 { Serial.print(f);Serial.print("(");Serial.print(a);Serial.println(")."); }
@@ -355,52 +363,48 @@ byte *rp = valve.getRanges();
 int  *ip = valve.getTimes();          // PINCH
 uint16_t  *times = valves.getTimes(); // SOLENOID
 
-	Serial.println(F("cmd(a,[0,1],'auto modes off/on')."));
-	Serial.print(F("cmd(b,["));Serial.print(turbidity());
+	Serial.println(F("a([0,1],'auto modes off/on')."));
+	Serial.print(F("b(["));Serial.print(turbidity());
 	Serial.println(F("],'Get turbidity')."));
-	Serial.print(F("cmd(tb,["));Serial.print(target_turbidity);
+	Serial.print(F("tb(["));Serial.print(target_turbidity);
 	Serial.println(F("],'Get/Set target turbidity')."));
-//	Serial.println(F("cmd(cl,'clear backlog (no output)')."));
-	Serial.print(F("cmd(cy,[")); Serial.print(valveCycleTime);
+	Serial.print(F("cy([")); Serial.print(valveCycleTime);
 	Serial.println(F("],'Valve cycle time')."));
-	Serial.print(F("cmd(d,[0,1,2,3,4],["));
+	Serial.print(F("d([0,1,2,3,4],["));
 	 for(i=0;i<5;i++) { Serial.print(*bp++); if (i != 4) Serial.print(","); }
-        Serial.println("],'servo angle:(0-180) for Nth valve position').");
-	Serial.println(F("cmd(e,[0,1],'enable inputs vs. flow calibration')."));
-	Serial.println(F("cmd(f,[0,1,z],'get drip count(s) or zero counters')."));
+        Serial.println("],'Valve Pos = 0-180 Angle').");
+	Serial.println(F("e([0,1],'enable inputs vs. calibration')."));
+	Serial.println(F("f([0,1,z],'get drip count(s) or zero counters')."));
 
-//	Serial.print(F("cmd(fr,[")); Serial.print(flowRate(0));
-//	Serial.println(F("],'Get flow rate ml/hr')."));
-	
-	Serial.println(F("cmd(h,[0,1],'heater off/on auto_temp off')."));
-	Serial.println(F("cmd(l,[0,1],'light off/on')."));
-	Serial.println(F("cmd(m,[0,1],'mixer off/on')."));
-	Serial.print(F("cmd(ms,["));
+	Serial.println(F("h([0,1],'heater off/on auto_temp off')."));
+	Serial.println(F("l([0,1],'light off/on')."));
+	Serial.println(F("m([0,1],'mixer off/on')."));
+	Serial.print(F("ms(["));
 	Serial.print(mixerspeed);
 	Serial.println(F("],'get/set mixer speed')."));
-	Serial.println(F("cmd(n,'Normal Run mode (valve enabled, valve pos 0, auto_modes on)')."));
-	Serial.println("cmd(p,[1],[0,1,2,3,4],'set valve to position N, auto off').");
+	Serial.println(F("n('Normal mode (valve enabled, pos 0, auto on)')."));
+	Serial.println("p([1],[0,1,2,3,4],'Valve to position N, auto off').");
 	
-	Serial.print(F("cmd(r,[1,2,3,4],["));
+	Serial.print(F("r([1,2,3,4],["));
 	 for(i=1;i<NUM_VALVES+1;i++) {
 	   Serial.print(*rp++); if(i<NUM_VALVES) Serial.print(","); 
 	   }
         Serial.println(F("],'Valve Cycle Modulo')."));
 		
-	Serial.println(F("cmd(r,'Restore settings from EEPROM')."));
-	Serial.println(F("cmd(s,'Save settings in EEPROM')."));
-	Serial.print(F("cmd(t,["));Serial.print(get_temperature());
+	Serial.println(F("r('Restore settings from EEPROM')."));
+	Serial.println(F("s('Save settings in EEPROM')."));
+	Serial.print(F("t(["));Serial.print(get_temperature());
 	Serial.println(F("],'Get temperature in tenth degrees C')."));
-	Serial.print(F("cmd(tt,[")); Serial.print(target_temperature);
+	Serial.print(F("tt([")); Serial.print(target_temperature);
 	Serial.println(F("],'Get/Set target temp in tenth degrees C')."));
-	Serial.print(F("cmd(tf,[")); Serial.print(target_flowrate);
+	Serial.print(F("tf([")); Serial.print(target_flowrate);
 	Serial.println(F("],'Get/Set target flow rate ml/hr')."));
-	Serial.print(F("cmd(v,[1,2,3,4,5],["));
+	Serial.print(F("v([1,2,3,4,5],["));
 	 for(i=1;i<NUM_VALVES+1;i++) {
 	   Serial.print(*ip++); Serial.print(","); }
 	Serial.print(valves.getTime(0));
         Serial.println(F("],'valve open mS')."));
-	Serial.println(F("cmd(z,'Zero EEPROM')."));
+	Serial.println(F("z('Zero EEPROM')."));
 }
 
 // PID Controller to keep temperature within 0.5 degree C
@@ -733,6 +737,7 @@ int i;
 	}
 	luxOn = false;
         lux_init(2591);
+	// Propagate valve cycle time (two valve systems) also after "restore"
 	valve.setCycleTime(valveCycleTime);  // Pinch valves 1-4
         valves.setCycleTime(valveCycleTime); // Solenoid valves 5...->(0...)
 	once = true;
@@ -802,7 +807,10 @@ char vcmd[3];
 			      valve.setCycleTime(value);
 			      valves.setCycleTime(value);
 			   } else
-			     printTermInt("cycleTime", valveCycleTime);
+			     printTerm3Int("cycleTime",
+			     valveCycleTime,
+			     valve.getCycleTime(),
+			     valves.getCycleTime());
 			}
 			else {
 			     vnum = (int)(c2 - '0');
@@ -970,7 +978,9 @@ char vcmd[3];
 			   printTermInt("e", (int)c2);
 			   break;
 			 case 0:
-			   saveRestore(RESTORE);
+			   saveRestore(RESTORE);	
+			   valve.setCycleTime(valveCycleTime);  // Pinch
+			   valves.setCycleTime(valveCycleTime); // Solenoid
 			   break;
 			 default:
 			   printTermInt("e", 200);
@@ -979,8 +989,8 @@ char vcmd[3];
 		case 's':
 		        if (c2 == 'c') {
 			   valveCycleTime = value;
-			   valves.setCycleTime(value);
 			   valve.setCycleTime(value);
+			   valves.setCycleTime(value);
 			} else saveRestore(SAVE);
 		        break;
 		case 't':
