@@ -40,6 +40,7 @@ evostat_directory(Dir) :-  working_directory(Dir,Dir).
 	     file_modtime/2, % Loaded file modification time
 	     logfile/1,      %
 	     motd/1,
+	     last_mouse/1,
 
              leak/1,       % Reporting
 	     textCycle/1,
@@ -305,7 +306,7 @@ get_level(Program) :-
 	  plog(TempData),
 	  writeln(In,TempData),
 	  flush_output(In),
-	  repeat,
+	  repeat,  % Can get trapped here!!!
 	      set_stream(Out,timeout(20)),
 	      catch( read(Out, Term), _, (close(In),
 					  close(Out))),
@@ -329,6 +330,8 @@ newFlux(FluxTerm, Stream) :-
 
 :- pce_begin_class(evostat, dialog, "PATHE Control Panel").
 
+variable(movement, real, both, "Last User Interaction").
+
 initialise(W, Label:[name]) :->
           "Initialise the window and fill it"::
           send_super(W, initialise(Label)),
@@ -337,6 +340,8 @@ initialise(W, Label:[name]) :->
 	  EHeight is WH*DH/100,
           send(W, size, size(EWidth, EHeight)),
 	  plog(evostat(width(EWidth),height(EHeight))),
+	  get_time(Time),
+	  send(W, slot, movement, Time),
 % MENU BAR
 	  send(W,  append, new(MB, menu_bar)),
 	  send(MB, label_font(huge)),
@@ -393,6 +398,11 @@ initialise(W, Label:[name]) :->
 	 launch(level),
 	 plog(finished(evostat)).
 
+event(Self, Ev:event) :->
+     send(Ev, is_a, mouse),
+     get_time(Time),
+     send(Self,slot, movement, Time),
+     send_super(Self, event(Ev)).
 
 % make_timer(?,?)
 make_timer(W, Name) :-
@@ -539,7 +549,13 @@ mixon(Self) :->
     statistics(a),
     send_to_type(Self?graphicals, ebutton, [update]),
     statistics(b),
-    send_to_type(Self?graphicals, snapshot, [update]),
+    get_time(Now),
+    get(Self, movement, MouseMoved),
+    Elapsed is Now - MouseMoved,
+    (Elapsed < 100
+     -> send_to_type(Self?graphicals, snapshot, [update])
+     ; plog(no_snapshot_update(Elapsed))
+    ),
     plog('Turning noisy stuff back on'),
     statistics(c),
     send_to_type( Self?graphicals, lagoon, [converse,m1] ), % Mixers ON

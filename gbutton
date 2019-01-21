@@ -89,15 +89,15 @@ update(Self) :->
       new(NB, bitmap(NewFile)),
       plog(newbitmap),
       get(Self, tmpbitmap, OB),
-      free(OB),  % Free the old bitmap (ordering?)
-      plog(freed(bitmap)),
       statistics(snap2),
       send(Self, slot, tmpbitmap, NB),          % Save the new bitmap
       send(Self, clear),
       send(Self, display, NB),
+      free(OB),  % Free the old bitmap (ordering?)
+      plog(freed(bitmap)),
       statistics(snap3),
       delete_file(NewFile),
-      write(user_error, updated(snapshot)), nl(user_error).
+      plog(updated(snapshot)).
 
 closesocket(_Self) :-> true.
 
