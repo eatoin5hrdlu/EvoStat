@@ -37,28 +37,36 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	                      concat_atom([N1,V1],Cmd),
 	                      S1 = @Npush,
 			      statistics(push1),
-	                      (send(S1,converse,Cmd)
+	                      ( catch( send(S1,converse,Cmd), Ex, fail)
                                -> PushStatus = succeeded
-			       ;  PushStatus = failed
+			       ;  PushStatus = btcomfailed(Ex)
 			      ),
 			      statistics(push2),
-	                      flog(push(Npush,N1,V1,PushStatus))
+	                      plog(push(Npush,N1,V1,PushStatus)),!
+       ),
+       ( push(S1,N1:name) :-> "Push value to Arduino"::
+                              statistics(pushfailed(S1,N1))
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
-	                      statistics(pull1),
+	                      S2 = @Npull,
+	                      statistics(pull1(Npull,N2)),
 	                      send(S2,converse,N2),
-	                      statistics(pull2),
 			      get(S2,reply, Reply),
-	                      ( parse_reply_arg1(Reply, N2, V2),
-			        nonvar(N2),
-			        nonvar(V2),
-	                        send(S2, slot, N2, V2)
-			      -> S2 = @Npull,
-				 flog(pull(Npull,N2,V2,succeeded)),
-				 retractall(webValue(S2,N2,_)),
-				 assert(webValue(S2,N2,V2))
-			       ; S2 = @Npull,flog(pull(Npull,N2,failed))
-			      )
+	                      ( parse_reply_arg1(Reply, N3, V3),
+			        nonvar(N3),
+			        nonvar(V3),
+				statistics(pull2(N3,V3)),
+	                        catch( send(S2, slot, N3, V3), VEx,
+				       ( plog(updateXPCEfromArduino(Npull,N2,N3,V3,VEx,failed)),
+					 fail))
+			      -> plog(pull(Npull,N3,V3,succeeded)),
+				 retractall(webValue(S2,N3,_)),
+				 assert(webValue(S2,N3,V3))
+			       ; plog(pull(Npull,N2,failed))
+			      ),!
+       ),
+       ( pull(S2,N2:name) :-> "Report failure, but succeed"::
+	                      statistics(pullfailed(S2,N2))
        ),
        ( update(US) :->
 	 "Get r/o and push r/w values to Device"::

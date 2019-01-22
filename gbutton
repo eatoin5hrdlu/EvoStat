@@ -93,7 +93,7 @@ update(Self) :->
       send(Self, slot, tmpbitmap, NB),          % Save the new bitmap
       send(Self, clear),
       send(Self, display, NB),
-      free(OB),  % Free the old bitmap (ordering?)
+      catch(free(OB),FEx,(plog(freeing(FEx,failed)),true)),
       plog(freed(bitmap)),
       statistics(snap3),
       delete_file(NewFile),

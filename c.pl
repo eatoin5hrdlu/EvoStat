@@ -125,7 +125,7 @@ writePythonParams(EvoStat) :-
     write(PyAtom),
     told,
     current_prolog_flag(argv,Args),
-    ( memberchk(gen,Args) -> halt ; true ).
+    ( memberchk(gen,Args) -> close(user_error), halt ; true ).
 
 % DCG compatible version of univ simplifies syntax
 '=..'(Term,List,T,T) :- Term =.. List.
@@ -382,10 +382,7 @@ initialise(W, Label:[name]) :->
          call(Label,Components),
          findall(_,(component(_,_,Obj),free(Obj)),_), % Clear out previous
 	 maplist(create(@gui), Components),
-	 get_time(TimeStamp),
-	 format_time(atom(Now), '%A, %d %b %Y %T', TimeStamp, posix),
-	 concat_atom(['Running since ',Now], Message),
-	 new_value(motd=Message),
+	 newmotd,
 	 setup_web_values,
 	 initPID,                        % Start PID controllers
          send(@action?members, for_all,
@@ -397,6 +394,14 @@ initialise(W, Label:[name]) :->
          send_super(W, open, Location),
 	 launch(level),
 	 plog(finished(evostat)).
+
+newmotd :-
+     get_time(TimeStamp),
+     format_time(atom(Now), '%A, %d %b %Y %T', TimeStamp, posix),
+     ( motd(MOTD) -> true ; MOTD = '-' ), % From <hostname>.pl
+     concat_atom([MOTD, ' Restarted ', Now], Message),
+     retractall(motd(_)),
+     assert(motd(Message)).
 
 event(Self, Ev:event) :->
      send(Ev, is_a, mouse),
