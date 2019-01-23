@@ -7,6 +7,7 @@
 #          | CONTRAST PARAMS |
 # (name,    cit, scale, offset, thresh, eit, dit, amp, frac) = rp
 # (name, BBox, minlen, delta_threshold, minspace)
-[('reticule', 0,     1.4,  -80,  180,    4,   2,   1,  0.1),
- ('host0',   ((40, 340), (200, 460)),    16, 6, 6 ),
- ('lagoon1', ((800, 160), (1000,  290)), 16, 6, 4 )]
+#[('reticule', 0,     1.4,  -80,  180,    4,   2,   1,  0.1),
+[('reticule', 0,     1.7,  -70,  180,    4,   2,   4,  0.3),
+ ('host0',   ((10, 560), (200, 700)),    16, 6, 6 ),
+ ('lagoon1', ((1050, 290), (1260,  420)), 16, 6, 4 )]
