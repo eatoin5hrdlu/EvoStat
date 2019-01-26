@@ -49,6 +49,8 @@ start_http :-
      plog(processing(http,files)),
      touch('./web/timelapse.mp4'), % Files that must exist during startup
      touch('./web/phagepop.png'),
+     touch('./web/level.txt'),
+%     touch('./web/evostat.txt'), % somewhat unnecessary
      process_files('web/*', [authentication(basic(pws,'Secure Page'))]),
 %     process_files('web/*',       [] ),  % No authentication
      process_files('web/*.html',   [] ),
@@ -207,7 +209,7 @@ defaultHead(Title,[title(Title),
 nocacheRefreshHead(Title,
   [ title(Title),
     link([rel(icon),href('./images/favicon.png')],[]),
-    meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=0, no-store, must-revalidate')],[]),
+    meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=90, no-store, must-revalidate')],[]),
     meta(['http-equiv'('Pragma'),content('no-cache')],[]),
     meta([name(robots),content(noarchive)],[]),
     meta(['http-equiv'(refresh),content(20)],[]),% refresh
@@ -217,7 +219,7 @@ nocacheRefreshHead(Title,
 nocacheHead(Title,
   [ title(Title),
     link([rel(icon),href('./images/favicon.png')],[]),
-    meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=0, no-store, must-revalidate')],[]),
+    meta(['http-equiv'('Cache-Control'),content('no-cache, max-age=90, no-store, must-revalidate')],[]),
     meta(['http-equiv'('Pragma'),content('no-cache')],[]),
     meta([name(robots),content(noarchive)],[]),
     meta(['http-equiv'('Expires'),content(0)],[]),

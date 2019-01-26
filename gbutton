@@ -39,15 +39,20 @@ report_error(Reply) :-
 % Dec10 option is cool, it will plow through nonsense until it 
 % reads a valid term, or hits end_of_file which is a Term!
 % ( end_of_file means end_of_atom in this case )
+% on the other hand . . . how does it fail
 %
 parse_reply(@nil, _) :- !.
 parse_reply(Reply, Term) :-
-	read_term_from_atom(Reply,Term,[syntax_error(dec10)]).
+	catch( read_term_from_atom(Reply,Term,[syntax_error(dec10)]),
+	       SynEx, (plog(syntax_error(Reply,SynEx)), fail)).
 
 parse_reply_arg1(@nil, _, _) :- !.
 parse_reply_arg1(Reply, Functor, Arg1) :-
-	read_term_from_atom(Reply,Term,[syntax_error(dec10)]),
-	Term =.. [Functor,Arg1|_].
+	catch(read_term_from_atom(Reply,Term,[syntax_error(dec10)]),
+	      SynEx, (plog(syntax_error_arg1(Reply,SynEx)),fail) ),
+	plog(parsed(Term)),
+	( Term =.. [Functor,Arg1|_] -> true; plog(reply(no_arg,Term)) ),
+	!.
 
 getIPfromMAC(_,_) :- fail.
 
