@@ -25,6 +25,9 @@
 :- use_module(library(helpidx)).
 :- use_module(library(ctypes)).
 
+:- expects_dialect(sicstus).
+:- ensure_loaded(library(system)).
+
 :- ensure_loaded(util).    % EvoStat Utilities
 :- ensure_loaded(webspec). % HTTP Request handlers
 :- ensure_loaded(et).      % Term Expansion for XPCEgen
@@ -510,9 +513,7 @@ update(Self) :->
     send(Self,readLevels), plog(sent(readlevels)),
     % COMPONENT UPDATES IN MIXON
     plog(updatingall),
-    statistics(1),
     send(Self,mixon),
-    statistics(2),
     prep,              % refreshes assert with Web page data 
     param(updateCycle(Seconds)),
     retractall(next_update(_)), % Reset the count-down
@@ -780,7 +781,20 @@ evostat_running :-
     plog('EvoStat is already running'),
     halt.
 
-main(_Argv) :-
+% Install:   sudo ln -s /home/pi/src/EvoStat/evostat /usr/local/bin/evostat
+%
+% From the symbolic link, we can locate the EvoStat directory
+
+evostat_location(Location) :-
+    popen('/usr/bin/dirname \`readlink -f \\\`which evostat\\\`\`',read,S),
+    read_stream_to_codes(S,Codes),
+    append(Front,[_NL],Codes),
+    atom_codes(Location,Front),
+    working_directory(_,Location).
+
+main(Argv) :-
+    evostat_location(Where), % Find and move to EvoStat directory
+    ( memberchk(where,Argv) -> writeln(Where), halt ; true ),
     \+ evostat_running,
     assert(textCycle(0)),
     initialize_report,

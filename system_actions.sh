@@ -31,7 +31,7 @@
 #  by g0to                                                                    #
 #                                                                             #
  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
-LOCUS="/home/pi/src/EvoStat"     # Change this with installation
+LOCUS=`evostat where`
 
 if [[ $EUID -ne 0 ]]; then
    echo "Error: This script must be run as root" >&2
