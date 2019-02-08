@@ -31,6 +31,8 @@
 #  by g0to                                                                    #
 #                                                                             #
  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+LOCUS="/home/pi/src/EvoStat"     # Change this with installation
+
 if [[ $EUID -ne 0 ]]; then
    echo "Error: This script must be run as root" >&2
    exit 1
@@ -56,16 +58,22 @@ do
 #       dhclient eth0
     fi
     UPTIME=`awk '{print $1}' /proc/uptime | cut -d "." -f 1`
-    if [ -e /home/pi/src/EvoStat/web/linuxrestart ]; then
-	rm /home/pi/src/EvoStat/web/linuxrestart
+    if [ -e "$LOCUS"/web/linuxrestart ]; then
+	rm "$LOCUS"/web/linuxrestart
 	if [[ "$UPTIME" -gt 600 ]]; then
 	    shutdown -r now
 	fi
     fi
-    if [ -e /home/pi/src/EvoStat/web/xrestart ]; then
-	rm /home/pi/src/EvoStat/web/xrestart
+    if [ -e "$LOCUS"/web/xrestart ]; then
+	rm "$LOCUS"/web/xrestart
 	if [[ "$UPTIME" -gt 600 ]]; then
 	    /etc/init.d/lightdm restart
+	fi
+    fi
+    if [ -e "$LOCUS"/web/btrestart ]; then
+	rm "$LOCUS"/web/btrestart
+	if [[ "$UPTIME" -gt 600 ]]; then
+	    /etc/init.d/bluetooth restart
 	fi
     fi
     sleep 60
