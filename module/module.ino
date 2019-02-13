@@ -195,6 +195,8 @@ VALVES valves = VALVES(NUM_VALVES);
 #ifndef INTERNAL // Mega has two references, but no default
 #define INTERNAL INTERNAL2V56
 #endif
+// PROGMEM rather than F() because it is global but it requires
+// a cast to ( __FlashStringHelper * ) for println()  see below
 
 const char iface[] PROGMEM = {
    "i( module, ebutton,\n\
@@ -214,6 +216,8 @@ const char iface[] PROGMEM = {
         rw(v4, int:=1000, \"Lagoon Valve 4 Timing\")\n\
         rw(wv, int:=1000, \"Waste Valve Timing\"),\n\
       ])." };
+
+#define INTERFACE (__FlashStringHelper*)iface
       
 
 #define EOT "end_of_data."
@@ -904,7 +908,7 @@ char vcmd[3];
 			   else
 			      id = (byte)value;
 			} else
-			  Serial.println(iface);
+			  Serial.println(INTERFACE);
 			break;
 		case 'l':
 		       switch(d) {
