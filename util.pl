@@ -34,7 +34,10 @@ offline :-  % Does the word OFFLINE appear in the Message of the Day?
 online :- \+ offline, plog(online).
 
 %%%%% TIME STUFF
-
+timeAtom(Atom) :-
+     get_time(TimeStamp),
+     format_time(atom(Atom), '%A, %d %b %Y %T', TimeStamp, posix).
+    
 timestring(TString):- get_time(Now), convert_time(Now,TString).
 timeline(Stream)   :- timestring(String), write(Stream,String), nl(Stream).
 
@@ -54,7 +57,18 @@ timer_reset :-
 % All messages to logfile (otherwise, stderr)
 % Redirection breaks in Windows, so no logfile
 
-plog(Term) :- write(user_error,Term),nl(user_error).
+% supress some debugging we want to turn on later easily
+plog(updating(X)) :-
+    \+ member(X,[evostat,host0,lagoon2]),
+    !.
+plog(updated(X)) :-
+    \+ member(X,[evostat,host0,lagoon2]),
+    !.
+plog(bluetalk_returned(_,Cmd,_)) :-
+    member(Cmd,[b,t,tt,w,m0,m1,o2,'o-']),
+    !.
+plog(Term) :-
+    write(user_error,Term),nl(user_error).
 
 :- dynamic flowStream/1.
 flog(Term) :- ( flowStream(S)
@@ -120,9 +134,7 @@ send_to(Recv, List) :-
 
 send_to_type(Recv,Type,List) :-
     MSG =.. [message,@arg1|List],
-    statistics(h),
-    send(Recv, for_all, if(message(@arg1,instance_of,Type), MSG)),
-    statistics(i).
+    send(Recv, for_all, if(message(@arg1,instance_of,Type), MSG)).
 
 % E.g. control_timer(texting,  {start,stop} ).
 %      control_timer(    pid,  {start,stop} ).

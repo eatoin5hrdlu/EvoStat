@@ -40,7 +40,6 @@ floatfmt(N,[A|T],T) :-
 float_tenths(Obj,Thing) --> [Display],
       {
       get(Obj,Thing,InTenths),
-      (Thing = tt -> plog(get(Obj,Thing,InTenths)) ; true),
       refresh(Obj,Thing,InTenths),
       DispTemp is float(InTenths)/10.0,
       format(atom(Display), '~4G', [DispTemp]) }.
@@ -115,5 +114,7 @@ prep :-                   % Prepare Data for the web page
     label(sampler,autosampler,Sampler,[]),
     retractall(prepped(_,_,_,_)),
     assert(prepped(Supplies, Cellstat, Lagoons, Sampler)),
-    retract(html_syntax),
-    plog(prep(finished)).
+    retract(html_syntax).
+%    plog(prep(finished)).
+
+prep :- plog(prep(failed)).

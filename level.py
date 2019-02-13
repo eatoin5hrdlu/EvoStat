@@ -79,6 +79,7 @@ def check_maskspec() :
 ( blue, green, red, maxIntensity ) = ( 0, 1, 2, 255.0 )
 colors = ["blue", "green", "red"]
 imageName = "./web/phagestat.jpg"
+imageNameFR = "./web/phagestatFR.jpg"
 frameLocation = "/tmp/timelapse/"
 
 ############# UTILITIES
@@ -86,10 +87,12 @@ frameLocation = "/tmp/timelapse/"
 def plog(str) :  
     if (debug): # make this True for debug output
         print("      --"+str, file=sys.stderr)
+        sys.stderr.flush()
 
 def qlog(str) :  
     if (True): # make this True for debug output
         print("      --"+str, file=sys.stderr)
+        sys.stderr.flush()
 
 def memuse():
     process = psutil.Process(os.getpid())
@@ -128,6 +131,10 @@ def settings() :
     plog("Expected  <hostname>.settings file")
     exit(0)
 
+def fakeOut(n) :
+    print("areas([297."+str(n)+"1, 23349.2, 57.3, 16.4, 19.5, 18.6, 6.7, 32.8]).\nbrects([(1, 6, 30, 27), (1, 1, 118, 218), (27, 59, 11, 9), (78, 48, 5, 6), (85, 42, 5, 8), (39, 34, 6, 8), (55, 22, 3, 5), (1, 1, 16, 6)]).\nlengths([118, 30, 16, 11, 6, 5, 5, 3]).\nlevel(host0,1,-7).\nareas([2917.0, 224.5]).\nbrects([(1, 79, 118, 36), (1, 37, 30, 27)]).\nlengths([118, 30]).\nlevel(lagoon2,1,-7).\nend_of_data.")
+    
+
 def newReferenceImage() :
     global referenceImage
     referenceImage = None
@@ -141,7 +148,8 @@ def newReferenceImage() :
             cv2.imwrite("./web/sample.jpg",referenceImage)
     if tries == 0 :
         print("Failed to get image from camera")
-        exit(10)
+        return(False)
+    return(True)
     
 def showdb(img, delay=200) :
     if (debug) :
@@ -150,17 +158,22 @@ def showdb(img, delay=200) :
             exit(0)
 
 def make_movie() :
+    memuse()
     for format in ['.mp4','.avi'] :
         out = os.path.abspath('web/timelapse'+format)
         cmd=['ffmpeg','-y','-framerate','2','-pattern_type','glob','-i','*.jpg','-vcodec','mpeg4',out]
-        with suppress_stdout_stderr() :
-            subprocess.call(cmd,cwd=frameLocation)
+        dn = open(os.devnull,'w')
+        subprocess.call(cmd,cwd=frameLocation,stdout=dn,stderr=dn)
+        dn.close()
+        qlog("made "+format+" movie")
+        memuse()
 
 def save_frames(name, num) :
     for i in range(num) :
         img = grab()
         imgname = name + str(i) + ".jpg"
-        cv2.imwrite(imgname, cv2.resize(img,params['imageSize']))
+        cv2.imwrite(imgname, img)
+#        cv2.imwrite(imgname, cv2.resize(img,params['imageSize']))
 
 def movie_file(name) :
     numstart = len(frameLocation)
@@ -171,7 +184,7 @@ def movie_file(name) :
     if (len(imfiles)>0) :
         last_file = max(imfiles, key=os.path.getctime)
         seq = int(last_file[numstart:numend]) + 1
-        if ((seq%10 == 0) or ('-m' in sys.argv)) :
+        if ((seq%10 == 0) and ('-m' in sys.argv)) :
             make_movie()
         next_file =  last_file[:-10]+"{0:0>5}".format(seq)+"m."+type
     copyfile(name, next_file)
@@ -257,6 +270,8 @@ def printTerm(functor,arg) :
 def top_average(values) :
     '''Average of largest values to avoid small outliers'''
     n = len(values)
+    if (n == 0) :
+        return 0
     if (n < 4) :
         return values[0]
     else :
@@ -267,13 +282,13 @@ def blob_count(img) :
     icheck(img,"blob_count")
     contours,h = cv2.findContours(img,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_NONE)
     areas = [cv2.contourArea(c) for c in contours]
-    printTerm("areas",areas)
+#    printTerm("areas",areas)
     brects = [cv2.boundingRect(c) for c in contours]  # (x,y,w,h)
-    printTerm("brects",brects)
+#    printTerm("brects",brects)
     lengths = [r[2] for r in brects]
-    lengths.sort(reverse=True)
+#    lengths.sort(reverse=True)
     average = top_average(lengths)
-    printTerm("lengths",lengths)
+#    printTerm("lengths",lengths)
     blobs = [length for length in lengths if (length > average/2) ]
     return(len(blobs))
 
@@ -399,14 +414,11 @@ def imageOut(tempstring):
     cv2.putText(referenceImage,tempstring,(wi/11,4*he/7),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.5, (250,210,255),4)
 
-    tmpimg = cv2.resize(referenceImage,params['imageSize'])
     if not os.path.exists(frameLocation) :
         os.mkdir(frameLocation)
-    plog("before showdb")
-    showdb(tmpimg, delay=10000)
-    plog("after showdb")
-    cv2.imwrite("./web/tmp.jpg", cv2.resize(referenceImage,params['imageSize']))
-    os.rename("./web/tmp.jpg", imageName)
+    tmpimg = cv2.resize(referenceImage,params['imageSize'])
+    cv2.imwrite(imageNameFR, referenceImage) # Full Resolution (web page)
+    cv2.imwrite(imageName, tmpimg)
     movie_file(imageName)
 
 def nocam() :
@@ -445,12 +457,8 @@ def get_camera() :
         if opt.startswith('od') :
             camprofile = 'normal'
     cmdstr =  "/usr/bin/uvcdynctrl -L "+ camprofile + ".gpfl --device="+camera
-#    print(cmdstr)
     plog(cmdstr)
-    with suppress_stdout_stderr() :
-        os.system(cmdstr)
-#        os.system("./camreset quickcam")
-#        time.sleep(1)
+    os.system(cmdstr)
     camSettle(3)   # save_frames('sample',10) to create sample set
 
 def lasttemp() :
@@ -492,7 +500,8 @@ def colorboxat(img, x, y, minspace) :
     
 # Overall light level tells us if the EvoStat is open or closed(dark)
 def evostat_light() :
-    return np.mean(cv2.cvtColor(referenceImage, cv2.COLOR_BGR2HLS)[2])
+    mn = np.mean(cv2.cvtColor(referenceImage, cv2.COLOR_BGR2HLS)[2])
+    return mn
 
 # Monitor prints out new level readings only
 # when they differ from the previous reading
@@ -505,13 +514,14 @@ def monitor(tempstring) :
     plog(str(plist[1:]))
     for (name, bbox, minlen, deltath, minspace) in plist[1:] :
         line_count = processRegion(pimg, bbox, minlen, deltath, name)
-        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(255,200,255),2)
+        cv2.rectangle(referenceImage,(bbox[0][1],bbox[0][0]),(bbox[1][1],bbox[1][0]),(255,200,255),3)
         cv2.rectangle(referenceImage,
                       (bbox[0][1]+minlen, bbox[0][0]-minlen/2),
                       (bbox[0][1]+2*minlen,bbox[0][0]-minlen/2),(255,255,0),3)
         now  = int(time.time())
         elapsed = now - start
         print("level("+name+","+str(line_count)+","+str(elapsed)+").")
+        qlog("level("+name+","+str(line_count)+","+str(elapsed)+").")
     imageOut(tempstring)
     
 def getlines():
@@ -531,7 +541,8 @@ if __name__ == "__main__" :
     start = int(time.time())
 #    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # No buffering
     os.close(sys.stderr.fileno())
-    sys.stderr = open('/tmp/level.log','a')
+#   sys.stderr = open('/tmp/level.log','a')
+    sys.stderr = open('/home/pi/src/EvoStat/web/level.txt','a')
     memuse()
     print("Here I am at new stderr", file=sys.stderr)
     memuse()
@@ -563,18 +574,16 @@ if __name__ == "__main__" :
         cv2.imwrite("./temp.jpg", cv2.resize(one,params['imageSize']))
         exit(0)
     lastvlen = 0
-    memuse()
-    qlog("just memuse")
-    memuse()
-    qlog("just memuse")
-    memuse()
     qlog("listening for orders")
     inp = raw_input()
     while(inp) :
-        newReferenceImage()           # Take a picture
-        if ( evostat_light() > 127 ): # EvoStat is open, don't bother image processing
-            plog("  TOO MUCH LIGHT....sleeping")
-            time.sleep(cycletime)     # and no frames produced for timelapse movie (okay?)
+        ret = newReferenceImage()           # Take a picture
+        if (not ret) :
+            fakeOut(8)
+            continue
+        if ( evostat_light() > 100 ): # EvoStat is open, don't bother image processing
+            fakeOut(9)
+            time.sleep(10)    # and no frames produced for timelapse movie (okay?)
             continue
         check_maskspec()              # Reload plist if .maskspec changed
         monitor(inp)                  # Image Processing (passing in temperature string)
@@ -582,6 +591,7 @@ if __name__ == "__main__" :
         print("end_of_data.")
         sys.stdout.flush()
         inp = raw_input()
+    qlog("raw_input: "+str(inp))
     release()
 
 # OLD

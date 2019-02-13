@@ -87,22 +87,22 @@ initialise(Self, Label:[name]) :->
 update(Self) :->
 	"Must copy image to new filename to avoid caching"::
       statistics(snap1),
-      writeln(updating(snapshot)),
+%      writeln(updating(snapshot)),
       R is random(10000),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
       new(NB, bitmap(NewFile)),
-      plog(newbitmap),
+%      plog(newbitmap),
       get(Self, tmpbitmap, OB),
       statistics(snap2),
       send(Self, slot, tmpbitmap, NB),          % Save the new bitmap
       send(Self, clear),
       send(Self, display, NB),
       catch(free(OB),FEx,(plog(freeing(FEx,failed)),true)),
-      plog(freed(bitmap)),
+%      plog(freed(bitmap)),
       statistics(snap3),
-      delete_file(NewFile),
-      plog(updated(snapshot)).
+      delete_file(NewFile).
+%      plog(updated(snapshot)).
 
 closesocket(_Self) :-> true.
 
@@ -218,7 +218,7 @@ closesocket(Self) :->
 % Creates a new socket, sends RESET, and retries after the second failure,
 % Finally it will report failure and fail.
 
-check_socket(_,    S, S) :- plog(' check_socket'(norm)).
+check_socket(_,    S, S). %  :- plog(' check_socket'(norm)).
 check_socket(Self, S, S) :- reset(Self), plog('  check_socket'(reset)).
 check_socket(Self, _, New) :-  % Get new/(or the very first) socket
         plog('   check_socket'(new)),

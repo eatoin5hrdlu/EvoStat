@@ -268,39 +268,56 @@ check_error(_).               % Everything else is not an error
 
 % Same as set_prolog_flag(unknown, fail), but safer (abolish does this!)
 safe_childProcess(A,B,C,D) :-
-    catch( childProcess(A,B,C,D), _Ex, (backtrace(20),fail)).
+    safe(childProcess(A,B,C,D),fail).
 
-% Launch level
+%!  launch(+Atom) is semidet.
+% This will destroy any existing child of the same Program
 launch(Program) :-
-    plog(launch),
-    (safe_childProcess(Program,PPID,PIn,_POut) ->
-	 catch(nl(PIn),Ex,(plog(launchEx(Ex)),backtrace(20))),
-	 catch(flush_output(PIn),_,true),
-	 catch(process_wait(PPID, Return),_,(Return=wait_failed,true)),
+    plog(launch_prep),
+    ( safe(childProcess(Program,PPID,PIn,_POut), fail) ->
+	 plog(child(Program, PPID)),
+	 catch(nl(PIn),Ex,
+	       (plog(launchEx(Ex)),
+		get_prolog_backtrace(20,BT),
+		print_prolog_backtrace(user_error,BT,[subgoal_positions(true)]))),
+	 plog(before(flush)),
+	 catch(flush_output(PIn),Fex,(plog(flush_ex(Fex)),true)),
+	 plog(before(wait)),
+	 catch(process_wait(PPID, Return),Wex,
+		     (plog(wait_ex(Wex)),Return=wait_failed)),
 	 sleep(1), % Make sure camera is free
 	 plog(launch_preparation(Program, Return))
-     ; true
+     ; plog(no_safe_child) % , true
     ),
-    retractall(childProcess(_,_,_,_)),
+    launch0(Program).
+
+launch(Program) :- plog(launch_failed(Program)),fail.
+
+%!  launch0(+Atom) is det.
+
+launch0(Program) :- % First time, or after recovery
+    retractall(childProcess(Program,_,_,_)),
     python(Python),
     evostat_directory(Dir),
     concat_atom([Dir,Program,'.py'],LEVELS),
     CmdLine = [LEVELS],
+    plog(launch0),
     process_create(Python, CmdLine,
 		   [stdout(pipe(Out)), stdin(pipe(In)),
 		    cwd(Dir),
 		    process(PID)
 		   ]),
+    plog(launched(PID)),
     assert(childProcess(Program,PID,In,Out)).
 
 safe_get_level(Program) :-
-    catch( get_level(Program),
-	   Ex,
-	   (flog(relaunching(Program,Ex)),
+    catch( get_level(Program), Ex,
+	   (plog(relaunching(Program,Ex)),
 	    childProcess(Program,PID,In,Out),
-	    catch(close(In),InE,flog(close(InE))),
-	    catch(close(Out),OutE,flog(close(OutE))),
-	    catch(process_wait(PID,_),WaitE,flog(wait(WaitE))),
+	    catch(close(In),InE,plog(close(InE))),
+	    catch(close(Out),OutE,plog(close(OutE))),
+	    catch(process_wait(PID,_),WaitE,plog(wait(WaitE))),
+	    plog(caught_launch),
 	    launch(level))).
 
 get_level(Program) :-
@@ -395,12 +412,12 @@ initialise(W, Label:[name]) :->
 
          send(W,started),
          send_super(W, open, Location),
+	 plog(normal(launch)),
 	 launch(level),
 	 plog(finished(evostat)).
 
 newmotd :-
-     get_time(TimeStamp),
-     format_time(atom(Now), '%A, %d %b %Y %T', TimeStamp, posix),
+     timeAtom(Now),
      ( motd(MOTD) -> true ; MOTD = '-' ), % From <hostname>.pl
      concat_atom([MOTD, ' Restarted ', Now], Message),
      retractall(motd(_)),
@@ -496,6 +513,7 @@ prompt(W, Value:name) :<-
 % 4) Restart the auto update timer (new timer value from settings NYI)
 % 5) Make a fast_update version for the GUI
 
+statistics(_) :- !.
 statistics(ID) :-
     get(class(object), no_created, @on, Created),
     get(class(object), no_freed, @on, Freed),
@@ -512,17 +530,21 @@ update(Self) :->
     send(Self,quiet),      plog(sent(quiet)),
     send(Self,readLevels), plog(sent(readlevels)),
     % COMPONENT UPDATES IN MIXON
-    plog(updatingall),
+%    plog(updatingall),
     send(Self,mixon),
     prep,              % refreshes assert with Web page data 
     param(updateCycle(Seconds)),
     retractall(next_update(_)), % Reset the count-down
     assert(next_update(Seconds)),
-    plog(calling(report)),
+%    plog(calling(report)),
     report,
     send(@gui, started),
     catch( datalog, Ex, plog(exception(Ex))),
     plog(start(gui)).
+
+update(Self) :->
+      get(Self,name,ClassName),
+      plog(update(ClassName,failed)).
 
 quiet(Self) :->
     send_to_type( Self?graphicals, lagoon,  [converse,m0] ), % Mixers OFF
@@ -570,7 +592,11 @@ mixon(Self) :->
     plog('Cellstat mixer, Lagoon mixers, Air on').
     
 readLevels(_) :->
-    safe_get_level(level).
+	  safe_get_level(level),
+          !.
+
+readLevels(_) :->
+    plog(readLevels(failed)).
 
 %    catch( consult_python('./alevel.py', [], 2),
 %	   Caught,
@@ -593,10 +619,14 @@ fastUpdate(Self) :->
     Next is Seconds - 10,
     assert(next_update(Next)),
     send_to_type(Self?graphicals, sampler, [up,Next]),
-    plog(updated(next_update,Next)),
+%    plog(updated(next_update,Next)),
     send_to_type(Self?graphicals, sampler, [update]),
     prep,
-    check_web_files.
+    check_web_files,
+%    plog(fastUpdate(finished)),
+    !.
+
+fastUpdate(_) :-> plog(fastUpdate(failed)).
 
 texting(Self) :->
     send(Self, sendTexts), % Send first text message
@@ -737,7 +767,8 @@ report :-
     reportTurbidity(cellstat,S),
     findall(_,reportTemperature(lagoon,S),_),
     findall(_,(err(Who,Err),write(S,error(Who,Err)),nl(S)),_),
-    close(S).
+    close(S),
+    !.
 report :- plog(report(failed)).
 
 report_conditions(S) :-
@@ -923,9 +954,13 @@ propagate(level(Name,Bars,Elapsed)) :-
     bars_ml(Bars,ML),
     component(Name,_,Obj),
     get(Obj,tl,TargetLevel),
-    plog(newlevel(Name,TargetLevel,ML)),
+    (Elapsed < 0
+     -> plog(newlevel(Name,TargetLevel,ML:faked))
+     ;  plog(newlevel(Name,TargetLevel,ML))
+    ),
     send(Obj,l,ML),
-    flog(volume(Name,ML,Elapsed)).
+    timeAtom(HumanTime),
+    plog(volume(Name,ML,Elapsed,HumanTime)).
 
 backgroundImage(ImageFile) :-
     config_name(Name,_),
@@ -979,3 +1014,36 @@ dataset(Time, Dataset, Term) :-
     get(Obj,Var,Value),
     Term =.. [ Functor, Name, Time, Value ].
 
+safe(Goal, Boolean) :-  % safe(+,Boolean specifies success or failure of exception)
+    catch(Goal, Ex,
+	  ( plog('EXCEPTION'(Goal,Ex)),
+	    get_prolog_backtrace(30,BT),
+	    print_prolog_backtrace(user_error,BT,[subgoal_positions(true)]),
+	    Boolean,
+	    default_binding(Goal) )
+	 ).
+
+safe_quiet(Goal, Boolean) :-
+    catch(Goal, _, (default_binding(Goal)->Boolean;Boolean)).
+
+:- dynamic user_default_binding/1.
+:- multifile user_default_binding/1.
+
+%! default_binding(?) is det.
+
+default_binding(Goal) :- user_default_binding(Goal),!.
+default_binding(Goal) :- plog(no_default_binding(Goal)), fail.
+
+%! set_default_binding(+) is det.
+set_default_binding(Goal) :-
+    functor(Goal,F,A),
+    functor(Template,F,A),
+    retractall(user_default_binding(Template)),
+    assert(user_default_binding(Goal)).
+
+%! cache_call(+) is semidet.
+cache_call(Goal) :-
+    call(Goal),
+    set_default_binding(Goal),
+    !.
+    

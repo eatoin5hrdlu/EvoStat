@@ -35,8 +35,9 @@ evostat_port(      _,  21847).
 evostat_port(Port) :- hostname_root(H), evostat_port(H,Port).
 
 
-running   :- evostat_port(Port),
-             catch(thread_httpd:http_workers(Port,N),_,fail), N>0.
+http_running   :-
+     evostat_port(Port),
+     catch(thread_httpd:http_workers(Port,N),_,fail), N>0.
 
 reload    :- stop_http, reconsult(webspec), start_http.
 
@@ -44,7 +45,7 @@ stop_http  :- evostat_port(Port),
               catch(http_stop_server(Port,[]),_,true).
 
 start_http :-
-    ( running -> true
+    ( http_running -> true
      ;
      plog(processing(http,files)),
      touch('./web/timelapse.mp4'), % Files that must exist during startup
@@ -230,8 +231,8 @@ nocacheHead(Title,
 toggle(script([language(javascript),type('text/javascript')],
  [ Script ]), A, B) :-
     Pre = 'var tggl = 1;
-    function toggleimage() {
-    var img = document.getElementById("timg");
+    function toggleimage(imgid) {
+    var img = document.getElementById(imgid);
     if (tggl == 1) {
       img.src = "/web/images/',
     Mid = '";
