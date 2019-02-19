@@ -49,13 +49,13 @@ term_expansion(iface(Type,PType,Vars), []) :-
        ),
        ( pull(S2,N2:name) :-> "Pull value from Arduino"::
 	                      S2 = @Npull,
-	                      statistics(pull1(Npull,N2)),
+%	                      statistics(pull1(Npull,N2)),
 	                      send(S2,converse,N2),
 			      get(S2,reply, Reply),
 	                      ( parse_reply_arg1(Reply, N3, V3),
 			        nonvar(N3),
 			        nonvar(V3),
-				statistics(pull2(N3,V3)),
+%				statistics(pull2(N3,V3)),
 	                        catch( send(S2, slot, N3, V3), VEx,
 				       ( plog(updateXPCEfromArduino(Npull,N2,N3,V3,VEx,failed)),
 					 fail))
@@ -77,8 +77,7 @@ term_expansion(iface(Type,PType,Vars), []) :-
 	    findall(P,retract(changed(US,P,_)),Ps),
 	    maplist( send(US,pull), ReadOnly),
             maplist( send(US,push), Ps),
-	    ( Ps = [] -> true; send(US,converse, s) ),
-	    statistics(updatez)
+	    ( Ps = [] -> true; send(US,converse, s) )
 	  %  send(US,check_level)   % PID will obviate this ?
 	 ),
 	 send(US,relabel),
