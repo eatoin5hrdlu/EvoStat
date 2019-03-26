@@ -57,11 +57,11 @@ rx = dur + dur*0.01;
 % Multiply by 10^2 for semilog, add/subtract fraction for linear.
 text(pos1,
      offset(x(middle,1),lsl,x(middle,4)),
-     'Uninfected Host','fontsize',20,'color','k');
+     'Uninfected Host','fontsize',20,'color',hostcolor);
 righty = rv(lp,x, y, 1, lsl, 0);
-text(rx, righty, 'Uninfected','fontsize',10,'color','k');
+text(rx, righty, 'Uninfected','fontsize',10,'color',hostcolor);
 righty = rv(lp,x, y, 1, lsl, -0.3);
-text(rx, righty, 'Host','fontsize',10,'color','k');
+text(rx, righty, 'Host','fontsize',10,'color',hostcolor);
 disp("after uninfected");
 text(pos2,
      offset(x(leftp,2),lsl,x(leftp,3)),
