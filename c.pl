@@ -886,7 +886,7 @@ check_web_control :-
 	atomic_list_concat(['./web/',P],File),  % Create signal file
 	open(File,write,S),
 	nl(S),
-	close(File),
+	close(S),
 	plog(created(File))
     ),
     fail.
