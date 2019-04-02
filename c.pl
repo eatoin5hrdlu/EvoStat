@@ -414,6 +414,8 @@ initialise(W, Label:[name]) :->
          send_super(W, open, Location),
 	 plog(normal(launch)),
 	 launch(level),
+	 findall(Person,sendIP(Person),People),
+	 plog(sentIP(People)),
 	 plog(finished(evostat)).
 
 newmotd :-
@@ -649,6 +651,11 @@ sending_text(Now) :-
     concat_atom(['/usr/bin/python ',Dir,'smstext.py ',Where], Cmd),
     shell(Cmd).
 
+sendIP(Who) :-
+    watcher(Who, Where, _When),
+    evostat_directory(Dir),
+    concat_atom(['/usr/bin/python ',Dir,'smstext.py ',Where,' sendip'], Cmd),
+    shell(Cmd).
     
 :- pce_end_class.  % End of evostat
 

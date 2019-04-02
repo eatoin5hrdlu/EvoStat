@@ -1,5 +1,8 @@
-#!/usr/bin/python
-import smtplib, os, sys, time
+#!/usr/bin/python -u
+from __future__ import print_function
+
+import socket, smtplib, os, sys, time
+import commands
 from email.mime.image      import MIMEImage
 from email.mime.multipart  import MIMEMultipart
 from email.mime.text       import MIMEText
@@ -11,7 +14,24 @@ import subprocess
 # The old way, retained for quaintness
 wgetip = "bash -c \"ipconfig | grep -Eo 'IPv4.*: ?([0-9]*\.){3}[0-9]*' | sed -E \\\"s/IPv4[^0-9]*(([0-9]+\.){3}[0-9]*).*/\\\\1/\\\""
 
-machineip    = ['hostname','-I']
+machineip    = commands.getoutput('hostname -I')
+
+# If this script is called to report a change of (local) IP
+# we will won't send any message unless the has changed
+
+if 'sendip' in sys.argv :
+    sys.argv.remove('sendip')
+    lipfile = open('lastip')
+    lastip = lipfile.readline().replace('\n','')
+    lipfile.close()
+    if (lastip == machineip) :
+        print('quitting')
+        exit(0)
+    else :
+        lipfile = open('lastip','w')
+        lipfile.write(machineip)
+        lipfile.write("\n")
+        lipfile.close()
 
 # The following usually necessary, and imply that we have
 # port forwarding: EvoStats use ports 12846, 12847 (default), 21848...
@@ -20,14 +40,12 @@ getoutsideip = ['dig','+short','myip.opendns.com','@resolver1.opendns.com']
 
 proc = subprocess.Popen(getoutsideip, stdout=subprocess.PIPE)
 myip = proc.stdout.read().strip().split()[0]
-print "[", myip, "]"
+print("["+myip+"]")
 
-url="http://"+myip+":21847/web/pathe.pl"
-print "URL["+url+"]"
-secrets = eval(open('secrets.py').read())
+url="http://"+myip+":21846/web/pathe.pl"
+print("URL["+url+"]")
 
-# fake it
-# secrets = { 'login':'8wan5hrdlu', 'password': '<passwd>' }
+secrets = eval(open('secrets').read())
 
 carriers = { 'a' : '@messages.att.net',
              'g' : '@gmail.com',
@@ -52,8 +70,8 @@ carriers = { 'a' : '@messages.att.net',
 
 car = 'vp'
 num = '9194525098'
-onion = 'http://innatrixuqtlyuxk.onion/web/pathe.pl'
-mess = onion + "\n" + url +"\n" + os.popen('tail -9 /home/peter/src/EvoStat/evostat.report').read()
+wherefor = "From: " + socket.gethostname()
+mess = wherefor + "\n" + url +"\n" + os.popen('tail -9 /home/pi/src/EvoStat/evostat.report').read() + "My IP is " + machineip
 
 htmlmess = """\
 <html>
@@ -62,8 +80,8 @@ htmlmess = """\
 """ + "\n" + mess + "</pre>\n</html>"
 
 if (len(sys.argv) < 2) :
-    print 'smstext [atvs] NNNNNNNNNN "message"';
-    print 'e.g. for [v]erizon use:   smstext v 9194525098'
+    print('smstext [atvs] NNNNNNNNNN "message"')
+    print('e.g. for [v]erizon use:   smstext v 9194525098')
 #    exit()
 elif (len(sys.argv) == 3) :
     car = sys.argv[1]
@@ -98,8 +116,9 @@ else :
     msg['To'] = num + carriers[car]
 
 # Careful, this debug print prints the whole uuencoded picture
-# print "server.sendmail( 'phagestat@gmail.com', "+num+carriers[car]+", "+msg.as_string()+" )"
+# print( "server.sendmail( 'phagestat@gmail.com', "+num+carriers[car]+" "+msg.as_string()+" )")
 
-server.sendmail('phagestat@gmail.com', num+carriers[car], msg.as_string())
+print(num+carriers[car])
+server.sendmail('8wan5hrdlu@gmail.com', num+carriers[car], msg.as_string())
 server.quit()
 
