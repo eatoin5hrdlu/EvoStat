@@ -5,12 +5,12 @@ config( [
 	 numLagoons(2),
          imageSize(580,440),
 %        cellstatRegion(ytop,xleft,ybot,xright),
-         cellstatRegion(130,210,360,260),
+         cellstatRegion(130,190,360,220),
 	 cellstatContrast(1, 1.03, -100), % Iterations, Multiply, Subtract
 	 cellstatThreshold(144),
 	 cellstatHeight(230),  % same as 100% of cellstat volume
 
-         lagoonRegion(470,10,620,460),
+         lagoonRegion(600,200,638,300),
          lagoonContrast(  2, 3.5, -50),
 	 lagoonThreshold(110),
 	 lagoonHeight(130),          % same as 100% of lagoon volume
@@ -22,7 +22,7 @@ config( [
 
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
-	 camera(0),
+	 camera(1),
 	 rotate(90),
 	 screen(40,52,point(120,1)),
 	 layout([
@@ -31,6 +31,7 @@ config( [
 		 supply( inducer2,  right, [Supply,levelUnits(mL)]),
 		 supply( inducer3,  right, [Supply,levelUnits(mL)]),
 		 cellstat( host0,   below, [tb(400),TL,shape(36,14),CF]),
+%		 cellstat( host1,   right, [tb(400),TL,shape(36,14),CF]),
 		 spacer(     x1, next_row, [color(blue)]),
 		 snapshot(  cam, next_row, [ ]),
 		 spacer(      x2, next_row, []),
@@ -56,8 +57,19 @@ config( [
 % bt_device(autosampler, '98:D3:32:30:42:6A'). % HC=06 name: lagoond1
 % CURRENT
 % bt_device( host0,     '98:D3:31:70:2B:70'). % HC-06 name: lagoon3
-bt_device(  host0,  '98:D3:31:FC:1D:75'). % HC-06 name: lagoon1
-bt_device( lagoon1,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
+% CONSISTENT TIMEOUT
+%bt_device( lagoon1,  '98:D3:31:FC:A0:1B'). % HC-06 name: lagoon1
+
+%PREV bt_device(  host0,  '98:D3:31:FC:1D:75'). % HC-06 name: lagoon1
+%PREVbt_device( lagoon1,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
+
+% Ari's devices
+bt_device( host0,  '98:D3:31:FB:7A:BF'). % HC-06 name: <new>
+bt_device( lagoon2,  '98:D3:31:FB:A5:15'). % HC-06 name: <new>
+
+% Huxley's devices
+%bt_device( host0,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
+%bt_device( lagoon2,  '98:D3:31:40:31:C3'). % HC-06 name: lagoon2
 
 % NEW HOST
 
@@ -102,7 +114,8 @@ bt_device( lagoon1,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
 % watcher (Name,  '<carrier> <number>', Hours-per-text)
 
 watcher(reintjes,'vp 9194525098',  4).  % Peter Reintjes
-watcher(jiarui,  'a  7853177639',  6).  % Jiarui Li
+%watcher(jiarui,  'g ljrluck',      24).  % Jiarui Li
+%watcher(jiarui,  'a 7853177639',  6).  % Jiarui Li
 %watcher(laurie,  'vp 9196987470', 24). % Laurie Betts
 %watcher(pc,      'a 9193083839',  8).  % The Other Peter
 %watcher(marshall,'a 5056037415', 8).   % Marshall
@@ -146,4 +159,6 @@ component_drain( lagoon4,  v1, autosampler, v4).
 
 python('C:\\Python27\\python.exe') :- windows.
 python('/usr/bin/python')          :- linux.
+
+
 
