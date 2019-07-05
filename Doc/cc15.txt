@@ -1,0 +1,58 @@
+
+Servos           (2X3-wire cables)
+
+Drain Valve (5)  12V
+
+Air Relay         Solid State Relay
+
+
+Sensor RJ-45
+
+1) Orange-white   
+2) Orange         drip (collector)  3  (int)
+3) Green-white    LED600-
+4) Blue           Gnd
+5) Blue-white     Vcc
+6) Green          LASERS-
+7) Brown-white    OD (collector) A3
+8) Brown          drip (collector)  2  (int)
+
+Module RJ-45
+
+1) Orange-white   SCL  A5
+2) Orange         SDA  A4
+3) Green-white    Vcc
+4) Blue           Motor-
+5) Blue-white     Meniscus-
+6) Green          Gnd
+7) Brown-white    Vcc (heat)
+8) Brown          Heat-
+
+ANALOG_LEAK          A1 // Analog leak detection OTHER
+CURRENT_SENSE2       A2 // Analog input
+ANALOG_TURBIDITY     A3 // Turbidity (brown/white) SC
+SPI_CLOCK_PIN        A4 // SCL
+SPI_DATA_PIN         A5 // SDA
+AUX1                 A6
+UVC                  A7
+
+// Only 3 PWM Nano: [3 int],5,6,[9,10 servo],11
+DRIP            2    // Interrupt Drip Beam SC
+DRIP2           3    // Aux Interrupt Drip  SC
+AIR             4    // AIR PUMP
+MENISCUS        5    // Meniscus light   PWM MC
+MIXER           6    // PWM for 5V motor PWM MC
+WASTE           7    // V5 Waste 12V Solenoid
+VALVEPIN        8    // Control of valve servo
+VALVEDISABLE    9    // Power to valve servo 
+LASER          10    // Powers all lasers
+LED600         11    // 600nM LED-  (PWM) SC
+HEATER         12    // 4W Heat 2X12.5 ohms
+LED            13    // Arduino LED
+
+
+
+
+  5-Meniscus-     11-OD-GW
+
+  6-Mixer-        10-LASER-G
