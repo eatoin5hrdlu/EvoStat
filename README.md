@@ -43,7 +43,7 @@ Clone the plblue repo (Prolog interface to Bluetooth communication)
     make install  (moves the shared library into the ../EvoStat directory
     
 
---- Level detection Python/OpenCV
+--- LEVEL detection Python/OpenCV
 
 A python program (alevel.py) uses OpenCV to read the liquid levels of the vessels.
 Windows and linux versions of #! in ipcam.py appear at the top of the file
