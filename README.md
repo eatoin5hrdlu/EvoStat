@@ -37,9 +37,13 @@ Clone the EvoStat repo:
     git clone https://github.com/eatoin5hrdlu/EvoStat.git
     
 Clone the plblue repo (Prolog interface to Bluetooth communication)
+
     git clone https://github.com/eatoin5hrdlu/plblue.git
+    
     cd plblue
+    
     make      ( required packages: libbluetooth-dev and bluez )
+    
     make install  (moves the shared library into the ../EvoStat directory
     
 
