@@ -32,13 +32,20 @@ Prerequisite Software
 
 Getting Started
 ====
-Clone the repo:
+Clone the EvoStat repo:
 
     git clone https://github.com/eatoin5hrdlu/EvoStat.git
+    
+Clone the plblue repo (Prolog interface to Bluetooth communication)
+    git clone https://github.com/eatoin5hrdlu/plblue.git
+    cd plblue
+    make      ( required packages: libbluetooth-dev and bluez )
+    make install  (moves the shared library into the ../EvoStat directory
+    
 
 --- Level detection Python/OpenCV
 
-A python program (ipcam.py) uses OpenCV to read the liquid levels of the vessels.
+A python program (alevel.py) uses OpenCV to read the liquid levels of the vessels.
 Windows and linux versions of #! in ipcam.py appear at the top of the file
 It may be necessary to move the correct one to the top. Or call python:
 
