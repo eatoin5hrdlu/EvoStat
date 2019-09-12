@@ -1,3 +1,4 @@
+
 EvoStat:  A PhageStat to support PACE and PATHE Experiments
 ====
 Software and Hardware for an automated platform for PACE and PATHE experiments.
@@ -24,19 +25,27 @@ Prerequisite Software
 - OpenCV (on Linux add "apt-get install python-opencv")
 - SWI-Prolog with Xpce
 - Arduino IDE (Processing)
-- python-psutil, ffmpeg, octave, (some other stuff, watch this space).
--
-- On Linux add : imagemagick (for conversion of image files)
-- apache2-utils: for Authentication (encrypted password) Files
-- 
+- apt-get install these additional packages
+  - python-psutil, ffmpeg, octave, dnsutil  (some other stuff, watch this space).
+  - On Linux add : imagemagick (for conversion of image files)
+  - apache2-utils: for Web Authentication (encrypted password) Files
+  - 
 
 Getting Started
 ====
-Clone the EvoStat repo:
+1) Clone the EvoStat repo:
 
     git clone https://github.com/eatoin5hrdlu/EvoStat.git
+
+2) Create a "secrets" file in the EvoStat directory to enable sending of SMS messages
+
+Filename :       secrets
+File contents:   { 'login': 'your-email', 'password': 'your-password' }
+
+   Example: For gmail, your-email does not include "@gmail.com"
+   Your login is just the first part of your email address
     
-Clone the plblue repo (Prolog interface to Bluetooth communication)
+3) Clone the plblue Git repository (Prolog interface to Bluetooth communication)
 
     git clone https://github.com/eatoin5hrdlu/plblue.git
     
@@ -46,6 +55,11 @@ Clone the plblue repo (Prolog interface to Bluetooth communication)
     
     make install  (moves the shared library into the ../EvoStat directory
     
+
+--- MESSAGING (SMS) via Python smstext.py program
+Needs package dnsutil for program "dig" to get outside IP address, in order to include a functional URL for the EvoStat to outside users.
+
+File 'secrets' must have login/password for SMS server (e.g. via gmail)
 
 --- LEVEL detection Python/OpenCV
 
