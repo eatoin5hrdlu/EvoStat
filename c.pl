@@ -826,6 +826,14 @@ evostat_running :-
 evostat_location(Location) :-
     popen('/usr/bin/dirname \`readlink -f \\\`which evostat\\\`\`',read,S),
     read_stream_to_codes(S,Codes),
+    (Codes = [] ->
+	 plog(' '),
+	 plog('Needs a symbolic link to evostat in $PATH:'),
+	 plog(' $ sudo ln -s <evostat-location>/evostat /usr/bin/evostat'),
+	 plog(' $ sudo chmod 755 /usr/bin/evostat'),
+	 halt
+     ; true
+    ),
     append(Front,[_NL],Codes),
     atom_codes(Location,Front),
     working_directory(_,Location).
