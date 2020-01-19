@@ -5,7 +5,7 @@ ani(_Req) :-
     Head = [ Style, Toggle | Default ],
     reply_html_page(Head, body([],
 	[ img([ id(timg),
-		onclick('toggleimage();'),
+		onclick('toggleimage("timg");'),
 		src('/web/images/plain.gif'),width('80%')],[]) ])).
 
 ani(Request) :-

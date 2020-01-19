@@ -1,3 +1,4 @@
+
 EvoStat:  A PhageStat to support PACE and PATHE Experiments
 ====
 Software and Hardware for an automated platform for PACE and PATHE experiments.
@@ -24,21 +25,45 @@ Prerequisite Software
 - OpenCV (on Linux add "apt-get install python-opencv")
 - SWI-Prolog with Xpce
 - Arduino IDE (Processing)
-- python-psutil, ffmpeg, octave, (some other stuff, watch this space).
--
-- On Linux add : imagemagick (for conversion of image files)
-- apache2-utils: for Authentication (encrypted password) Files
-- 
+- apt-get install these additional packages
+  - python-psutil, ffmpeg, octave, dnsutil  (some other stuff, watch this space).
+  - On Linux add : imagemagick (for conversion of image files)
+  - apache2-utils: for Web Authentication (encrypted password) Files
+  - 
 
 Getting Started
 ====
-Clone the repo:
+1) Clone the EvoStat repo:
 
     git clone https://github.com/eatoin5hrdlu/EvoStat.git
 
---- Level detection Python/OpenCV
+2) Create a "secrets" file in the EvoStat directory to enable sending of SMS messages
 
-A python program (ipcam.py) uses OpenCV to read the liquid levels of the vessels.
+Filename :       secrets
+File contents:   { 'login': 'your-email', 'password': 'your-password' }
+
+   Example: For gmail, your-email does not include "@gmail.com"
+   Your login is just the first part of your email address
+    
+3) Clone the plblue Git repository (Prolog interface to Bluetooth communication)
+
+    git clone https://github.com/eatoin5hrdlu/plblue.git
+    
+    cd plblue
+    
+    make      ( required packages: libbluetooth-dev and bluez )
+    
+    make install  (moves the shared library into the ../EvoStat directory
+    
+
+--- MESSAGING (SMS) via Python smstext.py program
+Needs package dnsutil for program "dig" to get outside IP address, in order to include a functional URL for the EvoStat to outside users.
+
+File 'secrets' must have login/password for SMS server (e.g. via gmail)
+
+--- LEVEL detection Python/OpenCV
+
+A python program (alevel.py) uses OpenCV to read the liquid levels of the vessels.
 Windows and linux versions of #! in ipcam.py appear at the top of the file
 It may be necessary to move the correct one to the top. Or call python:
 
