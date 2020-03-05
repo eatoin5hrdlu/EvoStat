@@ -137,6 +137,11 @@ int gtscale;
 int gtoffset;  // Offset and scale for Turbidity calculation
 int OD;
 int interval;   // Variable to keep track of the time
+
+int led600int = 200;
+int laserint  = 200;
+int meniscusint = 200;
+
 int mixerspeed;
 int reading[10];
 boolean dflag = false;
@@ -532,10 +537,6 @@ void forceTurbidity(int currentTurbidity)
 int checkTurbidity() {
 int highlow = 0;
 int i, t, avg;
-        if (digitalRead(LED600) != 0) {  // Turn on 600nM LED
-	   digitalWrite(LED600,0);
-	   delayMicroseconds(10000);
-	}
 // Read Turbidity and bump the ReadArray index
 	turbread[turbindex] = analogRead(ANALOG_TURBIDITY);
 	turbindex = (turbindex+1)%10;
@@ -682,20 +683,23 @@ int i;
 	auto_air = true;   // Maintain Aeration
 	dflag = false;
 	drate = 0;
-	pinMode(WASTE, OUTPUT); digitalWrite(WASTE, 0);
-
-	//  Active Low (power to valve) default 1 == no power
 	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 1);
-	pinMode(LED,       OUTPUT);  digitalWrite(LED, 0);
+	pinMode(UVC,       OUTPUT);  digitalWrite(UVC, 1);
 	pinMode(DRIP,      INPUT);
+	pinMode(DRIP2,     INPUT);
 
 	pinMode(VALVEDISABLE,OUTPUT);
+	//  Active Low (power to valve) default 1 == no power
 	digitalWrite(VALVEDISABLE,0);   //  Enable servo power
 	delay(300);
 	myservo.attach(VALVEPIN);
 	valve.position(0);              //  move to position 0
 	delay(500);
 	digitalWrite(VALVEDISABLE,1);  	//  and then disable
+	pinMode(MIXER,OUTPUT);
+	pinMode(LASER,OUTPUT);
+	digitalWrite(LASER,1);
+	pinMode(MENISCUS,OUTPUT);
 
         analogWrite(MIXER, 0 );     // Mixer off
 	interval = millis();
@@ -706,10 +710,10 @@ int i;
 
 	pinMode(HEATER, OUTPUT); digitalWrite(HEATER, 0);
 	pinMode(AIR, OUTPUT); digitalWrite(AIR, 0);
-	pinMode(LED, OUTPUT);  digitalWrite(LED, 0);
-	pinMode(JARLIGHT, OUTPUT);  digitalWrite(JARLIGHT, 0);
-	pinMode(LED600, OUTPUT);  digitalWrite(LED600, 0);
-	pinMode(MIXER, OUTPUT);  // Don't need pinMode for PWM output
+	
+	analogWrite(MENISCUS, meniscusint);
+        analogWrite(LED600,led600int);
+	delayMicroseconds(10000);
 	analogWrite(MIXER, 0);   // Mixer motor off
 
 	interval = millis();
@@ -789,16 +793,32 @@ char vcmd[3];
 	switch(c1)
 	{
 		case 'a':
-			if (d == 1) {
+		 switch(c2) {
+			case 'b': led600int = value;
+			          analogWrite(LED600,led600int);
+				  checkTurbidity();
+				  printTerm2Int("ab",led600int,turbidity());
+				  break;
+			case 'l': laserint = value;
+			          digitalWrite(LASER,d);
+				  printTermInt("al",d);
+				  break;
+			case 'm': meniscusint = value;
+			          analogWrite(MENISCUS,meniscusint);
+				  printTermInt("am",meniscusint);
+				  break;
+			case '1':
 				auto_temp = true;
 				auto_valve = true;
 				auto_mixer = true;
 				auto_air = true;
-			} else {
+				break;
+			case '0':
 				auto_temp = false;
 				auto_valve = false;
 				auto_mixer = false;
 				auto_air = false;
+				break;
 			}
 			break;
 		case 'b':
@@ -913,15 +933,19 @@ char vcmd[3];
 		case 'l':
 		       switch(d) {
 		        case 0:
-		       	    digitalWrite(JARLIGHT, 1); // low=ON
-			    digitalWrite(LED600,   1); // high=OFF
+			    digitalWrite(UVC, 0);
+			    digitalWrite(LASER, 0);
+		       	    analogWrite(MENISCUS, 0);
+			    analogWrite(LED600,   0);
 			    break;
 			case 1:
-		       	    digitalWrite(JARLIGHT, 0); // low=ON
-			    digitalWrite(LED600,   0); // high=OFF
+		       	    analogWrite(MENISCUS, meniscusint);
+			    analogWrite(LED600,   led600int);
+			    digitalWrite(LASER, 1);
+			    digitalWrite(UVC, 1);
 			    break;
 			default:
-			  printTermInt("led",!digitalRead(JARLIGHT));
+			  printTermInt("led600",meniscusint);
 			}
 		case 'm':
 		     if (c2 == 's') {
@@ -1019,6 +1043,9 @@ char vcmd[3];
 			   printTermInt("t",get_temperature());
 			}
 			break;
+		case 'u':  // d = numerical value of c2 {0,1}
+		     digitalWrite(UVC, d);
+		     break;
 		case 'v':
 		        if (valveRange(c2)) {
 			    vnum = (int)(c2 - '0');

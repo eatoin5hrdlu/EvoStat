@@ -239,55 +239,62 @@ def level_data(img, minlen=12) :
     if (alllines == None) :
         return (0,0)
     maxvert = 0
-    maxvertpos = 0
     numbervert = 0
     centerx = -1
-    state = 0
+    print("VRESULT")
     for lines in alllines:
+        print("  GROUP "+str(len(lines)))
         for l in lines :
             if (l[0] == l[2]) : # Vertical line
-                numbervert = numbervert + 1
                 vlen = l[1]-l[3]
+                numbervert = numbervert + 1
+                print("    Vert at "+str(l[0]) +" len "+str(vlen))
                 if (vlen > maxvert) :
                     centerx = l[0]
                     maxvert = vlen
-                    maxvertpos = l[0]
     report = report + "num vert = "+str(numbervert)+" centerx="+str(centerx)+" max vert="+str(maxvert)
     numberhoriz = 0
     maxy = -1
     miny = 1000
+    leftofcenter = None
+    rightofcenter = None
     if (numbervert == 0) : # Check for one horizontal line
+        print("H1RESULT")
         for lines in alllines:
+            print("  GROUP "+str(len(lines)))
             for l in lines : # Find max Y line (not on the edge)
                 if (l[1] == l[3]) : # Horizontal
                     hcen = (l[0]+l[2])/2
+                    hlen = l[2] - l[0]
                     numberhoriz = numberhoriz + 1
-                if ( l[1]>maxy ) :
-                    maxy = l[1]
-                    leftofcenter = ( hcen, l[1] )
-                    state = 1
-                    report = report + " hl"+str(hcen)
-        return (state, 0)
-    leftofcenter = None
-    rightofcenter = None
-    for lines in alllines:
-        for l in lines : # Find min Y line (not on the edge)
-            if (l[1] == l[3]) : # Horizontal, not near top or bottom
-                numberhoriz = numberhoriz + 1
-                if ( l[1] < h-3 and l[1] > 3 and l[1] < h-3) :
-                    hcen = (l[0]+l[2])/2
-                    if ( (hcen < centerx) and l[1]>maxy ) :
+                    print("    Horz at "+str(hcen)+ " len=",str(hlen))
+                    if ( l[1]>maxy ) :
                         maxy = l[1]
                         leftofcenter = ( hcen, l[1] )
-                        report = report + "left " + str(hcen)
-                    if ( (hcen > centerx) and l[1]<miny ) :
-                        miny = l[1]
-                        rightofcenter = ( hcen, l[1] )
-                        report = report + "right " + str(hcen)
+                        report = report + " hl"+str(hcen)
+    else :  # We saw the vertical, so their might be two horizontals
+        for lines in alllines:
+            print("  GROUP "+str(len(lines)))
+            for l in lines : # Find min Y line (not on the edge)
+                if (l[1] == l[3]) : # Horizontal, not near top or bottom
+                    numberhoriz = numberhoriz + 1
+                    hcen = (l[0]+l[2])/2
+                    hlen = l[2] - l[0]
+                    print("    Horz at "+str(hcen)+ " len=", str(hlen))
+                    if ( l[1] < h-3 and l[1] > 3 and l[1] < h-3) :
+                        if ( (hcen < centerx) and l[1]>maxy ) :
+                            maxy = l[1]
+                            leftofcenter = ( hcen, l[1] )
+                            report = report + "left " + str(hcen)
+                        if ( (hcen > centerx) and l[1]<miny ) :
+                            miny = l[1]
+                            rightofcenter = ( hcen, l[1] )
+                            report = report + "right " + str(hcen)
+    state = 0
     if (leftofcenter is not None) :
-        state = state + 1
-    if (rightofcenter is not None) :
-        state = state + 1
+        state = 1
+    if ((numbervert > 0) and (rightofcenter is not None)) :
+        state = 2
     report = report + str((state, maxvert))
     return (state, maxvert)
 
@@ -322,17 +329,6 @@ def grab():
         else :
             return img
     return None
-
-def condense_positions(positions, minspace=5) :
-    newpositions = [positions[0]]
-    for i in range(len(positions)-1):
-        delt = abs(positions[i][1]-positions[i+1][1])
-        if delt > minspace :
-            newpositions.append(positions[i+1])
-    return newpositions
-
-#        if delt < minspace + 2 :
-#            print(str(positions[i+1][1])+" barely qualified at delta="+str(delt))
 
 def camSettle(n) :
     global cam

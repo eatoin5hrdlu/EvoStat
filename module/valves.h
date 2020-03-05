@@ -16,6 +16,10 @@
 //                            close valves after their "open time" 
 // void openValve(int v)    - Open the valve for its "open time" duration
 //
+//  Extend the notion of valve to include a heat and air valves to
+// control the "heat on" and "air on" intervals as part of the total cycle.
+//
+
 
 //#include "Arduino.h"
 //#include "param.h" // No need since this file is included

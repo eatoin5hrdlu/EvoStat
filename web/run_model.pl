@@ -1,5 +1,9 @@
 :- use_module(library(process),[process_create/3]).
 
+% Simulated input parameter to debug this web page
+debug_run_model(search, [kg='60',ad='3.0e-10',ec='6',pp='2',p0='10000000',fr='1',
+			 h0='100000000000',vol='40',dur='40',lsl='0',bl='1.0e3',submit='Submit']).
+
 octaveParameters([])            --> [].
 octaveParameters([X=Y|Ps])      -->
     { atom_concat('.',_,Y)->atomic_list_concat(['0',Y],NY);Y=NY},
@@ -8,6 +12,9 @@ octaveParameters([X=Y|Ps])      -->
 
 run_model(Req) :-
     memberchk(search(S),Req),
+    open('./web/rm_search.txt',write,STxt),
+    writeq(STxt,S),
+    close(STxt),
     select(submit=_, S,S1),
     octaveParameters(S1,Tokens,[]),
     flatten(Tokens,List),
@@ -28,7 +35,4 @@ run_model(Req) :-
 
 run_model(Request) :-
       errorPage(Request, 'Error changing parameters').
-
-
-
 

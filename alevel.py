@@ -1,5 +1,9 @@
 #!/usr/bin/python -u
 #!C:/cygwin/Python27/python -u
+
+# minlen for green horizontal lines changed from 6 to 10 to avoid reflection
+# minlen for reticules is still 8
+
 from __future__ import print_function
 import sys, os, time, socket, glob, subprocess
 # To get rid of spurious messages from openCV library
@@ -7,7 +11,6 @@ from suppress_stdout_stderr import suppress_stdout_stderr
 import numpy as np
 import cv2
 import cv2.cv as cv
-
 from shutil import copyfile
 
 debug = False
@@ -59,19 +62,19 @@ def plog(str) :
         print("      --"+str, file=sys.stderr)
 
 def termIntList(f,l) :
-    if (l == None ):
+    if (l is None ):
         plog("Empty argument list: " + f)
         return f+"."
     return f+"("+", ".join([str(i) for i in l])+")."
 
 def termPairList(f,l) :
-    if (l == None ):
+    if (l is None ):
         plog("Empty argument list: " + f)
         return f+"."
     return f+"("+", ".join([str(i[0])+":"+str(i[1]) for i in l])+")."
 
 def termTripleList(f,l) :
-    if (l == None ):
+    if (l is None ):
         plog("Empty argument list: " + f)
         return f+"."
     return f+"("+", ".join([str(i[0])+":"+str(i[1])+":"+str(i[2]) for i in l])+")."
@@ -84,7 +87,7 @@ def termNumberList(f,l) :
 
 
 def icheck(image, who) :
-    if (image == None) :
+    if (image is None) :
         plog("Image equal to None in " + who)
         exit(13)
     if (len(image.shape) == 2) :
@@ -117,7 +120,7 @@ def get_previous() :
         plist = eval(open(prevfile, 'r').read())
     except(IOError):
         print("No previous level information")
-    if (plist == None) :
+    if (plist is None) :
         print("creating PLIST")
         (it, sc1, of1, ei, di, ai1, af) = ( 1, 1.85, -80, 2, 2, 4, 0.7 )
         (sc2, of2, ai2) = (1.35, -80, 3)
@@ -146,6 +149,7 @@ def showdb(img, delay=500) :
             exit(0)
 
 def exportImage(image) :
+    global imageName
     if (image != None ) :
         (cy1,cx1,cy2,cx2) = params['cellstatRegion']
         cv2.rectangle(image,(cx1,cy1),(cx2,cy2),(0,200,200),2)
@@ -155,8 +159,8 @@ def exportImage(image) :
             ((lx1,ly1),(lx2,ly2)) = lagoon_level_bbox_thirds(i)
             cv2.rectangle(image,(lx1,ly1),(lx2,ly2),
                           (100, 255-i*60, i*60), 2)
-        name = "./web/phagestat.jpg"
-        cv2.imwrite(name,cv2.resize(image,params['imageSize']))
+        cv2.imwrite("./web/tmp.jpg", cv2.resize(image,params['imageSize']))
+        os.rename("./web/tmp.jpg", imageName)
         
 def make_movie() :
     out = '/home/peter/src/EvoStat/web/timelapse.avi'
@@ -211,18 +215,18 @@ def dilateErode(img,iter=1, dilate=1, erode=1) :
     return img
 
 def contrast(image, thresh, iter=1, scale=2.0, offset=-80) :
-    if (image == None) :
+    if (image is None) :
         plog("contrast called with null Image")
     for i in range(iter) :
         plog("Try contrast "+str((iter,scale,offset)))
-        if (image == None) :
+        if (image is None) :
             plog("contrast loop: Image is None")
         else :
             showUser(image)
         showdb(image,4000)
         image = cv2.add(cv2.multiply(image,scale),offset)
         showdb(image,4000)
-        if (image == None) :
+        if (image is None) :
             plog( "image(None) after add/mulitply in contrast!")
     showdb(image)
     (ret,img) = cv2.threshold(image, thresh, 255, cv2.THRESH_BINARY)
@@ -235,16 +239,16 @@ def contrast(image, thresh, iter=1, scale=2.0, offset=-80) :
     return img
 
 def contrastOnly(image, thresh, iter=1, scale=2.0, offset=-80) :
-    if (image == None) :
+    if (image is None) :
         plog("contrast called with null Image")
     for i in range(iter) :
         plog("Try contrast "+str((iter,scale,offset)))
-        if (image == None) :
+        if (image is None) :
             plog("contrast loop: Image is None")
         else :
             showUser(image)
         image = cv2.add(cv2.multiply(image,scale),offset)
-        if (image == None) :
+        if (image is None) :
             plog( "image(None) after add/mulitply in contrast!")
     showdb(image)
     (ret,img) = cv2.threshold(image, thresh, 255, cv2.THRESH_BINARY)
@@ -307,8 +311,10 @@ def rotateImage(img, angle=90):
     if (angle == 0) :
         return img
     if (angle == 90) :
+        print("rotating by +90")
         return(cv2.flip(cv2.transpose(img),flipCode=0))
     elif (angle == -90) :
+        print("rotating by -90")
         return(cv2.flip(cv2.transpose(img),flipCode=1))
     else :
         center = (img.shape[1]/2.0,img.shape[0]/2.0)
@@ -347,11 +353,11 @@ def hlines(img, minlen=12) :
     retLines = []
     edges = cv2.Canny(img, 90, 130)
     showdb(edges,2000)
-    if (edges == None) :
+    if (edges is None) :
         plog("level: Bad Canny output. Not calling HoughLines")
         return -1
     alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
-    if (alllines == None) :
+    if (alllines is None) :
         return retLines
     for lines in alllines:
         for l in lines : # Find min Y line (not on the edge)
@@ -371,11 +377,11 @@ def horiz_lines(img, minlen=12) :
     retLines = []
     edges = cv2.Canny(img, 90, 130)
     showdb(edges,2000)
-    if (edges == None) :
+    if (edges is None) :
         plog("level: Bad Canny output. Not calling HoughLines")
         return -1
     alllines = cv2.HoughLinesP(edges,rho = 2,theta = np.pi/2.0,threshold = 4,minLineLength = minlen, maxLineGap = 2)
-    if (alllines == None) :
+    if (alllines is None) :
         return retLines
     for lines in alllines:
         for l in lines : # Find min Y line (not on the edge)
@@ -542,14 +548,20 @@ def imageOut():
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255,210,200),2)
     cv2.putText(referenceImage,lasttemp(),(wi/10,4*he/7),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (250,210,255),2)
-    cv2.imwrite(imageName,cv2.resize(referenceImage,params['imageSize']))
-    movie_file(imageName)
+#  cv2.imwrite("./web/tmp.jpg", cv2.resize(referenceImage,params['imageSize']))
+#    os.rename("./web/tmp.jpg", imageName)
+#    movie_file(imageName)
+
+def cropImage(image, bbox) :
+    ((x1,y1),(x2,y2)) = brect
+    cimg = image[y1:y2,x1:x2,:]
+    return cv2.copyMakeBorder(cimg, 2,2,2,2, cv2.BORDER_CONSTANT,(0,0,0))
 
 def processRegion(image, bbox, function) :
     # Apply function() to subwindow (bbox) of image
     # to find features
     # Return feature coordinates relative to original image
-    cropped = crop(img, bbox)
+    cropped = cropImage(img, bbox)
     features = function(cropped)
     transformed = []
     for feature in features:
@@ -637,7 +649,7 @@ def getALevel(color, threshold, p, reticule) :
         mono = cv2.erode(mono,np.ones((2,2),np.uint8),ei)
         mono = cv2.dilate(mono,np.ones((2,8),np.uint8),di)
         showdb(mono)
-        rawlevels = horiz_lines(mono,minlen=6)
+        rawlevels = horiz_lines(mono,minlen=10)
         if len(rawlevels) < 1 :
             continue
         lvl = rawlevels[0] # nearest_reticule(reticule, rawlevels)
@@ -673,12 +685,12 @@ def total(image) :
 def get_camera() :
     global cam
     cam = None
-    for n in [0, 2, 1] :
+    for n in [1, 0, 2] :
         camera = '/dev/video'+str(n)
         if os.path.exists(camera) :
             cam = cv2.VideoCapture(n)
             break
-    if cam == None :
+    if cam is None :
         print("No camera? Check for one of /dev/video[0,1,2]")
         exit(0)
     camprofile = socket.gethostname()
@@ -708,7 +720,7 @@ if __name__ == "__main__" :
     params = settings()
     referenceImage = None
     tries = 10
-    while (referenceImage == None and tries > 0) :
+    while (referenceImage is None and tries > 0) :
         time.sleep(0.1)
         referenceImage = grab()
         tries = tries - 1

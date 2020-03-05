@@ -36,8 +36,8 @@ ax.tick_params(which='minor', length=5, labelsize=3, labelcolor='0.25')
 
 ax.grid(linestyle="--", linewidth=0.5, color='.25', zorder=-10)
 
-ax.plot(X/86400.0, Y2, c=(1.00, 0.25, 0.25), lw=0.2, label="Lagoon", zorder=11)
-ax.plot(X/86400.0, Y1, c=(0.25, 0.25, 1.00), lw=0.2, label="Host Culture", zorder=10)
+ax.plot(X/86400.0, Y2, c=(1.00, 0.25, 0.25), lw=0.3, label="Lagoon", zorder=11)
+ax.plot(X/86400.0, Y1, c=(0.25, 0.25, 1.00), lw=0.3, label="Host Culture", zorder=10)
 
 ax.set_title("EvoStat Temperature January 7-26, 2019", fontsize=20, verticalalignment='bottom')
 ax.set_xlabel("Time (days)")

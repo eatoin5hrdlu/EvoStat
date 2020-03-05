@@ -1,48 +1,39 @@
 // Customizable Hose Tee
+total_t_length=62;       // Height of Tee
+main_t_diameter=15;      // Diameter of main part of Tee
+main_t_barb_height=2;    // Height of barbs on Tee
+main_t_wall_thickness=3; // Wall thickness of main part of Tee
 
-//Height of Tee
-total_t_length=62;
-//Diameter of main part of Tee
-main_t_diameter=15;
-//Height of barbs on Tee
-main_t_barb_height=2;
-//Wall thickness of main part of Tee
-main_t_wall_thickness=3;
-
-//Diameter of Tee portion of Tee
-secondary_diameter=15;
-//Height of barbs on Tee portion of Tee
-secondary_barb_height=1.75;
-//Wall thickness of Tee portion of Tee
-secondary_wall_thickness=3;
+secondary_diameter=15;  //Diameter of Tee portion of Tee
+secondary_barb_height=1.75; //Height of barbs on Tee portion of Tee
+secondary_wall_thickness=3; //Wall thickness of Tee portion of Tee
 
 module tee() {
-
-difference() {
+ difference() {
   union() {
     translate([0,0,total_t_length/2]){
       rotate(a=[0,180,0]){
         hose_barb(total_t_length/2, main_t_diameter, main_t_barb_height, main_t_wall_thickness);
       }
-    }
+    } // end translate
 
     translate([0,0,-total_t_length/2]){
       rotate(a=[0,0,0]){
         hose_barb(total_t_length/2, main_t_diameter, main_t_barb_height, main_t_wall_thickness);
       }
-    }
+    } // end translate
     translate([-(total_t_length/2 + main_t_diameter/2 - main_t_wall_thickness),0,0]){
       rotate(a=[0,90,0]){
         hose_barb(total_t_length/2, secondary_diameter, secondary_barb_height, secondary_wall_thickness);
       }
-    }
-  }
+    } // end translate
+  } // end union
   rotate(a=[0,90,0]){
     translate([0,0,-total_t_length]){
       cylinder(h=total_t_length, d=secondary_diameter- (secondary_wall_thickness*2), $fn=48);
     }
-  }
-}
+  } // end rotate
+ } // end difference
 } // end tee
 
 
@@ -90,12 +81,18 @@ module filter(offset) {
 
 }
 
-tee();
-translate([0,0,400]) tee();
-translate([0,0,520]) tee();
-translate([0,0,10])tubing(380);
-translate([0,0,410])tubing(100);
-translate([0,0,0]) filter(80);
-translate([0,0,400]) filter(80);
-translate([0,0,520]) filter(80);
-translate([0,0,-94])tubing(80);
+module assembly() {
+  tee();
+  translate([0,0,400]) tee();
+  translate([0,0,520]) tee();
+  translate([0,0,10])tubing(380);
+  translate([0,0,410])tubing(100);
+  translate([0,0,0]) filter(80);
+  translate([0,0,400]) filter(80);
+  translate([0,0,520]) filter(80);
+  translate([0,0,-94])tubing(80);
+}
+
+translate([0,0,400])
+ rotate([180,0,0])
+    assembly();

@@ -20,7 +20,7 @@ module bevelhole(diameter)
 	cube([10,10,14],center=true);
    translate([10,0,-14])
      rotate([0,26,0])
-      cube([30,10,34],center=true);
+      cube([30,12,34],center=true);
    cylinder(r=rad,h=26,center=true,$fn=24);
   }
 }
@@ -91,7 +91,7 @@ module autosampler()
 {
  os = 1;
  difference() {
-   frame(15);
+   frame(15.5);
    tubes(4, 4, 18, 30, -0.5);
    translate([0,14,0]) 
     rotate([0,90,90])
@@ -116,7 +116,7 @@ module reticule()
     cylinder(r=0.4,h=6.75,center=true,$fn=12);
 }
 
-reticule();
+//reticule();
 autosampler();
 translate([0,-4,-6.75])
    cradle();

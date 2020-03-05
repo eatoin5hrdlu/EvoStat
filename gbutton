@@ -82,12 +82,17 @@ initialise(Self, Label:[name]) :->
 	send(Self, size, size(Ysize,Xsize)),
 	new(B, bitmap('./web/phagestat.jpg')),
 	send(Self, slot, tmpbitmap, B),
+	new(Code1, message(Self, update)),
+	send(Self, recogniser, click_gesture(right,'',single,Code1)),
+	
+	new(Code,  message(Self, launch, guvcview, '--device=/dev/video1')),
+	send(Self, recogniser, click_gesture(left,'',single,Code)),
 	send(Self, display, B).
 
 update(Self) :->
 	"Must copy image to new filename to avoid caching"::
       statistics(snap1),
-%      writeln(updating(snapshot)),
+      writeln(updating(snapshot)),
       R is random(10000),
       concat_atom(['./web/phagestat',R,'.jpg'],NewFile),
       copy_file('./web/phagestat.jpg',NewFile),
@@ -104,7 +109,18 @@ update(Self) :->
       delete_file(NewFile).
 %      plog(updated(snapshot)).
 
+launch(_Self, Command, Device) :->
+    plog(launch(Command, Device)),
+    process_create(path(Command), [Device],[process(_PID), detached(true)]).
+
+
 closesocket(_Self) :-> true.
+
+%event(Self, Ev:event) :->
+%     send(Ev, is_a, mouse),
+%     get(Ev,id,Id),
+%     plog(snapshot_event(Id)),
+%     send_super(Self, event(Ev)).
 
 :- pce_end_class.  % snapshot
 
@@ -146,8 +162,16 @@ show_conversation(@Name) :->
         get(@Name, socket, Socket),
 	(Socket == @nil
 	    -> send(@Name, connect)
-	    ; new(_, dialin(Name,Socket))
+	    ;   ( new(DI, dialin(Name,Socket))
+	        -> true
+		; plog(failedConversation(@Name))
+		)
+	),
+	( nonvar(DI)
+	  -> send(DI, resize, 120, 40)
+	  ; true
 	).
+	
 
 reset(Self) :-
      get(Self, socket, Socket),

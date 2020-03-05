@@ -279,7 +279,7 @@ int tmp;
       while(tries-- > 0)
       {
 	    tmp = objTC();
-	    if (tmp>100  && tmp<800) return tmp;
+	    if (tmp>0  && tmp<800) return tmp;
 	    delayMicroseconds(5000);
 	    if ( tries == 0 && resets-- > 0 )
 	    {
@@ -396,7 +396,6 @@ int t   = objTC();
   }
   if (millis() - windowStartTime > windowSize) // move Relay Window
   {
-    Serial.println("move relay window");
     windowStartTime += windowSize;
   }
   dtee = millis() - windowStartTime;

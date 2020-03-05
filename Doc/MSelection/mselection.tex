@@ -183,11 +183,7 @@
 Peter Reintjes%\textsuperscript{1,2}
 \\
 \bigskip
-\textbf{Museum of Life and Science}
-\newline
-\bigskip
 \textbf{Innatrix, Inc.}
-%\textbf{1} Museum of Life and Science, Durham, North Carolina, USA
 \bigskip
 
 % Additional author notes using the symbols described below. Insert symbol callouts after author names as necessary.
@@ -290,7 +286,32 @@ A possible drawback to this technique is that the mutation space is less agressi
 
 The nominal (high) mutation rate can be chosen to guarantee that there will be a minimum number of non-mutant copies produced for every infection.  This percentage (of clones) will then increase proportunally as the mutation rate is reduced.
 
-One downside to all this is defective interference from all the propagating mutants with none of the desired activity. So they are infecting host cells and crowding out the 'nice clones' as we wait for their lineages to undergo Error Catastrophe.  It would be good to know how many uninfected host are making it through the lagoon. If we have an excess of uninfected host, this would reduce defective interference.
+The downside to this is defective interference from all the propagating mutants with none of the desired activity. So they are infecting host cells and crowding out the 'nice clones' as we wait for their lineages to undergo Error Catastrophe.  It would be good to know how many uninfected host are making it through the lagoon. If we have an excess of uninfected host, this would reduce defective interference.
+
+In the first generation, even a fatal mutation will be packaged in a viable virion, so that it will infect a host cell. But it will go no further if the fatal mutation results in non-functional coat proteins, origin of replication, packaging signal, or whatever. So in the worst case, a fatal mutation results in the production of 100 dead-end virions.
+
+The maximum mutation rate will be experienced by phage that have none of the desired activity and we want this rate to ensure that the accumulation of 5 non-beneficial mutations will result in a fatality.  The growth of a defectively interfering population is thus limited to 100^5, 10^6.  This number is reached only if for phage that has accumulated four non-beneficial, non-fatal mutations.  Presumably these are silent mutations as the phage genome is minimal and highly conserved. We should also recognize that a reversion to wild-type phage (shedding the payload gene), will also subject the phage to maxiumum mutation in every generation.
+
+Beneficial mutations resulting in detection of the desired activity will reduce the mutation rate, resulting in more cloned phage, which will inherent this ability to supress the mutation rate.
+
+Even if it is possible to have a series of mutations which result in a viable phage after ten generations, this genotype will not.  For the high-mutation
+all of the different mutations that occur in these 10 generations would have to be non fatal. resulting in 10^10 viable phage mutations.
+
+For a given maximal mutation rate, what are the
+Can we estimate a probability for M13s resistance to mutation.
+Since different types of organisms, and even individual species, have some control over their exposure to mutations.
+
+Perfect replication okay for Artificial Selection
+
+There is at least one aspect of natural evolution which we do not have to replicate in directed evolution.  The principals of evolution make it clear that perfect DNA replication is a recipe for extinction in any environment that is subject to change.  But we are clearly going to engineer our continuous evolution environment to be as stable as possible, so future experiments can take advantage of DNA replication and repair mechanisms to allow for perfect replication at the upper end of the usable range.
+
+Phage has a higher natural mutation rate than all types of cells, but our artificial environment does not have to respect
+There is no reason not to utilize the entire range from Mutation Storm to Perfect Replication.  In fact, modifications which can achieve perfect replication.
+
+So we may do something nature never did, which is bring all the tools of replicative fidelity to phage reproduction.
+
+What fraction of the M13 gene can carry non-fatal mutations. Including all the silent mutations, plus those which represent similar amino acid substitutions,
+
 
 \begin{minipage}{\textwidth}
 Figure 1 shows the combined mutagenic/selection mechanism replacing the Mutagenesis Plasmid(MP) and Accessory Plasmid (AP) in PACE.
@@ -465,6 +486,12 @@ Lynch M.
   Drake J. W., 
   \newblock \textit{{A} constant rate of spontaneous mutation in DNA-based microbes}, 
   \newblock  Proc Natl Acad Sci U S A. 1991 Aug 15;88(16):7160-4.
+
+\bibitem{domingo2009}
+  Domingo-Calap P, Cuevas JM, Sanjua´n R (2009)
+\newblock The Fitness Effects of Random Mutations in Single-Stranded DNA and RNA Bacteriophages.
+\newblock PLoS Genet 5(11): e1000742. doi:10.1371/journal.pgen.1000742
+
 \end{thebibliography}
 
 \fbox{\begin{minipage}{4.0in}

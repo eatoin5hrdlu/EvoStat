@@ -1,6 +1,26 @@
 /*
  * Lagoon controller
  */
+
+#define pin2ISR(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
+
+const int dripPin = 2;  // PIN with ISR for photo-interrupter
+
+volatile int     DRIP_count;
+volatile int     DRIP_events;
+volatile long    DRIP_time;
+int              last_DRIP_count;
+
+void dripCatcher() // 0 -> 1 transition on pin 2
+{
+long now = millis();
+     DRIP_events++;                 // Two events <10mS
+     if ( (now - DRIP_time) > 10 )  // is the same drop
+     	DRIP_count++;
+     DRIP_time = now;
+}
+
+
 /*
  * WIRING:
  *  +5V                  Orange
@@ -584,6 +604,7 @@ void setup()
 	//  Active Low (power to valve) default 1 == no power
 	pinMode(HEATER,    OUTPUT);  digitalWrite(HEATER, 1);
 	pinMode(LED,       OUTPUT);  digitalWrite(LED, 0);
+	pinMode(DRIP,      INPUT);
 
 	pinMode(VALVEDISABLE,OUTPUT);
 
@@ -630,12 +651,15 @@ void setup()
 	auto_valve = true;  // Maintain Flow
 	auto_mixer = true;  // Cycle magnetic mixer to avoid stalled stir-bar
 	if (debug) Serial.println("reset.");
+
+        attachInterrupt(pin2ISR(dripPin), dripCatcher, RISING);
 }
 
 int cnt_mixer = 0;
 void loop()
 {
 int t;
+        Serial.println(DRIP_count);
 	respondToRequest();     // Check for command
 	if (auto_valve) valve.checkValve();
 	delay(200);

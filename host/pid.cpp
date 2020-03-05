@@ -20,7 +20,7 @@
 PID::PID(double* Input, double* Output, double* Setpoint,
         double Kp, double Ki, double Kd, int ControllerDirection)
 {
-	
+    controllerDirection = ControllerDirection;
     myOutput = Output;
     myInput = Input;
     mySetpoint = Setpoint;
@@ -87,7 +87,7 @@ void PID::SetTunings(double Kp, double Ki, double Kd)
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
  
-  if(controllerDirection ==REVERSE)
+  if(controllerDirection == REVERSE)
    {
       kp = (0 - kp);
       ki = (0 - ki);
@@ -166,7 +166,7 @@ void PID::SetControllerDirection(int Direction)
 {
    if(inAuto && Direction !=controllerDirection)
    {
-	  kp = (0 - kp);
+      kp = (0 - kp);
       ki = (0 - ki);
       kd = (0 - kd);
    }   

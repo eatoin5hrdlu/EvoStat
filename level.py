@@ -539,10 +539,12 @@ if __name__ == "__main__" :
     global cycletime
     cycletime = 90  # Default
     start = int(time.time())
-#    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # No buffering
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # No buffering
     os.close(sys.stderr.fileno())
-#   sys.stderr = open('/tmp/level.log','a')
-    sys.stderr = open('/home/pi/src/EvoStat/web/level.txt','a')
+    if os.path.exists('/home/pi/src/EvoStat/web/') :
+        sys.stderr = open('/home/pi/src/EvoStat/web/level.txt','a')
+    else :
+        sys.stderr = open('/tmp/level.log','a')
     memuse()
     print("Here I am at new stderr", file=sys.stderr)
     memuse()

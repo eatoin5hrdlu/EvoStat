@@ -19,10 +19,10 @@
 #define NUM_VALVES      4
 
 // Only 3 PWM Nano: [3 int],5,6,[9,10 servo],11
-#define DRIP            2    // Interrupt Drip Beam     SC
+#define DRIP            2    // Interrupt Drip Beam     SensorConnector
 #define DRIP2           3    // Aux Interrupt Drip      SC
 #define AIR             4    // AIR PUMP
-#define MENISCUS        5    // Meniscus light     PWM  MC
+#define MENISCUS        5    // Meniscus light     PWM  ModuleConnector
 #define MIXER           6    // PWM for 5V motor   PWM  MC
 #define WASTE           7    // Output to Waste (12V Solenoid Valve)
 #define VALVEPIN        8    // Control of valve servo

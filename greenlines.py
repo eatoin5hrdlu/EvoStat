@@ -564,6 +564,10 @@ def processRegion2(image, bbox, function, params, n) :
 if __name__ == "__main__" :
     global referenceImage
     global positions
+    with suppress_stdout_stderr() :
+        os.system("sudo ./usbreset /dev/bus/usb/005/011")
+        time.sleep(1)
+        os.system("/usr/bin/uvcdynctrl -L aristotle.gpfl --device=/dev/video0")
     pfile = open("vary.txt",'w')
     for v in vary(defaultParams) :
         print(v,file=pfile)
@@ -597,7 +601,7 @@ if __name__ == "__main__" :
     rlevels = getLevels(green, 127, (1, 1.28, -80), 2, reticules)
     printRLevels(rlevels)
     imageOut()
-    release()
+#    release()
 #    print(str(vlevels))
 #    print(str(get_positions(vlevels)))
 #    print(str(xydeltay(reticules,get_positions(vlevels))))

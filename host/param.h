@@ -19,11 +19,11 @@
 #define LED             13    // Arduino LED
 #define LASER           11    // Turbidity LASER (PWM on Nano or Mega)
 #define JARLIGHT        7     // Meniscus light
-#define NUTRIENT        4     // Only one valve for Cellstat
-#define INDUCE1         6     // Only one valve for Cellstat
-#define INDUCE2         8     // Only one valve for Cellstat
+#define NUTRIENT        4     // V0 is Nutrient supply
+#define INDUCE1         5     // 
+#define INDUCE2         8     // 
 #define HOSTOUT         5     // Output to Waste
-#define MIXER           3     // PWM for 12V motor
+#define MIXER           3     // PWM for 5V motor
 
 #define DEFAULT_CYCLETIME       20  // Seconds
 

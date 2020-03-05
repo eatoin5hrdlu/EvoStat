@@ -69,10 +69,6 @@
 		margin: 2em 0;
 	}
 
-	input[type="submit"] {
-		font-weight: bold;
-	}
-
 	label, input {
 		color: #A57B46;
 	}

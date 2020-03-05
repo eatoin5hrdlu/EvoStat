@@ -28,6 +28,18 @@ Module RJ-45
 7) Brown-white    Vcc (heat)
 8) Brown          Heat-
 
+Misc RJ-45
+
+1) Orange-white   Valve-
+2) Orange         Leak
+3) Green-white    Air
+4) Blue           UVC+ (9-volts)
+5) Blue-white     UVC-
+6) Green          Gnd
+7) Brown-white    ServoControl
+8) Brown          ServoPower
+
+
 ANALOG_LEAK          A1 // Analog leak detection OTHER
 CURRENT_SENSE2       A2 // Analog input
 ANALOG_TURBIDITY     A3 // Turbidity (brown/white) SC

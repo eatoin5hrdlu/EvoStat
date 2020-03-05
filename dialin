@@ -1,4 +1,5 @@
 #!/usr/bin/xpce
+:- set_prolog_flag(double_quotes,codes).
 :- dynamic show_conversation/1.
 :- dynamic arduino_windows/1.
 arduino_windows(0).
@@ -14,6 +15,11 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	send(Self?frame, icon, bitmap('./evo.xpm')), % LOGO
         new(Diatxt, text_buffer),
         new(Editor, editor(Diatxt)),         % Emacs editor
+	
+	% Font size affects the text window size!
+	% So do this before setting width/height
+	new(Font12, font(roman, bold, 11)),
+	send(Editor, font, Font12),
 
 	send(Editor?bindings, function, 'RET', message(Self,enter)),
 	screen(DW,DH,WF,HF,_),
@@ -21,9 +27,18 @@ initialise(Self, Label:[name], Socket:[any]) :->
 	MyH is (DH*HF/100)/2,
 	get(Editor,  area, Area),                     % Resize
 	send(Area, set(width:=MyW,height:=MyH)),
+	get(Editor, font, Font),
+	plog(editorFont(Font)),
 	send(Self, append, Editor),
 	updates_off,
-	send_super(Self, open, point(300,200)).
+	random(50,100,YPos),
+	random(300,500,XPos),
+	send_super(Self, open, point(XPos,YPos)).
+
+resize(Self,MyW,MyH) :-> "Resize the Editor Text Window"::
+	get(Self, member, editor, Editor),
+	get(Editor,  area, Area),
+	send(Area, set(width:=MyW,height:=MyH)).
 
 updates_off :-
 	    arduino_windows(N),
@@ -55,10 +70,35 @@ enter(Self) :-> "Send or clear window (alternately)"::
 	;   talk(Self, Cmd, Editor)
 	).
 
+% A real hack
+translate0(0'4, 0'h).
+translate0(0'8, 0'l).
+translate0(0'9, 0'm).
+% To show id code as: h(ost), m(odule), or l(agoon)
+translate( String, ResultString) :-
+    string_codes(String,Codes),
+    append("id(10",[X|Rest],Codes),
+    translate0(X,C),
+    !,
+    append("id(",[C|Rest],ResultCodes),
+    string_codes(ResultString,ResultCodes).
+translate(String,ResultString) :-
+    string_codes(String,Codes),
+    nocr(Codes,NewCodes),
+    string_codes(ResultString,NewCodes).
+
+nocr([],[]).
+nocr([13|T],NT) :-
+	!,
+	nocr(T,NT).
+nocr([H|T],[H|NT]) :-
+	nocr(T,NT).
+
 talk(Self, Cmd, Editor) :-
 	get(Self, socket, Socket),
 	plog(before(Socket,Cmd)),
-	bluetalk(Socket, Cmd, Msg),
+	bluetalk(Socket, Cmd, Msg0),
+	translate(Msg0,Msg),
 	plog(after(Socket,Msg)),
 	( ( Msg=[] ; string_length(Msg,0) )
 	     -> get_super(Self, label, Whoami),

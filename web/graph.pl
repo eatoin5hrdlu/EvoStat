@@ -38,5 +38,18 @@ test :-
     consult('datalog.txt'),
     setof(Time:Data, toCSV(Time,Data), AllData),
     open(httltloo,write,F),
+    format(F,'htemp,turbidity,hlevel,ltemp,llevel,v0,v1\n',[]),
     data_sequence(AllData,F),
     close(F).
+
+range(What,Who,Min,Max) :-
+    member(What,[temperature,turbidity,level,hostValve,lagoonValve]),
+    Term =.. [What, Who, Time, Val],
+    setof(range(Val,What),What^Who^Time^Val^Term,Solns),
+    Solns = [MinTerm|_],
+    append(_,[MaxTerm],Solns),
+    arg(1,MinTerm,Min),
+    arg(1,MaxTerm,Max).
+    
+    
+% average(Var,Goal,-Average)

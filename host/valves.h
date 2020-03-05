@@ -36,7 +36,7 @@ class VALVES
     cycletime = DEFAULT_CYCLETIME*1000; // Cycle in seconds, store as ms
   }
 
-  void setup_valve(int v, byte pn, int tm, byte dir) {
+  void setup_valve(int v, byte pn, uint16_t tm, byte dir) {
     valve_time[v] = tm;
     valve_pin[v] =  pn;
     valve_dir[v] = dir;
@@ -53,7 +53,7 @@ class VALVES
   int getCycletime(void)      { return cycletime/1000;  }
   void setCycletime(int secs) { cycletime = secs*1000; }
 
-  boolean setValve(int pin, int time) {
+  boolean setValve(int pin, uint16_t time) {
     int i;
     for(i=0;i<size;i++) {
       if (valve_pin[i] == pin) {
@@ -112,7 +112,7 @@ boolean checkValves(void) {
     valve_open[v] = 0;
   }
 
-  int *getTimes()            { return &valve_time[0];   }
+  uint16_t *getTimes()       { return &valve_time[0];   }
   int getTime(int vn)        { return valve_time[vn]; }
   int setTime(int vn, int t) { valve_time[vn] = t; }
 
@@ -121,7 +121,7 @@ boolean checkValves(void) {
   byte     flow;
   byte     valve_pin[NUM_VALVES];
   byte     valve_dir[NUM_VALVES];
-  int      valve_time[NUM_VALVES];
+  uint16_t valve_time[NUM_VALVES];
   long int valve_open[NUM_VALVES];  // When was the valve opened
 
   unsigned long lasttime;  // Beginning of current time interval

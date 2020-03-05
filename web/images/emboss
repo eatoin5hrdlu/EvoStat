@@ -15,7 +15,7 @@ fi
 
 twidth=`identify -format "%[fx:w]" $template`
 theight=`identify -format "%[fx:h]" $template`
-xoff=$(($twidth/2-200))
+xoff=$(($twidth/2-280))
 yoff=100
 distance=Euclidean
 font=Bookman-DemiItalic

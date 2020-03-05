@@ -1,3 +1,6 @@
+# SWIPL = swipl-win
+SWIPL = swipl
+
 camreset: camreset.c
 	cc camreset.c -o camreset
 	sudo chown root camreset
@@ -5,11 +8,11 @@ camreset: camreset.c
 	sudo chmod +s camreset
 
 test : plblue.so pace
-	swipl -s pace -g main
+	${SWIPL} -s pace -g main
 
 wintest : plblue.dll pace
-	swipl-win -s pace -g main
+	${SWIPL}-win -s pace -g main
 
-evostat : b.pl binmaker
-	swipl-win -s binmaker -t "save(evostat)"
+evostat : c.pl binmaker
+	${SWIPL} -s c.pl -t "save_evostat"
 

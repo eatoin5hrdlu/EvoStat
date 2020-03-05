@@ -413,7 +413,7 @@ initialise(W, Label:[name]) :->
          send(W,started),
          send_super(W, open, Location),
 	 plog(normal(launch)),
-	 launch(level),
+	 launch(level), % calls Python program level.py
 	 findall(Person,sendIP(Person),People),
 	 plog(sentIP(People)),
 	 plog(finished(evostat)).
@@ -889,7 +889,8 @@ main(Argv) :-
 %   xrestart and linuxrestart are handled in by crontab (system_actions.sh)
 %
 
-levelrestart :- launch(level), % Should clean up any old instance of process
+% Should clean up any old instance of process
+levelrestart :- launch(level), % runs Python program level.py
 		plog(relaunched(level)).
 
 % findall, maplist vs. repeat,fail,true

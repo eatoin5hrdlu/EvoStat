@@ -17,7 +17,9 @@ space(_) --> [].
 inputItem(Type) --> [ Name ], var_label(P),
 		    { component(Name,Type,Obj),
 		      concat_atom([Name,'_',P],Var),
-                      webValue(Obj,P,Val)           },
+                      webValue(Obj,P,Val)
+%		      (Val = 0 -> DVal = 'N/A' ; DVal=Val)
+		    },
 		    [ input([type=text,name=Var,value=Val]) ],
 		    var_units(P), nl, space(Type).
 
@@ -33,10 +35,9 @@ controlpathe(_Req) :-
     flatten([ input([type=text,id=motd,name=motd,value=Message]),br([]),
 	      Fields, input([type=submit,name=submit,value='Submit']),
 	input([ type=button,name='Cancel',value='Cancel',
-        onClick='window.location="/web/pathe.pl"'])],Inputs),
-    reply_html_page([title('Pathe Control Panel'),
-	             script([ language(javascript) ],[])],
-	body(background('/web/images/brushed.jpg'),
+		onClick='window.location="/web/pathe.pl"'])],Inputs),
+    defaultHead('Pathe Control Panel',Head),
+    reply_html_page(Head, body(background('/web/images/brushed.jpg'),
 	     form(action='./change.pl', Inputs))),
     retract(html_syntax).
 

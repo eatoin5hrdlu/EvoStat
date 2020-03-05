@@ -3,6 +3,9 @@
 #define P(x)  Serial.print(x)
 #define PL(x) Serial.println(x)
 
+int overflow_sensor[2] = { A0, A7 };
+int overflow_valve[2]  = { A1, A2 };
+
 char id = 'a'; // s is default for supply
 
 #define EOT "end_of_data."
@@ -24,8 +27,6 @@ void printInterface()
         rw(v4, int:=1000, \"Lagoon4 Drain Valve Timing\")\n\
        ])."));
 }
-
-
 
       
 // Requires Arduino with:
@@ -52,6 +53,8 @@ void printInterface()
 //
 #define digitalPinToInterrupt(p)  (p==2?0:(p==3?1:(p>=18&&p<=21?23-p:-1)))
 #define NUM_VALVES 5
+#define HOSTFULL   A0   /* Analog liquid level sensor */
+#define LAGOONFULL A2   /* Analog liquid level sensor */
 //
 // The following numbers work for the 12-volt motor supply
 // With four tubes to compress, 5-volts wasn't enough torque
@@ -469,6 +472,12 @@ char vn[3];
 			   valveTime[vnum] = value;
 		     }
 		     break;
+		case 'l': /* return liquid sensor values */
+			Serial.print(value);
+			Serial.print(" ");
+			Serial.println(overflow_sensor[value-1]);
+			printTermInt("l",analogRead(overflow_sensor[value-1]));
+			break;
 		case 'n': /* ns for number of samples */
 			if (value == 0) printTermInt("ns",sampleNum);
 			else 		sampleNum = value;
@@ -633,7 +642,9 @@ void checkSample(boolean ok) { // Check Sampling State Machine
 	     lastSampleTime = now;
 }
 
-boolean checkValves()  // Returns true if all valves are closed (so sampling would be okay)
+// Returns true if all valves are closed (so sampling would be okay)
+// which means its okay to sample
+boolean checkValves()
 {
 int i;
 boolean allclosed = true;
@@ -660,13 +671,56 @@ unsigned long now = millis();
 	return allclosed;
 }
 
+void checkOverflow(void)
+{
+static int overflow[2]        = { 0, 0 };
+static int overflow_value[2]  = { 600, 600 };
+int who;
+
+       for (who=0; who<2; who++)
+       {
+        if (debug and (ctr % 1000 == 0))
+	{
+	       	  Serial.print(who);
+	       	  Serial.print(" <-who  val-> ");
+	       	  Serial.println(analogRead(overflow_sensor[who]));
+        }
+	if (overflow[who] && analogRead(overflow_sensor[who]) > overflow_value[who] + 100)
+	{
+		overflow_value[who] = max(overflow_value[who] + 100, 400);
+		overflow[who] = 0;
+	}
+	else if (!overflow[who] && analogRead(overflow_sensor[who]) < overflow_value[who])
+	{
+		overflow[who] = 1;
+		overflow_value[who] = analogRead(overflow_sensor[who]);
+	}
+	else
+	{
+		if (analogRead(overflow_sensor[who]) > overflow_value[who] + 100)
+		   overflow_value[who] = max(overflow_value[who] + 100, 400);
+	}
+	if (overflow[who])
+	{
+		Serial.println("opening valve to prevent overflow");
+		digitalWrite(overflow_valve[who], 1); /* scheduler will close */
+	}
+	else if (overflow_value[who]>850)
+	{
+		Serial.print(overflow_value[who]);
+		Serial.print("  Is it closed? ");
+		Serial.println(digitalRead(overflow_valve[who]));
+	}
+       }
+}
+
 void loop()
 {
 	// checkSample will only start taking a sample
 	// when checkValves() returns true ( valves are all closed ).
 
-
 	checkSample( checkValves() );
+	checkOverflow();
 	respondToRequest();
 
 }

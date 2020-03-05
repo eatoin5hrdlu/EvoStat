@@ -29,4 +29,7 @@ module clip(lgt,wid,hgt,rad) {
 
 }
 
-rotate([180,0,0]) clip(16,7,20,2);
+difference() {
+     rotate([180,0,0]) clip(16,7,20,2);
+     translate([0,0,7]) cube([20,10,10],center=true);
+     }

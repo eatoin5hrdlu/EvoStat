@@ -1,6 +1,6 @@
 :- use_module(library(time)).
 :- use_module(newpid).
-% The PID algorithm will call get_input/2 and set_output/3,
+% The PID algorithm calls get_input/2 and set_output/3,
 % but their implementation is PID independent, so they live here.
 
 % 
@@ -12,7 +12,7 @@
 % we only need min/max limits on valve timings, not
 % a precise relationship with flow rates.
 % 
-% 1) Lagoons be very different from the Cellstat.
+% 1) Lagoons can be very different from the Host cultures
 % 2) Input/Output valve cycle schedules can be different.
 %
 % Eg. Lagoon input time is in ms every 30 seconds
@@ -133,28 +133,89 @@ get_input(Name, Var, _) :-
 % Lagoon name ends with <digit>: v<digit> is that lagoon's drain
 % Otherwise it must be the Cellstat's drain 'v0'
 %
+% Each component has:
+% 1) A primary input
+% 2) multiple downstream outputs to other components
+% 3) An output to the autosampler/drain
+%
+% The PID algorithm adjusts the timing of the primary input
+% and output to the autosampler. Each of the outputs to other
+% components are the primary inputs for those other components.
+% As they are controlled by other PID controllers, the autosampler/drain
+% output timing is the only one that will be controlled here.
+%
+% The total output of a given component is the sum of the inflow times
+% of the downstream components (not controlled by this PID instance)
+% and the residual timing for flow out through the autosampler/drain.
+%
+% To adjust timing for the autosampler drain for this component:
+% 1) Compute SumDownstream from this components downstream component's inputs.
+% 2) Add current autosampler/drain time to get CurrentOutput time.
+% 3) Use the new PID output to find an adjusted NewOutput time.
+% 4) Set the new autosampler drain time to  (NewOutput - SumDownstream)
+%
+% 
+% For any given component with a PID controller,
+% its successors may or may not have PID controllers.
+%
+% Succcessors with PID controllers represent outflow timings
+% are treated as an uncontrolled lower-bound of the component's outflow.
+% This sum-of-pid-controlled-successor-inputs will be subtracted from
+% the desired (total) Outflow timing and the remainder is applied
+% as the new timing of the specified Output-Valve.
+%
+% Important naming convention:
+% If a component's drain valve is vN, the successor primary input is v(N+1)
 
-set_output(Name, Var, Old, New) :-
-     ( component(Name,cellstat,_)
-     -> Inflow is integer(50*(New-Old)) % 1000 mL vessel
-     ;  Inflow is integer(5*(New-Old))  %  100 mL (smaller)
-     ),
-     adjust(Var,@Name,Inflow).
+downstream_times(ValveObj, OutValve, Total) :-
+	increment_atom(OutValve, Valve), % Thanks to naming convention
+	findall(InT, ( successor(ValveObj,InObj),
+		       pid_controlled(InObj),
+		       get(InObj,Valve,InT) ),   InTs),
+	sum_list(InTs, Total).
+%
+% The system will be fully adaptable to multiple input/output configurations
+% configurations as long as the sum-of-pid-controlled-successor-inputs
+% does not exceed the flow rate of the predecessor vessel.
+%
+% When the flow rate (and not absolute volume) is to be controlled,
+% the predecessor vessel adapts by increasing it's control level,
+% thereby maintaining the original flow rate (expressed in volumes/hour)
+% while supplying a larger quantity of liquid to it's successors.
+%
+% A negative Residual indicates that the Object's level/holding-volume
+% must be raised. For a cellstat, do this slowly to maintain cell density.
+%
+level_to_timing(Old,New,OldTime,NewTime) :-
+    NewTime is OldTime + (New-Old).
 
-% Different for levels (in and out valves)
-%       or temperature (heater on/off)
+set_output(l, Name, Old, New) :-  % LEVEL
+     component_drains(Name,_,OutName,OutValve),
+     downstream_times(Name, OutValve, Downstream),
+     get(@OutName, OutValve, Drain),
+     TotalTime is Downstream + Drain,
+     level_to_timing(Old, New, TotalTime, NewTime),
+     Residual is NewTime - Downstream,
+     ( Residual < 0
+      -> get(@Name,l,OldLevel),
+     	 NewLevel is OldLevel,
+	 set(@Name,l,NewLevel)
+      ;  adjust_valve(@Name, @OutName,OutValve,Residual,out)
+     ).
+     
+	
+% Different for levels (in and out valve timings)
+%       or temperature (heater on/off duty cycle)
 
-adjust(l,Obj,Value) :-
-	dblog(pid,adjust_level(Obj,Value)),
-	adjust_level(Obj,Value),
-	dblog(pid,adjusted(Value)).
-adjust(t,@Name,NYI) :-
-	dblog(pid, adjust_nyi(Name,temperature,NYI)).
+set_output(t, Name, Old, New) :-  % TEMPERATURE
+     dblog(pid, adjust_NYI(Name,temperature,Old,New)).
+
+adjust(l,Obj,Amt) :- dblog(pid, adjust(l,Obj,Amt)).
 
 % Adjust level is two calls to adjust_valve (in and out)
 adjust_level(Obj, Inflow) :-
      Obj = @Name,		  
-     component_valves(Name,InValve,OutName,OutValve),
+     component_drain(Name,InValve,OutName,OutValve),
      adjust_valve(Obj,Obj,InValve,Inflow, in),
      flog(after(adjust_valve1)),
      assert(changed(Obj,InValve,Inflow)),
@@ -181,7 +242,7 @@ adjust_valve(Obj, ValveObj, Valve, Amt, Dir) :-
 close_all_valves :- findall(N,close_valves(N),_).
 
 close_valves(Name) :-
-       component_valves(Name,InValve,Name2,OutValve),
+       component_drain(Name,InValve,Name2,OutValve),
        component(Name,_,V1Obj),
        send(V1Obj, InValve, 0),
        component(Name2,_,V2Obj),
@@ -231,44 +292,3 @@ successor(P, S) :-
     arg(Index,component(SN,ST,SO), S). % use position to get Id
 
 
-% 
-% For any given component with a PID controller,
-% its successors may or may not have PID controllers.
-%
-% Its succcessors with PID controllers represent outflow timings
-% that are not under its control and therefore summed and treated
-% as the uncontrolled lower bound of the components outflow.
-% This sum-of-pid-controlled-successor-inputs is subtracted from
-% the desired control Outflow parameter and the remainder is applied
-% as the timing of the specified Output-Valve.
-%
-% The system will be fully adaptable to multiple input/output configurations
-% configurations as long as the sum-of-pid-controlled-successor-inputs
-% does not exceed the flow rate of the predecessor vessel.
-%
-% When the flow rate (and not absolute volume) is to be controlled,
-% the predecessor vessel adapts by increasing it's control level,
-% thereby maintaining the original flow rate (expressed in volumes/hour)
-% while supplying a larger quantity of liquid to it's successors.
-%
-%
-
-% split_out( + Component-Object,
-%            + Output-Valve,
-%            + Total-Outflow-Time,
-%            - Residual-Time)
-% followed by:
-% send(Component-Object            + Output-Valve,
-%            + Total-Outflow-Time,
-%            - Residual-Time)
-
-% Negative Residual will require this Objects Level to be raised
-%
-split_out(ValveObj, OutValve, Outflow, Residual) :-
-	increment_atom(OutValve, Valve),
-	findall(InT, ( successor(ValveObj,InObj),
-		       pid_controlled(InObj),
-		       get(InObj,Valve,InT) ),   InTs),
-	sum_list(InTs, TotalTime),
-	Residual is Outflow - TotalTime.
-	

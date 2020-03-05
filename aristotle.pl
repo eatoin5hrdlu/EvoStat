@@ -64,12 +64,12 @@ config( [
 %PREVbt_device( lagoon1,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
 
 % Ari's devices
-bt_device( host0,  '98:D3:31:FB:7A:BF'). % HC-06 name: <new>
-bt_device( lagoon2,  '98:D3:31:FB:A5:15'). % HC-06 name: <new>
+%bt_device( host0,  '98:D3:31:FB:7A:BF'). % HC-06 name: <new>
+%bt_device( lagoon2,  '98:D3:31:FB:A5:15'). % HC-06 name: <new>
 
 % Huxley's devices
-%bt_device( host0,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
-%bt_device( lagoon2,  '98:D3:31:40:31:C3'). % HC-06 name: lagoon2
+bt_device( host0,  '98:D3:31:20:23:36'). % HC-06 name: cellstat0
+bt_device( lagoon2,  '98:D3:31:40:31:C3'). % HC-06 name: lagoon2
 
 % NEW HOST
 

@@ -86,7 +86,7 @@ compute(Id) :-
 	( in_deadzone(Var, SetPoint, Input)
 	-> dblog(pid,deadzone(Id,Var,SetPoint,Input,Output))
          ; dblog(pid,pid(Id,Var,Input,Output)),
- 	  set_output(Id, Var, Input, Output)
+ 	  set_output(Var, Id, Input, Output)
 	).
 
 in_deadzone(Var, V1,V2) :- deadzone(Var, D), N is abs(V1-V2), N<D.

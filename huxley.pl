@@ -22,9 +22,9 @@ config( [
 
 	 frames(100),       % number of frames for lumosity integration
 	 darkness(60),      % Average pixel threshold to identify darkness
-	 camera(0),
-	 rotate(90),
-	 screen(52,86,point(110,40)),
+	 camera(0),  % value of device number(Windows) or /dev/videoN (Linux)
+	 rotate(90), % Clockwise rotation before image processing
+	 screen(52,86,point(110,40)), % Placement of GUI on desktop
 	 layout([
 		 supply( nutrient, below,  [Supply,levelUnits('L'),v(10)]),
 		 supply( arabinose, right, [Supply,levelUnits(mL)]),

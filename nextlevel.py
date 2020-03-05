@@ -68,7 +68,7 @@ def exportImage(image) :
         (y1,x1,y2,x2) = params['lagoonRegion']
         cv2.rectangle(image,(x1,y1),(x2,y2),(250,250,0),2)
         for i in range(4):
-            ((lx1,ly1),(lx2,ly2)) = lagoon_level_bbox_xy(i)
+            ((lx1,ly1),(lx2,ly2)) = lagoon_level_bbox_thirds(i)
             cv2.rectangle(image,(lx1,ly1),(lx2,ly2),
                           (100, 255-i*60, i*60), 2)
         name = "./web/phagestat.jpg"
@@ -153,8 +153,8 @@ def showCoord(img,pt,color,size) :
 
 def showLevel(img, bb, lvl, color) :  # Return % from bootom
     height = bb[2]-bb[0]
-    w2 = (bb[3]-bb[1])/2
-    (px,py) = ( bb[3], bb[0]+lvl )
+    w2 = int( (bb[3]-bb[1])/2 )
+    (px,py) = ( int(bb[3]), int(bb[0]+lvl) )
     if (lvl == 0) :
         pc = 100
     else :
@@ -246,6 +246,17 @@ def lagoon_level_bbox_xy(lnum) :
     right = x1 + w16 + w8 - 8
     return ((left+(lnum*w4), y1+8),(right+(lnum*w4),y2-8))
 
+def lagoon_level_bbox_thirds(lnum) :
+    global params
+    (y1,x1,y2,x2) = params['lagoonRegion']
+    w3 = int((x2-x1)/3)
+    w6 = w3/1.5
+    w12 = w6/3
+    left = x1 + w12 + 8
+    right = x1 + w12 + w6 - 8
+    return ( ( int(left+(lnum*w3)), int(y1+8) ),
+             ( int(right+(lnum*w3)), int(y2-8) ) )
+
 if __name__ == "__main__" :
     plog("openCV('" + str(cv2.__version__) + "').")
     params = settings()
@@ -270,7 +281,7 @@ if __name__ == "__main__" :
     llist = [ showLevel(img, brect, lev, (0,255,255)) ]
     img2 = img
     for i in range(params['numLagoons']) :
-        ( (lx1,ly1), (lx2,ly2) ) = lagoon_level_bbox_xy(i)
+        ( (lx1,ly1), (lx2,ly2) ) = lagoon_level_bbox_thirds(i)
         lbb = (ly1,lx1,ly2,lx2)
         llev = 0
         tries = 5

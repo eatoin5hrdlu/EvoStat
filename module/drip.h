@@ -21,7 +21,7 @@ void reportDRIP(void)
     }
   Serial.println("]).");
 }
-
+// DRIP, pin 2 (param.h)
 void dripCatcher0() // 0 -> 1 transition on pin 2
 {
 long now = millis();
@@ -31,6 +31,7 @@ long now = millis();
      DRIP_time[0] = now;
 }
 
+// DRIP2, pin 3 (param.h)
 void dripCatcher1() // 0 -> 1 transition on pin 6
 {
 long now = millis();
