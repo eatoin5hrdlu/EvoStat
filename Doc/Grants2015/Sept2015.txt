@@ -1,7 +1,0 @@
-Deadline: 9/18/2015
-Agency: National Institutes of Health
-Program: Bioengineering Research Partnerships (BRP) R01
-Description: This Funding Opportunity Announcement (FOA) encourages bioengineering applications that will accelerate the development and adoption of promising tools and technologies that can address important biomedical research problems. The objectives are to establish these tools and technologies as robust, well-characterized solutions that fulfill an unmet need and are capable of enhancing our understanding of life science processes or the practice of medicine. Awards will focus on supporting multidisciplinary teams that apply an integrative, quantitative bioengineering approach to developing these technologies and engage biomedical researchers or clinicians throughout the project. The goal of the program is to support projects that can realize meaningful solutions within 5-10 years.
-Award Amount: Varies
-Website: http://grants.nih.gov/grants/guide/pa-files/PAR-14-092.html
-Eligibility: State, county or city governments; public and private institutes of higher education; school districts; small businesses; nonprofits; Native American tribal organizations; others 
